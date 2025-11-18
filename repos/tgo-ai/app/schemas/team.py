@@ -1,0 +1,132 @@
+"""Team-related Pydantic schemas."""
+
+import uuid
+from typing import List, Optional
+
+from pydantic import Field, field_validator
+
+from app.schemas.base import BaseSchema, IDMixin, TimestampMixin
+
+
+class TeamBase(BaseSchema):
+    """Base team schema with common fields."""
+
+    name: str = Field(
+        max_length=255,
+        description="Team name",
+        examples=["Customer Support Team"],
+    )
+    model: str = Field(
+        max_length=150,
+        description="LLM model in 'provider:model_name' format",
+        examples=["anthropic:claude-3-sonnet-20240229"],
+    )
+    instruction: Optional[str] = Field(
+        default=None,
+        description="Team system prompt/instructions",
+        examples=["You are a customer support team focused on resolving user issues efficiently..."],
+    )
+    expected_output: Optional[str] = Field(
+        default=None,
+        description="Expected output format description",
+        examples=["Provide clear, actionable solutions with step-by-step instructions"],
+    )
+    session_id: Optional[str] = Field(
+        default=None,
+        max_length=150,
+        description="Team session identifier",
+        examples=["cs-team-session-2024"],
+    )
+    is_default: bool = Field(
+        default=False,
+        description="Whether this should be the default team (only one per project)",
+    )
+
+    @field_validator("model")
+    @classmethod
+    def validate_model_format(cls, v: str) -> str:
+        if ":" not in v:
+            raise ValueError("Model must be in 'provider:model_name' format")
+        return v
+
+
+
+
+class TeamCreate(TeamBase):
+    """Schema for creating a new team."""
+
+    llm_provider_id: Optional[uuid.UUID] = Field(
+        default=None,
+        description="LLM provider (credentials) ID to use for this team",
+    )
+
+
+class TeamUpdate(BaseSchema):
+    """Schema for updating an existing team."""
+
+    name: Optional[str] = Field(
+        default=None,
+        max_length=255,
+        description="Updated team name",
+    )
+    model: Optional[str] = Field(
+        default=None,
+        max_length=150,
+        description="Updated LLM model in 'provider:model_name' format",
+    )
+    instruction: Optional[str] = Field(
+        default=None,
+        description="Updated team instructions",
+    )
+    expected_output: Optional[str] = Field(
+        default=None,
+        description="Updated expected output format",
+    )
+    session_id: Optional[str] = Field(
+        default=None,
+        max_length=150,
+        description="Updated session identifier",
+    )
+    is_default: Optional[bool] = Field(
+        default=None,
+        description="Updated default status",
+    )
+    llm_provider_id: Optional[uuid.UUID] = Field(
+        default=None,
+        description="Updated LLM provider (credentials) ID",
+    )
+
+    @field_validator("model")
+    @classmethod
+    def validate_model_format(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        if ":" not in v:
+            raise ValueError("Model must be in 'provider:model_name' format")
+        return v
+
+
+
+
+class TeamResponse(TeamBase, IDMixin, TimestampMixin):
+    """Schema for team API responses."""
+
+    llm_provider_id: Optional[uuid.UUID] = Field(
+        default=None,
+        description="Associated LLM provider (credentials) ID",
+    )
+
+
+class TeamWithDetails(TeamResponse):
+    """Schema for team response with additional details."""
+
+    agents: List["AgentWithDetails"] = Field(
+        default_factory=list,
+        description="Agents belonging to this team with their tools and collections",
+    )
+
+
+# Forward reference resolution
+from app.schemas.agent import AgentWithDetails  # noqa: E402
+
+TeamWithDetails.model_rebuild()

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="TGO Hex V4 - Mono Inner Hex">
+  <title>TGO Hex V4 - Mono Inner Hex</title>
+  <!-- Mono color variant (temporary replacement) -->
+  <polygon points="12,4 18.928,8 18.928,16 12,20 5.072,16 5.072,8" fill="none" stroke="#2f80ed" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- Small filled hex at center, R=2.4 -->
+  <polygon points="12,9.6 14.078,10.8 14.078,13.2 12,14.4 9.922,13.2 9.922,10.8" fill="#2f80ed"/>
+</svg>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="TGO Circle + T (Mono)">
+  <title>TGO Circle + T (Mono)</title>
+  <!-- TG combined: open G ring + integrated T (mono) -->
+  <g fill="none" stroke="#2f80ed" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+    <!-- G ring: arc from 30° to 330°, gap ~60° (≈16.7% circumference) centered at 3 o'clock -->
+    <path d="M 18.928 16 A 8 8 0 1 1 18.928 8"/>
+    <!-- Integrated T: top bar continues from the gap inward; vertical stem from center down -->
+    <path d="M 18.1 12 H 8.9"/>
+    <path d="M 12 11 V 17.2"/>
+  </g>
+</svg>
+

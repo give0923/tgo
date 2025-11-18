@@ -1,0 +1,29 @@
+from __future__ import annotations
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables / .env.
+
+    Uses Pydantic Settings 2.x. All fields are validated and typed.
+    """
+
+    model_config = SettingsConfigDict(env_file=".env", env_prefix="TGO_", extra="ignore")
+
+    # tgo-api base URL
+    api_base: str
+
+    # PostgreSQL DSN for SQLAlchemy async engine
+    pg_dsn: str  # e.g. postgresql+asyncpg://user:pass@host:5432/db
+
+    # SSE and HTTP behavior
+    sse_backpressure_limit: int = 1000
+    request_timeout_seconds: int = 120
+
+    # Redis (optional) for caching
+    redis_url: str | None = None  # e.g. redis://127.0.0.1:6379/0
+    visitor_cache_ttl_seconds: int = 24 * 60 * 60
+
+
+settings = Settings()
+

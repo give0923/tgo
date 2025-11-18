@@ -1,0 +1,395 @@
+"""
+Document processing core orchestration module.
+
+This module provides the main document processing orchestration logic,
+coordinating file loading, chunking, embedding generation, and status management.
+It serves as the central coordinator for the entire document processing pipeline.
+
+Key Components:
+- Main processing orchestration function
+- File status management and progress tracking
+- Task coordination between different processing stages
+- Performance monitoring and metrics collection
+- Error handling and recovery coordination
+- Database transaction management
+
+Features:
+- Coordinated multi-stage processing pipeline
+- Real-time status updates and progress tracking
+- Comprehensive error handling with proper rollback
+- Performance metrics and timing analysis
+- Memory-efficient processing for large files
+- Robust transaction management
+"""
+
+import asyncio
+import logging
+import time
+from typing import Any, Dict, List, Optional
+from uuid import UUID
+
+from sqlalchemy import select, update
+from sqlalchemy.exc import SQLAlchemyError
+
+from .document_loaders import get_document_loader
+from .document_chunking import chunk_documents, get_chunking_stats, validate_chunks
+from .document_embedding import generate_embeddings, get_embedding_service_info
+from .document_processing_errors import (
+    DocumentProcessingError,
+    ProcessingStep,
+    ProcessingStatus,
+    _handle_processing_error,
+    log_processing_step,
+    log_processing_success
+)
+from .document_processing_types import (
+    DocumentList,
+    FileInfo,
+    ProcessingResult
+)
+from ..database import get_db_session
+from ..models import File, FileDocument
+
+logger = logging.getLogger(__name__)
+
+
+async def process_file_async(
+    file_uuid: UUID,
+    collection_id: UUID,
+    task_id: Optional[str] = None
+) -> ProcessingResult:
+    """
+    Main asynchronous document processing function.
+    
+    This function orchestrates the complete document processing pipeline:
+    1. Load and validate file information
+    2. Extract content using appropriate document loader
+    3. Chunk documents for optimal embedding size
+    4. Generate embeddings using configured embedding service
+    5. Store documents and embeddings in database
+    6. Update file status and metrics
+    
+    Args:
+        file_uuid: UUID of the file to process
+        collection_id: UUID of the collection the file belongs to
+        task_id: Optional Celery task ID for progress tracking
+        
+    Returns:
+        Dictionary containing processing results and metrics
+        
+    Raises:
+        DocumentProcessingError: For any processing failures
+    """
+    start_time = time.time()
+    file_id = str(file_uuid)
+    
+    try:
+        # Update status to processing
+        await _update_file_status(file_uuid, ProcessingStatus.PROCESSING)
+        log_processing_step(file_id, ProcessingStep.LOADING_FILE, "Starting document processing")
+        
+        # Load file information
+        file_info = await _load_file_info(file_uuid, file_id)
+        
+        # Load and extract document content
+        documents = await _load_document_content(file_info, file_id)
+        
+        # Update status to chunking
+        await _update_file_status(file_uuid, ProcessingStatus.CHUNKING_DOCUMENTS)
+        
+        # Chunk documents
+        chunks = await _chunk_documents(documents, file_id, file_uuid, collection_id, file_info.project_id)
+        
+        # Store document chunks in database
+        await _store_document_chunks(chunks, file_id, file_info.project_id)
+        
+        # Update status to generating embeddings
+        await _update_file_status(file_uuid, ProcessingStatus.GENERATING_EMBEDDINGS)
+        
+        # Generate embeddings
+        await _generate_document_embeddings(chunks, file_id, file_uuid, collection_id)
+        
+        # Calculate final metrics
+        processing_time = time.time() - start_time
+        document_count = len(chunks)
+        total_tokens = sum(chunk["token_count"] for chunk in chunks)
+        
+        # Update final status and metrics
+        await _update_file_completion(file_uuid, document_count, total_tokens)
+        
+        # Log success
+        log_processing_success(file_id, processing_time, document_count, total_tokens)
+        
+        return ProcessingResult(
+            status=ProcessingStatus.COMPLETED.value,
+            file_id=file_id,
+            document_count=document_count,
+            total_tokens=total_tokens,
+            processing_time=processing_time,
+            error=None
+        )
+        
+    except Exception as e:
+        processing_time = time.time() - start_time
+        
+        # Handle the error
+        if isinstance(e, DocumentProcessingError):
+            await _handle_processing_error(file_uuid, file_id, e, e.step)
+        else:
+            await _handle_processing_error(file_uuid, file_id, e, ProcessingStep.LOADING_FILE)
+        
+        return ProcessingResult(
+            status=ProcessingStatus.FAILED.value,
+            file_id=file_id,
+            document_count=0,
+            total_tokens=0,
+            processing_time=processing_time,
+            error=str(e)
+        )
+
+
+async def _load_file_info(file_uuid: UUID, file_id: str) -> Any:
+    """Load file information from database."""
+    try:
+        async with get_db_session() as db:
+            result = await db.execute(
+                select(File).where(File.id == file_uuid)
+            )
+            file_info = result.scalar_one_or_none()
+            
+            if not file_info:
+                raise DocumentProcessingError(
+                    f"File not found: {file_uuid}",
+                    file_id,
+                    ProcessingStep.LOADING_FILE
+                )
+            
+            log_processing_step(file_id, ProcessingStep.LOADING_FILE, f"File loaded successfully: {file_info.original_filename}")
+            return file_info
+            
+    except Exception as e:
+        if isinstance(e, DocumentProcessingError):
+            raise
+        raise DocumentProcessingError(
+            f"Error loading file info: {str(e)}",
+            file_id,
+            ProcessingStep.LOADING_FILE,
+            e
+        ) from e
+
+
+async def _load_document_content(file_info: Any, file_id: str) -> List[Any]:
+    """Load document content using appropriate loader with PDF OCR fallback."""
+    try:
+        file_path = file_info.storage_path
+        content_type = file_info.content_type
+
+        # Primary: parser-based loader (fast path)
+        loader = get_document_loader(file_path, content_type, file_id)
+        loop = asyncio.get_event_loop()
+        documents = await loop.run_in_executor(None, loader.load)
+
+        def _is_effective(docs: List[Any]) -> bool:
+            try:
+                return bool(docs) and any(getattr(d, "page_content", "").strip() for d in docs)
+            except Exception:
+                return bool(docs)
+
+        if _is_effective(documents):
+            log_processing_step(
+                file_id,
+                ProcessingStep.EXTRACTING_CONTENT,
+                f"Extracted content from {len(documents)} documents (primary parser)"
+            )
+            return documents
+
+        # Fallback: for PDFs with no extractable text, try Unstructured + OCR
+        if content_type == "application/pdf":
+            try:
+                try:
+                    from langchain_community.document_loaders import UnstructuredFileLoader
+                except Exception:
+                    from langchain_community.document_loaders.unstructured import UnstructuredFileLoader  # type: ignore
+
+                # First try auto strategy (uses text when available, OCR for images)
+                ocr_languages = "chi_sim+eng"
+                ocr_loader = UnstructuredFileLoader(
+                    file_path,
+                    mode="elements",
+                    strategy="auto",
+                    ocr_languages=ocr_languages,
+                )
+                ocr_docs = await loop.run_in_executor(None, ocr_loader.load)
+                if _is_effective(ocr_docs):
+                    log_processing_step(
+                        file_id,
+                        ProcessingStep.EXTRACTING_CONTENT,
+                        f"Extracted content via OCR fallback (strategy=auto), docs={len(ocr_docs)}"
+                    )
+                    return ocr_docs
+
+                # Second try a stronger OCR-only strategy
+                ocr_only_loader = UnstructuredFileLoader(
+                    file_path,
+                    mode="elements",
+                    strategy="hi_res",
+                    ocr_languages=ocr_languages,
+                )
+                ocr_only_docs = await loop.run_in_executor(None, ocr_only_loader.load)
+                if _is_effective(ocr_only_docs):
+                    log_processing_step(
+                        file_id,
+                        ProcessingStep.EXTRACTING_CONTENT,
+                        f"Extracted content via OCR fallback (strategy=hi_res), docs={len(ocr_only_docs)}"
+                    )
+                    return ocr_only_docs
+
+            except Exception as ocr_e:
+                # Log but continue to raise a clear processing error below
+                logger.warning(
+                    "OCR fallback failed",
+                    extra={"file_id": file_id, "error": str(ocr_e)}
+                )
+
+        # If still no content, raise explicit error
+        raise DocumentProcessingError(
+            "No content extracted from file",
+            file_id,
+            ProcessingStep.EXTRACTING_CONTENT,
+        )
+
+    except Exception as e:
+        if isinstance(e, DocumentProcessingError):
+            raise
+        raise DocumentProcessingError(
+            f"Error loading document content: {str(e)}",
+            file_id,
+            ProcessingStep.EXTRACTING_CONTENT,
+            e
+        ) from e
+
+
+async def _chunk_documents(documents: List[Any], file_id: str, file_uuid: UUID, collection_id: UUID, project_id: UUID) -> List[Dict[str, Any]]:
+    """Chunk documents into optimal sizes."""
+    try:
+        # Chunk documents
+        chunks = chunk_documents(documents, file_id, file_uuid, collection_id, project_id)
+        
+        # Validate chunks
+        validate_chunks(chunks, file_id)
+        
+        # Log chunking statistics
+        stats = get_chunking_stats(chunks)
+        log_processing_step(
+            file_id,
+            ProcessingStep.CHUNKING_DOCUMENTS,
+            f"Created {stats.total_chunks} chunks with {stats.total_tokens} total tokens"
+        )
+        
+        return chunks
+        
+    except Exception as e:
+        if isinstance(e, DocumentProcessingError):
+            raise
+        raise DocumentProcessingError(
+            f"Error chunking documents: {str(e)}",
+            file_id,
+            ProcessingStep.CHUNKING_DOCUMENTS,
+            e
+        ) from e
+
+
+async def _store_document_chunks(chunks: List[Dict[str, Any]], file_id: str, project_id: UUID) -> None:
+    """Store document chunks in database."""
+    try:
+        async with get_db_session() as db:
+            # Create FileDocument instances
+            file_documents = []
+            for chunk in chunks:
+                file_doc = FileDocument(
+                    id=chunk["id"],
+                    project_id=project_id,  # Required field
+                    file_id=chunk["file_id"],
+                    collection_id=chunk["collection_id"],
+                    content=chunk["content"],
+                    content_length=chunk["character_count"],  # character_count maps to content_length
+                    token_count=chunk["token_count"],
+                    chunk_index=chunk["chunk_index"],
+                    content_type=chunk.get("document_type", "paragraph"),  # document_type maps to content_type
+                    tags=chunk.get("metadata", {})  # metadata maps to tags
+                )
+                file_documents.append(file_doc)
+            
+            # Add all documents to session
+            db.add_all(file_documents)
+            await db.commit()
+            
+            log_processing_step(
+                file_id,
+                ProcessingStep.STORING_DOCUMENTS,
+                f"Stored {len(file_documents)} document chunks"
+            )
+            
+    except Exception as e:
+        raise DocumentProcessingError(
+            f"Error storing document chunks: {str(e)}",
+            file_id,
+            ProcessingStep.STORING_DOCUMENTS,
+            e
+        ) from e
+
+
+async def _generate_document_embeddings(chunks: List[Dict[str, Any]], file_id: str, file_uuid: UUID, collection_id: UUID) -> None:
+    """Generate embeddings for document chunks."""
+    try:
+        await generate_embeddings(chunks, file_id, file_uuid, collection_id)
+        
+        log_processing_step(
+            file_id,
+            ProcessingStep.GENERATING_EMBEDDINGS,
+            f"Generated embeddings for {len(chunks)} chunks"
+        )
+        
+    except Exception as e:
+        if isinstance(e, DocumentProcessingError):
+            raise
+        raise DocumentProcessingError(
+            f"Error generating embeddings: {str(e)}",
+            file_id,
+            ProcessingStep.GENERATING_EMBEDDINGS,
+            e
+        ) from e
+
+
+async def _update_file_status(file_uuid: UUID, status: ProcessingStatus) -> None:
+    """Update file processing status."""
+    try:
+        async with get_db_session() as db:
+            await db.execute(
+                update(File)
+                .where(File.id == file_uuid)
+                .values(status=status.value)
+            )
+            await db.commit()
+            
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to update file status to {status.value}: {e}")
+
+
+async def _update_file_completion(file_uuid: UUID, document_count: int, total_tokens: int) -> None:
+    """Update file with completion metrics."""
+    try:
+        async with get_db_session() as db:
+            await db.execute(
+                update(File)
+                .where(File.id == file_uuid)
+                .values(
+                    status=ProcessingStatus.COMPLETED.value,
+                    document_count=document_count,
+                    total_tokens=total_tokens
+                )
+            )
+            await db.commit()
+            
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to update file completion metrics: {e}")

@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="TGO chat bubble logo">
+  <title>TGO Chat Bubble Logo</title>
+  <defs>
+    <linearGradient id="tgoGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2f80ed"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Outline chat bubble with connected nodes inside -->
+  <rect x="3.5" y="5.5" width="15" height="11" rx="6" fill="none" stroke="url(#tgoGradient)" stroke-width="2"/>
+  <!-- Tail -->
+  <path d="M16 16 L20.5 20.5 L19.2 15.4 Z" fill="url(#tgoGradient)"/>
+  <!-- Connected dots -->
+  <circle cx="9" cy="10.8" r="1.2" fill="url(#tgoGradient)"/>
+  <circle cx="13.6" cy="12.2" r="1.2" fill="url(#tgoGradient)"/>
+  <rect x="9.9" y="11.3" width="3.1" height="0.9" rx="0.45" fill="url(#tgoGradient)" transform="rotate(-12 11.45 11.75)"/>
+</svg>
+

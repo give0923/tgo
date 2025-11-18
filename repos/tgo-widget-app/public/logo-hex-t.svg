@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="TGO Hex + T">
+  <title>TGO Hex + T</title>
+  <defs>
+    <linearGradient id="tgoGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2f80ed"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <!-- Symmetric outer hexagon ring -->
+  <polygon points="12,4 18.928,8 18.928,16 12,20 5.072,16 5.072,8"
+           fill="none" stroke="url(#tgoGradient)" stroke-width="2.2" stroke-linejoin="round"/>
+  <!-- Centered sans-serif T -->
+  <g fill="url(#tgoGradient)">
+    <!-- Streamlined Tesla-inspired T -->
+    <path d="M7.2 8.1 L16.8 8.1 L15.4 9.8 Q12 9.1 8.6 9.8 Z"/>
+    <path d="M11.05 9.6 L12.95 9.6 L12.55 16.0 Q12 16.6 11.45 16.0 Z"/>
+  </g>
+</svg>
+

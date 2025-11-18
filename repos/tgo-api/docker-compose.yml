@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tgo-api-postgres
+    environment:
+      POSTGRES_DB: tgo_api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docs/api_service_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d tgo_api"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tgo-network
+
+  # Redis (for caching and sessions)
+  redis:
+    image: redis:7-alpine
+    container_name: tgo-api-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - tgo-network
+
+
+  # Kafka (KRaft, single-node) - apache/kafka:latest
+  kafka:
+    image: apache/kafka:latest
+    container_name: tgo-api-kafka
+    ports:
+      - "9092:9092"  # INTERNAL for containers
+      - "9094:9094"  # EXTERNAL for host clients
+    environment:
+      - KAFKA_NODE_ID=1
+      - KAFKA_PROCESS_ROLES=broker,controller
+      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_LISTENERS=INTERNAL://:9092,EXTERNAL://:9094,CONTROLLER://:9093
+      - KAFKA_ADVERTISED_LISTENERS=INTERNAL://kafka:9092,EXTERNAL://localhost:9094
+      - KAFKA_INTER_BROKER_LISTENER_NAME=INTERNAL
+      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_LOG_DIRS=/var/lib/kafka/data
+      - KAFKA_NUM_PARTITIONS=1
+      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_TRANSACTION_STATE_LOG_MIN_ISR=1
+      - KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+      - CLUSTER_ID=MkU3OEVBNTcwNTJENDM2Qk
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD", "bash", "-c", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - tgo-network
+
+  # Kafka UI
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: tgo-api-kafka-ui
+    ports:
+      - "8088:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+    depends_on:
+      kafka:
+        condition: service_started
+    networks:
+      - tgo-network
+
+  # TGO API Service (Main + Internal)
+  tgo-api:
+    build: .
+    container_name: tgo-api
+    ports:
+      - "8000:8000"  # Main API (requires authentication)
+      - "8001:8001"  # Internal API (no authentication)
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@postgres:5432/tgo_api
+      - SECRET_KEY=your-secret-key-here-change-in-production-min-32-chars
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - REDIS_URL=redis://redis:6379/0
+      - INTERNAL_SERVICE_HOST=0.0.0.0
+      - INTERNAL_SERVICE_PORT=8001
+      - RAG_SERVICE_URL=http://localhost:8001
+      - AI_SERVICE_URL=http://localhost:8002
+      - PLATFORM_SERVICE_URL=http://localhost:8003
+      - WUKONGIM_API_URL=http://localhost:5001
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    networks:
+      - tgo-network
+    volumes:
+      - ./logs:/app/logs
+      - ./uploads:/app/uploads
+
+  adminer:
+    image: adminer:latest
+    ports:
+      - "8888:8080"
+    environment:
+      - ADMINER_DEFAULT_SERVER=postgres
+      - ADMINER_DESIGN=pepa-linha-dark
+      - ADMINER_PLUGINS=tables-filter tinymce
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tgo-network
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  kafka_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  tgo-network:
+    driver: bridge

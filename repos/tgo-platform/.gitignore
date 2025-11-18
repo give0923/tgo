@@ -159,11 +159,4 @@ alembic/versions/*.py
 
 # Temporary files
 tmp/
-.tmp/
 temp/
-uploads/
-
-.env
-
-envs/
-data/

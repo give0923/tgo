@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-label="TGO Hex V2 - Bold">
+  <title>TGO Hex V2 - Bold</title>
+  <defs>
+    <linearGradient id="tgoGradient" x1="0" y1="0" x2="24" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2f80ed"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+  </defs>
+  <polygon points="12,4 18.928,8 18.928,16 12,20 5.072,16 5.072,8" fill="none" stroke="url(#tgoGradient)" stroke-width="2.6" stroke-linejoin="round"/>
+  <circle cx="12" cy="12" r="3" fill="url(#tgoGradient)"/>
+</svg>
+

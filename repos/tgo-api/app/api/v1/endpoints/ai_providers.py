@@ -1,0 +1,516 @@
+"""AI Provider (LLM Provider) management endpoints."""
+
+from datetime import datetime
+from typing import Optional
+from uuid import UUID
+
+import httpx
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from sqlalchemy import or_, and_, select, exists, func
+from sqlalchemy.orm import Session
+
+from app.api.common_responses import CREATE_RESPONSES, CRUD_RESPONSES, LIST_RESPONSES, UPDATE_RESPONSES, DELETE_RESPONSES
+from app.core.database import get_db
+from app.core.logging import get_logger
+from app.core.security import get_current_active_user
+from app.models import AIProvider, Staff
+from app.schemas import (
+    AIProviderCreate,
+    AIProviderListParams,
+    AIProviderListResponse,
+    AIProviderResponse,
+    AIProviderUpdate,
+)
+from app.utils.crypto import decrypt_str, encrypt_str, mask_secret
+from app.services.ai_provider_sync import sync_provider_with_retry_and_update
+
+logger = get_logger("endpoints.ai_providers")
+
+
+def _filter_models_by_type(models: Optional[list[str]], model_type: Optional[str]) -> list[str]:
+    ms = list(models or [])
+    if not model_type:
+        return ms
+    if model_type == "embedding":
+        return [m for m in ms if isinstance(m, str) and "embedding" in m.lower()]
+    if model_type == "chat":
+        return [m for m in ms if isinstance(m, str) and "embedding" not in m.lower()]
+    return ms
+
+
+
+def _to_response(item: AIProvider, model_type: Optional[str] = None) -> AIProviderResponse:
+    plain = decrypt_str(item.api_key) if item.api_key else None
+    masked = mask_secret(plain)
+    models = _filter_models_by_type(item.available_models or [], model_type)
+    return AIProviderResponse.model_validate({
+        "id": item.id,
+        "project_id": item.project_id,
+        "provider": item.provider,
+        "name": item.name,
+        "api_base_url": item.api_base_url,
+        "available_models": models,
+        "default_model": item.default_model,
+        "config": item.config,
+        "is_active": item.is_active,
+        "created_at": item.created_at,
+        "updated_at": item.updated_at,
+        "deleted_at": item.deleted_at,
+        "has_api_key": bool(item.api_key),
+        "api_key_masked": masked,
+        "last_synced_at": item.last_synced_at,
+        "sync_status": item.sync_status,
+        "sync_error": item.sync_error,
+    })
+
+
+
+def _normalize_base(base: Optional[str]) -> Optional[str]:
+    if not base:
+        return None
+    return base.rstrip("/")
+
+
+def _build_test_request(item: AIProvider, plain_key: Optional[str]) -> tuple[str, str, dict]:
+    """Return (method, url, headers) for a lightweight connectivity check.
+    Raises HTTPException on unsupported provider or missing key.
+    """
+    if not plain_key:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="API key is not set for this provider")
+
+    provider = (item.provider or "").lower()
+    base = _normalize_base(item.api_base_url)
+    headers: dict[str, str] = {}
+
+    if provider in ("openai", "gpt", "gpt-4o", "oai"):
+        base = base or "https://api.openai.com/v1"
+        url = f"{base}/models"
+        headers = {"Authorization": f"Bearer {plain_key}"}
+        return ("GET", url, headers)
+
+    if provider in ("anthropic", "claude"):
+        base = base or "https://api.anthropic.com"
+        url = f"{base}/v1/models"
+        version = (item.config or {}).get("anthropic_version") or "2023-06-01"
+        headers = {"x-api-key": plain_key, "anthropic-version": version}
+        return ("GET", url, headers)
+
+    if provider in ("dashscope", "ali", "aliyun"):
+        # Prefer OpenAI-compatible endpoint if base not provided
+        if base and "compatible-mode" in base:
+            compat = base
+        else:
+            compat = (base or "https://dashscope.aliyuncs.com") + "/compatible-mode/v1"
+        url = f"{compat}/models"
+        headers = {"Authorization": f"Bearer {plain_key}"}
+        return ("GET", url, headers)
+
+    if provider in ("azure_openai", "azure-openai", "azure"):
+        if not base:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="api_base_url is required for Azure OpenAI")
+        root = base if "/openai" in base else f"{base}/openai"
+        api_version = (item.config or {}).get("api_version") or "2023-12-01-preview"
+        url = f"{root}/deployments?api-version={api_version}"
+        headers = {"api-key": plain_key}
+        return ("GET", url, headers)
+
+    # Fallback: try OpenAI-compatible with provided base
+    if base:
+        url = f"{base}/models"
+        headers = {"Authorization": f"Bearer {plain_key}"}
+        return ("GET", url, headers)
+
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Unsupported provider: {item.provider}")
+
+router = APIRouter()
+
+
+@router.get("", response_model=AIProviderListResponse, responses=LIST_RESPONSES)
+async def list_ai_providers(
+    params: AIProviderListParams = Depends(),
+    model_type: Optional[str] = Query(None, pattern="^(chat|embedding)$"),
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderListResponse:
+    """List AI providers with pagination and optional filtering/search."""
+
+    query = db.query(AIProvider).filter(
+        AIProvider.project_id == current_user.project_id,
+        AIProvider.deleted_at.is_(None),
+    )
+
+    if params.provider:
+        query = query.filter(AIProvider.provider == params.provider)
+    if params.is_active is not None:
+        query = query.filter(AIProvider.is_active == params.is_active)
+    if params.search:
+        like = f"%{params.search}%"
+        query = query.filter(
+            or_(
+                AIProvider.name.ilike(like),
+                AIProvider.default_model.ilike(like),
+            )
+        )
+
+    # Optional filter by inferred model_type from available_models (JSONB array of strings)
+    if model_type:
+        keep_empty = or_(
+            AIProvider.available_models.is_(None),
+            and_(
+                func.jsonb_typeof(AIProvider.available_models) == "array",
+                func.jsonb_array_length(AIProvider.available_models) == 0,
+            ),
+        )
+        elems = select(func.jsonb_array_elements_text(AIProvider.available_models).label("val")).lateral()
+        val_col = elems.c.val
+        has_embedding = exists(select(1).select_from(elems).where(val_col.ilike("%embedding%")))
+        has_chat = exists(select(1).select_from(elems).where(~val_col.ilike("%embedding%")))
+        if model_type == "embedding":
+            query = query.filter(or_(keep_empty, has_embedding))
+        elif model_type == "chat":
+            query = query.filter(or_(keep_empty, has_chat))
+
+
+    total = query.count()
+    items = (
+        query.order_by(AIProvider.created_at.desc())
+        .offset(params.offset)
+        .limit(params.limit)
+        .all()
+    )
+
+    data = [_to_response(x, model_type) for x in items]
+    return AIProviderListResponse(
+        data=data,
+        pagination={
+            "total": total,
+            "limit": params.limit,
+            "offset": params.offset,
+            "has_next": params.offset + params.limit < total,
+            "has_prev": params.offset > 0,
+        },
+    )
+
+
+@router.post(
+    "",
+    response_model=AIProviderResponse,
+    status_code=status.HTTP_201_CREATED,
+    responses=CREATE_RESPONSES,
+)
+async def create_ai_provider(
+    payload: AIProviderCreate,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Create a new AI provider configuration for current project."""
+
+    # Optional: prevent duplicate names within project
+    existing = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.name == payload.name,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Provider name already exists")
+
+    # Validate default_model within available_models if provided
+    if payload.default_model and payload.available_models and payload.default_model not in payload.available_models:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="default_model must be in available_models")
+
+    item = AIProvider(
+        project_id=current_user.project_id,
+        provider=payload.provider,
+        name=payload.name,
+        api_key=encrypt_str(payload.api_key),
+        api_base_url=payload.api_base_url,
+        available_models=list(payload.available_models or []),
+        default_model=payload.default_model,
+        config=payload.config,
+        is_active=payload.is_active,
+    )
+
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+
+    logger.info("Created AIProvider", extra={"id": str(item.id), "project_id": str(item.project_id)})
+
+    # Attempt to sync to tgo-ai with retry (non-blocking for main flow)
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider sync after create failed", extra={"id": str(item.id), "error": str(e)})
+
+    return _to_response(item)
+
+
+@router.get("/{provider_id}", response_model=AIProviderResponse, responses=CRUD_RESPONSES)
+async def get_ai_provider(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Get a single AI provider by ID."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+    return _to_response(item)
+
+
+@router.patch("/{provider_id}", response_model=AIProviderResponse, responses=UPDATE_RESPONSES)
+async def update_ai_provider(
+    provider_id: UUID,
+    payload: AIProviderUpdate,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Update an AI provider configuration."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    data = payload.model_dump(exclude_unset=True)
+
+    # If changing name, ensure uniqueness within project
+    if "name" in data and data["name"] != item.name:
+        exists = (
+            db.query(AIProvider)
+            .filter(
+                AIProvider.project_id == current_user.project_id,
+                AIProvider.name == data["name"],
+                AIProvider.deleted_at.is_(None),
+                AIProvider.id != item.id,
+            )
+            .first()
+        )
+        if exists:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Provider name already exists")
+
+    # Validate default_model within available_models if both provided
+    new_available = data.get("available_models", item.available_models)
+    new_default = data.get("default_model", item.default_model)
+    if new_default and new_available and new_default not in new_available:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="default_model must be in available_models")
+
+    # Handle secret update with encryption (ignore empty to keep existing)
+    if "api_key" in data:
+        raw = data.pop("api_key")
+        if raw is not None and raw != "":
+            item.api_key = encrypt_str(raw)
+
+    for field, value in data.items():
+        setattr(item, field, value)
+    item.updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(item)
+
+    logger.info("Updated AIProvider", extra={"id": str(item.id)})
+
+    # Attempt to sync to tgo-ai (non-blocking)
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider sync after update failed", extra={"id": str(item.id), "error": str(e)})
+
+    return _to_response(item)
+
+
+@router.delete("/{provider_id}", status_code=status.HTTP_204_NO_CONTENT, responses=DELETE_RESPONSES)
+async def delete_ai_provider(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> None:
+    """Soft delete an AI provider."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    # Soft delete and mark inactive, then sync remote as inactive
+    item.is_active = False
+    item.deleted_at = datetime.utcnow()
+    item.updated_at = datetime.utcnow()
+
+    db.commit()
+
+    # Try to sync deletion as deactivation with retry
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider sync after delete failed", extra={"id": str(item.id), "error": str(e)})
+
+    logger.info("Deleted AIProvider", extra={"id": str(provider_id)})
+    return None
+
+
+@router.post("/{provider_id}/enable", response_model=AIProviderResponse, responses=UPDATE_RESPONSES)
+async def enable_ai_provider(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Enable an AI provider."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    item.is_active = True
+    item.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(item)
+
+    # Sync status to tgo-ai with retry (non-blocking)
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider sync after enable failed", extra={"id": str(item.id), "error": str(e)})
+        db.refresh(item)
+
+
+@router.post("/{provider_id}/sync", response_model=AIProviderResponse, responses=UPDATE_RESPONSES)
+async def sync_ai_provider_now(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Manually trigger sync of a single AI provider to tgo-ai."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider manual sync failed", extra={"id": str(item.id), "error": str(e)})
+
+    return _to_response(item)
+
+
+@router.post("/{provider_id}/disable", response_model=AIProviderResponse, responses=UPDATE_RESPONSES)
+async def disable_ai_provider(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+) -> AIProviderResponse:
+    """Disable an AI provider."""
+
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    item.is_active = False
+    item.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(item)
+
+    # Sync status to tgo-ai with retry (non-blocking)
+    try:
+        await sync_provider_with_retry_and_update(db, item)
+    except Exception as e:
+        logger.warning("AIProvider sync after disable failed", extra={"id": str(item.id), "error": str(e)})
+
+    return _to_response(item)
+
+
+@router.post("/{provider_id}/test", responses=CRUD_RESPONSES)
+async def test_ai_provider_connection(
+    provider_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: Staff = Depends(get_current_active_user),
+):
+    """Test connection/credentials for an AI provider.
+
+    Performs a lightweight GET request to provider's models/list endpoint
+    using the stored API key. Returns success flag and message.
+    """
+    item = (
+        db.query(AIProvider)
+        .filter(
+            AIProvider.id == provider_id,
+            AIProvider.project_id == current_user.project_id,
+            AIProvider.deleted_at.is_(None),
+        )
+        .first()
+    )
+    if not item:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="AI provider not found")
+
+    plain_key = decrypt_str(item.api_key) if item.api_key else None
+    method, url, headers = _build_test_request(item, plain_key)
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.request(method, url, headers=headers)
+        ok = 200 <= resp.status_code < 300
+        detail = None
+        try:
+            detail = resp.json()
+        except Exception:
+            detail = resp.text
+        if ok:
+            return {"success": True, "message": "Connection test passed", "status": resp.status_code, "details": detail}
+        else:
+            return {"success": False, "message": f"HTTP {resp.status_code}", "status": resp.status_code, "details": detail}
+    except httpx.RequestError as e:
+        logger.warning("AIProvider test request error", extra={"id": str(item.id), "error": str(e)})
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"Connection failed: {e}")
+

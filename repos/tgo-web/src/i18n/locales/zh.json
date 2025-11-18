@@ -1,0 +1,1748 @@
+{
+  "common": {
+    "save": "保存",
+    "cancel": "取消",
+    "confirm": "确认",
+    "delete": "删除",
+    "edit": "编辑",
+    "add": "添加",
+    "done": "完成",
+    "remove": "移除",
+    "search": "搜索",
+    "loading": "加载中...",
+    "saving": "保存中...",
+    "saveFailed": "保存失败",
+    "success": "成功",
+    "error": "错误",
+    "warning": "警告",
+    "info": "信息",
+    "close": "关闭",
+    "back": "返回",
+    "next": "下一步",
+    "previous": "上一步",
+    "reset": "重置",
+    "clear": "清除",
+    "select": "选择",
+    "upload": "上传",
+    "download": "下载",
+    "copy": "复制",
+    "settings": "设置",
+    "help": "帮助",
+    "about": "关于",
+    "characters": "字符",
+    "creating": "创建中...",
+    "updating": "更新中...",
+    "clearSearch": "清除搜索",
+    "or": "或",
+    "loadFailed": "加载失败",
+    "retry": "重试",
+    "retryFailed": "重试失败",
+    "details": "详情",
+    "selectAll": "全选",
+    "all": "全部",
+    "connected": "已连接",
+    "connectionFailed": "连接失败",
+    "notConnected": "未连接",
+    "active": "活跃",
+    "inactive": "未激活",
+    "copied": "已复制",
+    "copyFailed": "复制失败"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "个性化你的偏好和应用设置",
+    "menu": {
+      "profile": "个人资料",
+      "general": "通用",
+      "notifications": "消息通知",
+      "providers": "模型提供商",
+      "about": "关于",
+      "logout": "退出登录"
+    },
+    "account": {
+      "title": "账户信息"
+    },
+    "language": {
+      "title": "语言设置",
+      "description": "选择您偏好的界面语言，更改将立即生效。",
+      "persistence": "语言偏好将自动保存到本地存储",
+      "followSystem": "自动"
+    },
+    "appearance": {
+      "title": "外观设置",
+      "comingSoon": "更多外观与主题选项，敬请期待…"
+    },
+    "general": {
+      "title": "通用",
+      "login": "登录",
+      "autoLogin": "启用企业微信后台自动登录",
+      "features": "功能",
+      "emojiToText": "表情符自动转义",
+      "codeMessage": "代码消息",
+      "speechToText": "语音自动转文字",
+      "privacy": "隐私",
+      "readReceipts": "消息阅读状态",
+      "readReceiptsDesc": "关闭后，对方不能看到是否已阅读。",
+      "timezonePrivacy": "显示当地时间",
+      "timezonePrivacyDesc": "关闭后对方无法查看你的时区信息",
+      "conversationDisplay": "会话显示模式",
+      "normal": "普通",
+      "bubbleLeft": "气泡左对齐"
+    },
+    "storage": {
+      "title": "存储管理",
+      "comingSoon": "缓存管理、存储使用统计等，敬请期待…"
+    }
+,
+    "models": {
+      "defaults": {
+        "title": "默认模型",
+        "description": "请选择全局默认的 LLM 与嵌入模型（必选）。",
+        "llmLabel": "默认 LLM",
+        "embeddingLabel": "默认嵌入模型",
+        "selectPlaceholder": "请选择模型",
+        "none": "未设置"
+      },
+      "toast": {
+        "saved": "默认模型已保存",
+        "required": "请同时设置默认 LLM 和默认 Embedding 模型",
+        "atLeastOneRequired": "请至少选择一个默认模型"
+      }
+    }
+,
+	    "providers": {
+	      "title": "模型提供商",
+	      "subtitle": "集中管理各大 AI 提供商的访问配置：密钥、安全代理、模型清单与默认模型。",
+	      "docs": "查看文档",
+	      "add": "添加提供商",
+	      "addTitle": "新增提供商",
+      "enableButton": "启用",
+      "updateButton": "更新",
+	      "defaultName": "新提供商",
+	      "baseUrl": "Base URL",
+	      "provider": {
+	        "openai": "OpenAI",
+	        "azure": "Azure OpenAI",
+	        "qwen": "通义千问 (DashScope)",
+	        "moonshot": "月之暗面 (Kimi)",
+	        "deepseek": "DeepSeek",
+	        "baichuan": "百川",
+	        "ollama": "Ollama",
+	        "custom": "自定义"
+	      },
+	      "groups": {
+	        "connection": "认证与连接",
+	        "models": "",
+	        "modelsTitle": "模型与默认值"
+	      },
+	      "fields": {
+	        "kind": "提供商",
+	        "name": "名称/别名",
+	        "apiKey": "API Key",
+	        "baseUrl": "API Base URL",
+	        "models": "可用模型列表",
+	        "defaultModel": "默认模型",
+	        "azure": {
+	          "deployment": "部署名称",
+	          "resource": "资源名",
+	          "apiVersion": "API 版本"
+	        }
+	      },
+	      "help": {
+	        "azure": {
+	          "deployment": "Azure 中的部署名称，区别于模型 ID",
+	          "resource": "Azure 资源名称，例如 OpenAI 服务资源名",
+	          "apiVersion": "Azure OpenAI API 版本号，如 2024-02-15-preview"
+	        }
+        ,
+        "modelsCustom": "如果列表为空或未找到所需模型，您可以手动输入自定义模型名称"
+	      },
+
+
+	      "placeholders": {
+	        "apiKeyMasked": "已配置：{mask}，留空则不更新",
+	        "apiKey": "粘贴密钥",
+	        "modelsSearch": "搜索或输入模型ID...",
+	        "baseUrl": { "custom": "自定义 Base URL" }
+	      },
+	      "fetchModels": {
+	        "failed": "获取模型失败",
+	        "empty": "暂无可用模型"
+	      },
+	      "selectDefaultModel": "请先添加模型",
+	      "test": {
+	        "ok": "连接成功",
+	        "failed": "连接失败"
+	      },
+
+	      "testButton": "测试连接",
+
+	      "badges": { "default": "默认" },
+	      "toast": {
+	        "added": "已添加提供商",
+	        "saved": "已保存修改",
+	        "deleted": "已删除提供商"
+	      },
+	      "validate": {
+	        "apiKey": "请输入 API Key",
+	        "azureDeployment": "请输入 Azure 部署名称"
+	      },
+	      "createModelOption": "创建",
+	      "confirmDeleteTitle": "删除提供商",
+	      "confirmDeleteMsg": "确定要删除该提供商配置吗？此操作不可撤销。",
+	      "empty": "尚未配置任何模型提供商，点击右上角“添加提供商”开始。"
+	    }
+  },
+  "comingSoon": {
+    "title": "功能开发中",
+    "description": "该功能正在开发中，敬请期待..."
+  },
+  "visitor": {
+    "fallbackName": "访客 {{suffix}}"
+  },
+  "errors": {
+    "incompleteVisitorInfo": "访客信息不完整",
+    "missingVisitorId": "缺少 visitor_id"
+  },
+  "search": {
+    "tabs": {
+      "all": "全部",
+      "visitors": "访客",
+      "messages": "消息"
+    },
+    "placeholder": "搜索访客或消息",
+    "clear": "清除",
+    "aria": {
+      "tablist": "搜索分类"
+    },
+    "errorGeneric": "搜索失败，请稍后重试",
+    "toasts": {
+      "notFoundTitle": "未找到会话",
+      "noConversationInfo": "缺少会话信息",
+      "notInRecent": "该会话不在最近列表中，请尝试刷新。",
+      "incompleteVisitorInfo": "访客信息不完整",
+      "missingVisitorId": "缺少 visitor_id"
+    },
+    "emptyQueryHint": "输入关键词开始搜索",
+    "searching": "正在搜索...",
+    "visitorsSectionTitle": "访客 ({{count}})",
+    "messagesSectionTitle": "消息 ({{count}})",
+    "noVisitorsFound": "未找到相关访客",
+    "noMessagesFound": "未找到相关消息",
+    "noPreview": "（无预览内容）",
+    "channel": "会话",
+    "footer": {
+      "hintPrefix": "小提示：",
+      "esc": "Esc 关闭",
+      "enter": "Enter 打开",
+      "tip": "小提示：",
+      "escClose": "Esc 关闭",
+      "enterOpen": "Enter 打开",
+      "summary": "搜索访客和消息"
+    },
+    "footerText": "搜索访客和消息",
+    "sections": {
+      "visitors": "访客",
+      "messages": "消息"
+    },
+    "empty": {
+      "visitors": "未找到相关访客",
+      "messages": "未找到相关消息"
+    }
+  },
+  "time": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "relative": {
+      "justNow": "刚刚",
+      "minutes": "{{count}}分钟前",
+      "minutesAgo": "{{count}}分钟前",
+      "hours": "{{count}}小时前",
+      "hoursAgo": "{{count}}小时前",
+      "yesterdayAt": "昨天 {{time}}",
+      "days": "{{count}}天前"
+    },
+    "lastSeen": {
+      "justNow": "刚刚在线",
+      "minutesAgo": "{{mins}}分钟前在线"
+    },
+    "weekdays": {
+      "0": "星期日",
+      "1": "星期一",
+      "2": "星期二",
+      "3": "星期三",
+      "4": "星期四",
+      "5": "星期五",
+      "6": "星期六"
+    }
+  },
+  "about": {
+    "version": "版本",
+    "environment": "环境",
+    "apiEndpoint": "接口地址",
+    "copyright": "保留所有权利。"
+  },
+  "agents": {
+    "title": "智能体管理",
+    "subtitle": "管理您的AI智能体",
+    "actions": {
+      "create": "创建智能体",
+      "edit": "编辑智能体",
+      "delete": "删除智能体",
+      "copy": "复制智能体",
+      "refresh": "刷新",
+      "retry": "重试",
+      "view": "查看详情",
+      "viewMore": "查看更多",
+      "collapse": "收起"
+    },
+    "form": {
+      "name": "智能体名称",
+      "description": "描述",
+      "detailedDescription": "详细描述",
+      "profession": "职业",
+      "llmModel": "LLM模型",
+      "tools": "工具",
+      "knowledgeBases": "知识库",
+      "avatar": "头像"
+    },
+    "status": {
+      "active": "活跃",
+      "inactive": "非活跃",
+      "online": "在线",
+      "offline": "离线"
+    },
+    "messages": {
+      "loadFailed": "加载失败",
+      "loadFailedDesc": "无法加载智能体列表，请稍后重试",
+      "refreshSuccess": "刷新成功",
+      "refreshSuccessDesc": "智能体列表已更新",
+      "refreshFailed": "刷新失败",
+      "refreshFailedDesc": "无法刷新智能体列表，请稍后重试",
+      "retryFailed": "重试失败",
+      "retryFailedDesc": "无法加载智能体列表，请稍后重试",
+      "createSuccess": "创建成功",
+      "createSuccessDesc": "智能体 \"{name}\" 已成功创建",
+      "createFailed": "创建失败",
+      "updateSuccess": "更新成功",
+      "updateSuccessDesc": "智能体 \"{name}\" 已成功更新",
+      "updateFailed": "更新失败",
+      "deleteSuccess": "删除成功",
+      "deleteSuccessDesc": "智能体 \"{name}\" 已删除",
+      "deleteFailed": "删除失败",
+      "deleteFailedDesc": "删除智能体时发生错误",
+      "copySuccess": "复制成功",
+      "copySuccessDesc": "智能体 \"{name}\" 已成功复制",
+      "copyFailed": "复制失败",
+      "copyFailedDesc": "复制智能体时发生错误",
+      "statusUpdateSuccess": "刷新成功",
+      "statusUpdateSuccessDesc": "智能体 \"{name}\" 状态已更新",
+      "statusUpdateFailed": "刷新失败",
+      "statusUpdateFailedDesc": "更新智能体状态时发生错误"
+    },
+    "empty": {
+      "title": "暂无智能体",
+      "description": "点击「创建智能体」按钮开始创建您的第一个智能体"
+    },
+    "error": {
+      "title": "加载失败",
+      "retry": "重试"
+    },
+    "card": {
+      "defaultRole": "智能体",
+      "noTools": "未关联工具",
+      "noKnowledgeBases": "未关联知识库",
+      "editTooltip": "编辑智能体",
+      "deleteTooltip": "删除智能体",
+      "llmLabel": "LLM"
+    },
+    "copy": {
+      "suffix": " (副本)",
+      "defaultProfession": "专家"
+    },
+    "pagination": {
+      "previous": "上一页",
+      "next": "下一页"
+    },
+    "modal": {
+      "create": {
+        "title": "创建智能体"
+      },
+      "edit": {
+        "title": "编辑智能体"
+      },
+      "detail": {
+        "title": "智能体详情"
+      },
+      "delete": {
+        "title": "删除智能体",
+        "message": "确定要删除智能体 \"{name}\" 吗？此操作不可撤销。",
+        "confirm": "删除",
+        "cancel": "取消"
+      }
+    }
+    ,
+    "create": {
+      "sections": {
+        "modelConfig": "模型配置",
+        "description": "智能体描述",
+        "mcpTools": "MCP工具"
+      },
+      "placeholders": {
+        "name": "请输入智能体名称",
+        "profession": "例如：客服专员、技术支持、销售顾问",
+        "description": "请详细描述智能体的功能、职责和特点，例如：负责处理客户咨询，提供产品信息和技术支持..."
+      },
+      "models": {
+        "loading": "正在加载模型...",
+        "error": "加载模型失败",
+        "empty": "暂无可用模型",
+        "selectPlaceholder": "请选择模型",
+        "loadFailedTitle": "加载失败",
+        "loadFailedDesc": "无法加载模型列表，请稍后重试",
+        "loadFailedInline": "模型加载失败: {error}"
+      },
+      "tools": {
+        "shortNoMissingTitle": "工具短号缺失",
+        "shortNoMissingDesc": "以下工具缺少 short_no 或名称：{names}，请刷新工具商店或重新选择后重试"
+      }
+    }
+    ,
+    "edit": {
+      "loading": "加载智能体详情...",
+      "loadAgentError": "无法加载智能体详情，请稍后重试",
+      "updateFailedUnknown": "更新智能体时发生未知错误",
+      "tools": {
+        "pendingNewTool": "待保存的新工具",
+        "missingTitle": "工具信息缺失",
+        "missingDesc": "以下工具缺少名称：{{names}}，请重新选择后重试"
+      }
+    }
+,
+    "detail": {
+      "basicInfo": "基本信息"
+    }
+,
+    "toolsSection": {
+      "selectedTitle": "已选择工具",
+      "selectedCount": "{{count}} 已选择",
+      "addButton": "添加工具",
+      "emptyTitle": "暂未添加工具",
+      "emptyDescription": "点击「添加工具」按钮选择MCP工具"
+    },
+    "knowledgeBasesSection": {
+      "selectedTitle": "已选择知识库",
+      "selectedCount": "{{count}} 已选择",
+      "addButton": "添加知识库",
+      "emptyTitle": "暂未添加知识库",
+      "emptyDescription": "点击「添加知识库」按钮选择知识库"
+    }
+
+
+
+
+  },
+  "auth": {
+    "notLoggedIn": "未登录",
+    "agent": "Agent",
+    "user": "User",
+    "logout": "退出登录",
+    "sessionExpiredTitle": "会话已过期",
+    "sessionExpiredMessage": "请重新登录",
+    "login": {
+      "title": "登录您的账户",
+      "email": "邮箱地址",
+      "emailOrUsername": "邮箱或用户名",
+      "password": "密码",
+      "rememberMe": "记住我",
+      "forgotPassword": "忘记密码?",
+      "loginButton": "登 录",
+      "loggingIn": "登录中...",
+      "noAccount": "还没有账户？",
+      "registerLink": "立即注册",
+      "emailPlaceholder": "you@example.com",
+      "emailOrUsernamePlaceholder": "请输入邮箱或用户名",
+      "passwordPlaceholder": "请输入密码"
+    },
+    "register": {
+      "title": "创建新账户",
+      "email": "邮箱地址",
+      "password": "设置密码",
+      "passwordConfirmation": "确认密码",
+      "registerButton": "注 册",
+      "registering": "注册中...",
+      "hasAccount": "已经有账户了？",
+      "loginLink": "前往登录",
+      "emailPlaceholder": "you@example.com",
+      "passwordPlaceholder": "至少 8 位字符",
+      "passwordConfirmationPlaceholder": "再次输入密码"
+    },
+    "validation": {
+      "emailRequired": "请输入邮箱地址",
+      "emailOrUsernameRequired": "请输入邮箱或用户名",
+      "emailInvalid": "请输入有效的邮箱地址",
+      "passwordRequired": "请输入密码",
+      "passwordMinLength": "密码至少需要{{min}}位字符",
+      "passwordConfirmationRequired": "请确认密码",
+      "passwordMismatch": "两次输入的密码不一致",
+      "loginFailed": "登录失败，请检查您的邮箱和密码",
+      "registerFailed": "注册失败，请稍后重试",
+      "networkError": "网络连接失败，请检查网络设置",
+      "serverError": "服务器错误，请稍后重试",
+      "invalidCredentials": "用户名或密码错误",
+      "userExists": "用户已存在，请使用其他邮箱",
+      "weakPassword": "密码强度不够，请使用更复杂的密码"
+    }
+  },
+  "navigation": {
+    "chat": "对话",
+    "ai": "AI助手",
+    "aiFeatures": "AI 功能",
+    "agents": "智能体",
+    "mcpTools": "MCP工具",
+    "knowledge": "知识库",
+    "channels": "渠道管理",
+    "settings": "设置"
+  },
+  "ai": {
+    "menu": {
+      "title": "AI 功能"
+    }
+  },
+  "knowledge": {
+    "title": "知识库",
+    "subtitle": "管理可供智能体使用的知识来源。",
+    "create": "创建知识库",
+    "edit": "编辑知识库",
+    "delete": "删除知识库",
+    "name": "名称",
+    "description": "描述",
+    "category": "分类",
+    "uploadButton": "上传文件",
+    "namePlaceholder": "请输入知识库名称",
+    "descriptionPlaceholder": "请描述知识库的内容和用途",
+    "icon": "知识库图标",
+    "iconHelper": "选择一个图标来标识您的知识库",
+    "tags": "知识库标签",
+    "tagsPlaceholder": "输入标签并按回车键添加",
+    "tagsHelper": "添加标签可以帮助您更好地组织和查找知识库",
+    "filesCount": "{{count}} 文件",
+    "manage": "管理知识库",
+    "selectModal": {
+      "title": "选择知识库",
+      "searchPlaceholder": "搜索知识库...",
+      "selectedSummary": "已选 {{selected}} / 共 {{total}}",
+      "loading": "正在加载知识库...",
+      "noMatch": "未找到匹配的知识库",
+      "confirmSelection": "确认选择 ({{count}})",
+      "loadFailedDesc": "无法加载知识库列表，请稍后重试",
+      "retryFailedDesc": "无法加载知识库列表，请检查网络连接"
+    },
+    "validation": {
+      "nameRequired": "知识库名称不能为空",
+      "nameMin": "知识库名称至少需要2个字符",
+      "nameMax": "知识库名称不能超过50个字符",
+      "descRequired": "知识库描述不能为空",
+      "descMin": "知识库描述至少需要5个字符",
+      "descMax": "知识库描述不能超过500个字符"
+    },
+    "icons": {
+      "book": "书籍",
+      "fileText": "文档",
+      "database": "数据库",
+      "brain": "智能",
+      "lightbulb": "创意",
+      "bookOpen": "开放书籍",
+      "library": "图书馆",
+      "graduationCap": "学习",
+      "bookmark": "书签",
+      "archive": "归档",
+      "folderOpen": "文件夹",
+      "hardDrive": "存储",
+      "layers": "分层",
+      "package": "包",
+      "briefcase": "公文包",
+      "target": "目标",
+      "zap": "闪电",
+      "star": "星星",
+      "heart": "心形",
+      "globe": "全球"
+    },
+    "list": {
+      "columns": {
+        "name": "名称",
+        "documents": "文档数量",
+        "lastUpdated": "最近更新",
+        "actions": "操作"
+      },
+      "loadFailedDesc": "获取知识库列表时发生错误"
+    },
+    "empty": {
+      "title": "暂无知识库",
+      "description": "创建您的第一个知识库开始使用"
+    },
+    "error": {
+      "clear": "清除错误"
+    },
+    "confirmDelete": {
+      "message": "确定要删除知识库 \"{{name}}\" 吗？此操作不可撤销。"
+    },
+    "file": {
+      "confirmDelete": {
+        "message": "确定要删除文件 \"{{name}}\" 吗？此操作不可撤销。"
+      }
+    },
+    "detail": {
+      "title": "知识库详情",
+      "backToList": "返回知识库列表",
+      "refresh": "刷新",
+      "uploadDocument": "上传文档",
+      "searchPlaceholder": "搜索文档...",
+      "filter": "筛选",
+      "allTypes": "全部类型",
+      "totalDocuments": "总计: {{count}} 个文档",
+      "totalSize": "大小: {{size}} MB",
+      "lastUpdated": "最近更新: {{date}}",
+      "documentName": "文档名称",
+      "fileSize": "文件大小",
+      "uploadTime": "上传时间",
+      "status": "状态",
+      "actions": "操作",
+      "processed": "已处理",
+      "processing": "处理中",
+      "error": "错误",
+      "pending": "等待处理",
+      "archived": "已归档",
+      "download": "下载",
+      "preview": "预览",
+      "delete": "删除",
+      "noDocuments": "暂无文档",
+      "noDocumentsDesc": "这个知识库还没有上传任何文档",
+      "startUploading": "开始上传文档",
+      "loading": "加载中...",
+      "loadingDetails": "加载知识库详情中...",
+      "loadFailedDefault": "加载知识库详情失败",
+      "loadFailedDesc": "加载知识库详情时发生错误",
+      "notFound": {
+        "title": "知识库不存在",
+        "description": "请检查链接是否正确"
+      },
+      "fileServiceNotInitialized": "文件服务未初始化"
+    },
+    "upload": {
+      "title": "拖拽文件到此处或点击上传",
+      "supportedFormats": "支持 PDF, Word, Excel, PowerPoint, 文本文件, Markdown, HTML",
+      "selectFiles": "选择文件",
+      "uploading": "上传中...",
+      "uploadProgress": "上传进度",
+      "uploadComplete": "上传完成",
+      "uploadFailed": "上传失败",
+      "maxFileSize": "文件大小不能超过 10MB",
+      "unsupportedFormat": "不支持的文件格式",
+      "multipleSuccessMessage": "{{count}} 个文件上传成功"
+    }
+  },
+  "channels": {
+    "title": "渠道管理",
+    "custom": "自定义平台",
+    "config": "配置",
+    "status": "状态",
+    "active": "活跃",
+    "inactive": "未激活",
+    "placeholder": {
+      "selectOrCreate": "请选择左侧平台，或点击“＋”创建一个新平台。"
+    }
+  },
+  "footer": {
+    "copyright": "© 2024 Tgo CS. 保留所有权利。"
+  },
+  "brand": {
+    "name": "Tgo CS"
+  },
+  "chat": {
+    "title": "对话管理",
+    "sync": {
+      "syncing": "正在同步对话...",
+      "success": "对话同步成功",
+      "failed": "对话同步失败",
+      "retry": "重试",
+      "lastSync": "最后同步: {{time}}",
+      "refresh": "刷新对话",
+      "noConversations": "暂无对话",
+      "loadError": "加载对话失败"
+    },
+    "status": {
+      "online": "在线",
+      "offline": "离线",
+      "connecting": "连接中...",
+      "connected": "已连接",
+      "disconnected": "已断开"
+    },
+    "actions": {
+      "refresh": "刷新",
+      "retry": "重试",
+      "delete": "删除对话",
+      "markRead": "标记已读"
+    },
+    "history": {
+      "loading": "加载历史消息中...",
+      "loadMore": "加载更多历史消息",
+      "noMessages": "暂无历史消息",
+      "loadFailed": "加载历史消息失败",
+      "loadMoreFailed": "加载更多消息失败",
+      "retry": "重试",
+      "yesterday": "昨天",
+      "daysAgo": "{{days}}天前"
+    },
+    "list": {
+      "searchPlaceholder": "搜索",
+      "searchAria": "搜索对话"
+    },
+    "header": {
+      "staffFallback": "客服",
+      "visitorFallback": "访客{{suffix}}"
+    },
+    "suggestions": {
+      "label": "✨ 建议："
+    },
+    "send": {
+      "platformErrorLog": "平台消息发送失败",
+      "platformError": "平台消息发送失败，请稍后重试",
+      "wsNotConnected": "WebSocket 未连接，请检查网络连接",
+      "wsFailed": "WebSocket 发送失败，请检查网络连接",
+      "failedLogPrefix": "发送消息失败:"
+    },
+    "search": {
+      "locateFailedTitle": "未能定位消息",
+      "locateFailedDesc": "该消息可能已被删除或暂不可用"
+    },
+    "messages": {
+      "sending": "发送中...",
+      "sendFailedTitle": "发送失败",
+      "image": {
+        "previewAria": "预览图片",
+        "alt": "图片",
+        "uploading": "上传中",
+        "uploadFailed": "上传失败"
+      },
+      "file": {
+        "aria": "文件",
+        "placeholder": "[文件]",
+        "uploadFailedRetry": "上传失败，点击重试",
+        "uploadingWithPercent": "正在上传 {{percent}}%",
+        "download": "下载"
+      }
+    },
+    "input": {
+      "placeholder": "输入消息...",
+      "disabled": {
+        "placeholder": "AI助手已启用，无法手动输入",
+        "tooltip": "AI助手已启用，无法手动输入",
+        "cannotSendTooltip": "AI助手已启用，无法手动发送"
+      },
+      "emoji": {
+        "aria": "打开表情选择器",
+        "title": "插入表情"
+      },
+      "screenshot": {
+        "aria": "截图粘贴说明",
+        "title": "截图"
+      },
+      "image": {
+        "aria": "上传图片",
+        "title": "发送图片"
+      },
+      "file": {
+        "aria": "上传文件",
+        "title": "发送文件",
+        "remove": "移除文件"
+      },
+      "ai": {
+        "label": "AI助手",
+        "toggleAria": "切换AI助手",
+        "enabled": "AI已启用",
+        "disabled": "AI已禁用",
+        "enabledTitle": "AI已启用",
+        "enabledMessage": "访客AI助手已启用",
+        "disabledTitle": "AI已禁用",
+        "disabledMessage": "访客AI助手已禁用"
+      },
+      "screenshotTip": {
+        "aria": "截图发送提示",
+        "title": "截图发送小提示",
+        "line1": "您可以使用 QQ、微信 或 系统自带的截图工具 截图后，",
+        "line2": {
+          "prefix": "在消息输入框中按",
+          "suffix": "粘贴发送图片"
+        }
+      },
+      "preview": {
+        "imageAlt": "预览图片{{index}}",
+        "removeAria": "移除预览"
+      },
+      "upload": {
+        "failed": "上传失败"
+      },
+      "shortcuts": {
+        "sendWithHint": "Enter 发送 • {{hint}}",
+        "newline": {
+          "mac": "⌘ + Enter 换行",
+          "windows": "Ctrl + Enter 换行"
+        }
+      },
+      "send": {
+        "label": "发送",
+        "sending": "发送中..."
+      },
+      "errors": {
+        "images": {
+          "unsupportedTypeTitle": "不支持的文件类型",
+          "unsupportedTypeDesc": "仅支持图片文件（jpg/png/gif/webp）",
+          "limitReachedTitle": "图片数量已达上限（9 张）",
+          "limitReachedDesc": "最多可添加 9 张图片",
+          "tooManyTitle": "最多可添加 9 张图片",
+          "tooManyDesc": "已超过可添加的图片数量",
+          "limitReachedTitleSimple": "图片数量已达上限",
+          "limitReachedAddNine": "最多可添加 9 张图片",
+          "partialNotAddedTitle": "部分图片未添加",
+          "partialNotAddedDesc": "已添加 {{added}} 张，跳过 {{skipped}} 张（超过 9 张限制）"
+        },
+        "files": {
+          "onlyOne": "仅支持发送一个文件",
+          "removeCurrent": "请先移除当前文件",
+          "skippedOther": "已添加“{{name}}”，跳过其他 {{count}} 个文件"
+        },
+        "noConversationTitle": "请选择对话",
+        "noConversationDesc": {
+          "image": "请选择对话后再发送图片",
+          "file": "请选择对话后再发送文件",
+          "message": "请选择对话后再发送消息"
+        },
+        "platformFailed": "平台消息发送失败，请稍后重试",
+        "websocketFailed": "WebSocket 发送失败，请检查网络连接",
+        "websocketNotConnected": {
+          "image": "WebSocket 未连接，无法发送图片消息",
+          "file": "WebSocket 未连接，无法发送文件消息",
+          "message": "WebSocket 未连接，无法发送消息",
+          "richText": "WebSocket 未连接，无法发送富文本消息"
+        }
+      }
+    },
+    "visitor": {
+      "unknown": "未知访客",
+      "ai": {
+        "emotion": {
+          "neutral": "中性"
+        }
+      },
+      "system": {
+        "defaultSource": "官网",
+        "fields": {
+          "platform": "平台",
+          "sourcePage": "来源页面",
+          "browser": "浏览器",
+          "os": "操作系统",
+          "firstSeen": "首次访问"
+        },
+        "empty": "暂无系统信息"
+      },
+      "sections": {
+        "basicInfo": "基本信息",
+        "aiInsights": "AI 洞察",
+        "systemInfo": "系统信息",
+        "recentActivity": "最近活动",
+        "aiPersona": "AI画像"
+      },
+      "aiInsights": {
+        "satisfactionScore": "满意度评分",
+        "emotionScore": "情绪评分",
+        "intent": "意图",
+        "insightSummary": "洞察摘要",
+        "currentSatisfaction": "当前满意度",
+        "currentEmotion": "当前情绪"
+      },
+      "activity": {
+        "noActivity": "暂无活动记录",
+        "duration": {
+          "seconds": "持续 {{count}}秒",
+          "minutes": "持续 {{count}} 分钟",
+          "minutesSeconds": "持续 {{m}}分{{s}}秒"
+        }
+      },
+      "persona": {
+        "noData": "暂无画像数据"
+      },
+      "load": {
+        "failedTitle": "加载访客信息失败",
+        "failedDesc": "加载访客数据失败"
+      },
+      "ui": {
+        "loading": "正在加载访客信息...",
+        "loadFailed": "加载失败",
+        "selectConversation": "选择一个对话以查看访客信息",
+        "noInfo": "暂无访客信息"
+      },
+      "fields": {
+        "name": "姓名",
+        "nickname": "昵称",
+        "email": "邮箱",
+        "phone": "电话",
+        "note": "备注",
+        "field": "字段"
+      },
+      "update": {
+        "successTitle": "更新成功",
+        "fieldUpdated": "{{field}} 已更新",
+        "failedTitle": "更新失败",
+        "failedDesc": "更新失败"
+      },
+      "validation": {
+        "invalidEmail": "请输入有效的邮箱地址",
+        "invalidPhone": "请输入有效的电话号码"
+      },
+      "customAttr": {
+        "addButton": "添加自定义属性",
+        "namePlaceholder": "属性名",
+        "valuePlaceholder": "属性值",
+        "templates": {
+          "company": "公司",
+          "jobTitle": "职位",
+          "department": "部门",
+          "industry": "行业",
+          "sourceChannel": "来源渠道",
+          "budgetRange": "预算范围",
+          "decisionAuthority": "决策权",
+          "urgency": "紧急程度",
+          "note": "备注"
+        },
+        "addSuccessTitle": "添加成功",
+        "addSuccessDesc": "已添加自定义属性",
+        "addFailedTitle": "添加失败",
+        "addFailedDesc": "添加失败",
+        "updateSuccessTitle": "更新成功",
+        "updateSuccessDesc": "已更新自定义属性",
+        "updateFailedTitle": "更新失败",
+        "updateFailedDesc": "更新失败",
+        "deleteSuccessTitle": "删除成功",
+        "deleteSuccessDesc": "已删除自定义属性",
+        "deleteFailedTitle": "删除失败",
+        "deleteFailedDesc": "删除失败"
+      },
+      "tags": {
+        "title": "标签",
+        "addButton": "添加",
+        "editTagTitle": "编辑标签",
+        "deleteTagTitle": "删除标签",
+        "inputPlaceholder": "输入标签名称",
+        "editPanel": {
+          "weightLabel": "权重 (0-10)",
+          "colorLabel": "颜色"
+        },
+        "colorPicker": {
+          "title": "选择颜色"
+        },
+        "weightTitle": "权重: {{weight}}",
+        "limitReached": "已达到标签数量上限 ({{max}}个)",
+        "common": {
+          "title": "常用标签:",
+          "loading": "加载中",
+          "loadFailed": "获取常用标签失败",
+          "empty": "暂无可用标签"
+        },
+        "colors": {
+          "red": "红色",
+          "orange": "橙色",
+          "yellow": "黄色",
+          "green": "绿色",
+          "emerald": "翠绿",
+          "teal": "青色",
+          "blue": "蓝色",
+          "indigo": "靛蓝",
+          "purple": "紫色",
+          "pink": "粉色",
+          "gray": "灰色"
+        },
+        "addSuccessTitle": "添加成功",
+        "addSuccessDesc": "已添加标签",
+        "addFailedTitle": "添加失败",
+        "addFailedDesc": "添加标签失败",
+        "updateSuccessTitle": "更新成功",
+        "updateSuccessDesc": "已更新标签",
+        "updateFailedTitle": "更新失败",
+        "updateFailedDesc": "更新标签失败",
+        "removeSuccessTitle": "删除成功",
+        "removeSuccessDesc": "已删除标签",
+        "removeFailedTitle": "删除失败",
+        "removeFailedDesc": "删除标签失败",
+        "errors": {
+          "notFound": "未找到标签",
+          "noTagId": "无法获取标签ID"
+        }
+      }
+    }
+  },
+  "mcp": {
+    "source": {
+      "marketplace": "工具市场",
+      "custom": "自定义",
+      "unknown": "未知"
+    },
+    "author": {
+      "marketplace": "工具市场",
+      "customUser": "用户自定义",
+      "unknown": "未知来源"
+    },
+    "search": {
+      "placeholder": "搜索 MCP 工具..."
+    },
+    "categories": {
+      "all": "全部",
+      "productivity": "效率工具",
+      "communication": "通信工具",
+      "data": "数据分析",
+      "ai": "AI工具",
+      "integration": "集成服务",
+      "unknown": "未知分类"
+    },
+    "page": {
+      "customTool": "自定义工具"
+    },
+    "tools": {
+      "addMcpTool": "添加 MCP 工具",
+      "delete": {
+        "successTitle": "已删除",
+        "successMessage": "已删除工具\"{{name}}\""
+      },
+      "confirmDelete": {
+        "title": "确认删除",
+        "message": "确定要删除工具\"{{name}}\"吗？此操作不可恢复。"
+      },
+      "unknownAction": {
+        "title": "未知操作",
+        "message": "不支持的操作类型：{{type}}"
+      },
+      "actionFailed": {
+        "title": "操作失败",
+        "message": "执行 {{type}} 操作时发生错误"
+      },
+      "uninstall": {
+        "successTitle": "卸载成功",
+        "successMessage": "工具\"{{name}}\" 已被卸载"
+      },
+      "toggle": {
+        "enabledTitle": "启用成功",
+        "enabledMessage": "工具\"{{name}}\" 已启用",
+        "disabledTitle": "禁用成功",
+        "disabledMessage": "工具\"{{name}}\" 已禁用"
+      },
+      "installedEmpty": {
+        "title": "暂无已安装的工具",
+        "description": "点击右上角\"添加 MCP 工具\"按钮创建您的第一个工具",
+        "action": "前往工具商店"
+      },
+      "list": {
+        "emptyTitle": "暂无工具",
+        "emptyDescriptionAll": "点击\"添加工具\"按钮开始添加您的第一个MCP工具",
+        "emptyDescriptionCategory": "在\"{{category}}\"分类下暂无工具",
+        "emptyAction": "开始添加工具"
+      },
+      "endpoint": "端点地址",
+      "noDescription": "暂无描述",
+      "endpointCopied": "端点地址已复制到剪贴板",
+      "copyEndpointFailed": "无法复制端点地址",
+      "edit": {
+        "title": "编辑工具",
+        "message": "编辑工具 \"{{name}}\" 的功能即将推出",
+        "notFound": "工具未找到",
+        "notFoundMessage": "无法找到该工具的详细信息"
+      }
+    },
+    "addMcpToolModal": {
+      "title": "添加 MCP 工具",
+      "fields": {
+        "name": "工具名称",
+        "description": "工具描述",
+        "transportType": "传输类型",
+        "endpoint": "端点地址",
+        "config": "配置信息"
+      },
+      "placeholders": {
+        "name": "例如：weather-api",
+        "description": "简要描述该工具的功能",
+        "endpoint": "例如：https://api.example.com/mcp",
+        "config": "{\"key\": \"value\"}"
+      },
+      "hints": {
+        "config": "请输入有效的 JSON 格式配置"
+      },
+      "errors": {
+        "nameRequired": "请输入工具名称",
+        "invalidName": "工具名称只能包含英文字母、数字、下划线和连字符",
+        "endpointRequired": "请输入端点地址",
+        "invalidJson": "配置必须是有效的 JSON 格式",
+        "noProject": "未选择项目"
+      },
+      "success": {
+        "title": "添加成功",
+        "message": "{{name}} 已成功添加"
+      },
+      "error": {
+        "title": "添加失败",
+        "message": "添加 MCP 工具失败，请稍后重试"
+      }
+    },
+    "editMcpToolModal": {
+      "title": "编辑 MCP 工具",
+      "fields": {
+        "name": "工具名称",
+        "description": "工具描述",
+        "transportType": "传输类型",
+        "endpoint": "端点地址",
+        "toolType": "工具类型"
+      },
+      "placeholders": {
+        "name": "例如：weather-api",
+        "description": "简要描述该工具的功能",
+        "endpoint": "例如：https://api.example.com/mcp"
+      },
+      "hints": {
+        "toolTypeReadonly": "工具类型不可修改"
+      },
+      "errors": {
+        "nameRequired": "请输入工具名称",
+        "invalidName": "工具名称只能包含英文字母、数字、下划线和连字符",
+        "endpointRequired": "请输入端点地址"
+      },
+      "success": {
+        "title": "更新成功",
+        "message": "{{name}} 已成功更新"
+      },
+      "error": {
+        "title": "更新失败",
+        "message": "更新 MCP 工具失败，请稍后重试"
+      }
+    },
+    "selectModal": {
+      "title": "选择工具",
+      "searchPlaceholder": "搜索工具...",
+      "loading": "正在加载MCP工具...",
+      "loadFailedDesc": "无法加载MCP工具列表，请稍后重试",
+      "retryFailedTitle": "重试失败",
+      "retryFailedDesc": "无法加载MCP工具列表，请检查网络连接",
+      "noMatch": "未找到匹配的MCP工具",
+      "configTool": "配置工具",
+      "manageTools": "管理MCP工具",
+      "confirmSelection": "确认选择 ({{count}})"
+    },
+    "config": {
+      "title": "工具配置",
+      "info": "工具信息",
+      "parameters": "配置参数",
+      "noParams": "此工具暂无可配置参数",
+      "placeholders": {
+        "array": "用逗号分隔多个值",
+        "required": "必填",
+        "optional": "可选"
+      },
+      "validation": {
+        "required": "此字段为必填项",
+        "number": "请输入有效的数字"
+      },
+      "save": "保存配置"
+    }
+  },
+  "platforms": {
+    "list": {
+      "title": "接入平台",
+      "addPlatform": "添加平台",
+      "defaultName": "新平台",
+      "loading": "正在加载平台列表…",
+      "loadFailedTitle": "加载失败",
+      "retry": "重试",
+      "retrying": "重试中...",
+      "emptyTitle": "暂无平台",
+      "emptyDescription": "点击上方按钮添加平台",
+      "status": {
+        "connected": "已连接",
+        "error": "连接失败",
+        "pending": "待配置",
+        "notConfigured": "未配置"
+      },
+      "toast": {
+        "createSuccessTitle": "创建成功",
+        "createSuccessMessage": "平台 \"{{name}}\" 已创建"
+      }
+    },
+    "typeSelector": {
+      "title": "选择接入平台类型",
+      "loading": "正在加载可用平台类型...",
+      "loadError": "加载平台类型失败，请稍后重试",
+      "loadFailed": "加载失败",
+      "emptyTypes": "暂无可用平台类型"
+    },
+    "config": {
+      "basic": {
+        "title": "基础设置",
+        "platformName": "平台名称",
+        "platformDesc": "平台描述 (可选)",
+        "descPlaceholder": "描述此平台的用途",
+        "platformIcon": "平台图标",
+        "selectUploadIcon": "选择/上传图标",
+        "iconHint": "选择一个图标在平台列表中展示。"
+      },
+      "webhookIncoming": {
+        "title": "Webhook 接入 (接收消息)",
+        "viewDocs": "查看接入文档",
+        "copyUrl": "复制URL",
+        "urlHint": "将此 URL 配置到您的系统中，用于接收来自您系统的消息。",
+        "toggleSecret": "显示/隐藏密钥",
+        "copySecret": "复制密钥",
+        "regenerateSecret": "重新生成密钥",
+        "secretHint": "用于验证传入请求的签名，确保安全性。"
+      },
+      "webhookOutgoing": {
+        "title": "Webhook 推送 (发送消息)",
+        "yourUrl": "您的接收 URL",
+        "urlHint": "当客服回复时，我们会将消息 POST 到此 URL。",
+        "authToken": "认证 Token (可选)",
+        "tokenPlaceholder": "例如：Bearer your_secret_token",
+        "tokenHint": "如果您的接收 URL 需要认证，请在此处填写（例如 Authorization Header 的值）。"
+      },
+      "apiAccess": {
+        "title": "API 接入 (可选)",
+        "placeholder": "[API Key/Secret 管理和文档链接占位符]",
+        "description": "或者，您也可以通过调用我们的开放 API 来发送和接收消息。请参考开发者文档了解详情。"
+      },
+      "placeholder": {
+        "title": "选择平台",
+        "description": "请从左侧列表中选择一个平台进行配置"
+      },
+      "header": {
+        "title": "{{name}} 配置",
+        "enablePlatform": "启用平台"
+      },
+      "generic": {
+        "title": "平台配置",
+        "comingSoon": "此平台的具体配置选项将在后续版本中提供。",
+        "currentStatus": "当前状态：{{status}}"
+      }
+    },
+    "website": {
+      "title": "{{name}} - 网站小部件配置",
+      "subtitle": "调整左侧配置，右侧预览会实时更新",
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "show": "显示",
+        "hide": "隐藏",
+        "copy": "复制",
+        "regenerate": "重新生成",
+        "remove": "移除",
+        "upload": "点击上传",
+        "testIntegration": "测试集成"
+      },
+      "form": {
+        "name": "名称",
+        "namePlaceholder": "请输入平台名称",
+        "widgetTitle": "访客窗口标题",
+        "themeColor": "主题颜色",
+        "logo": "Logo",
+        "logoUploading": "上传中…",
+        "logoHint": "建议尺寸：72x72 像素。支持 PNG/JPG/SVG，最大 2MB。",
+        "welcomeMessage": "欢迎语",
+        "position": "位置",
+        "positionBottomRight": "右下角",
+        "positionBottomLeft": "左下角",
+        "positionTopRight": "右上角",
+        "positionTopLeft": "左上角",
+        "apiKey": "API Key",
+        "apiKeyPlaceholder": "暂无 API Key",
+        "apiKeyHint": "用于网站集成脚本的鉴权标识，请妥善保管。"
+      },
+      "embed": {
+        "title": "网站集成代码",
+        "description": "将以下代码复制并粘贴到您网站的 <code>&lt;head&gt;</code> 或 <code>&lt;body&gt;</code> 中："
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "平台信息已更新",
+        "platformDisabled": "平台已禁用",
+        "platformEnabled": "平台已启用",
+        "logoSizeError": "图片大小不能超过 2MB",
+        "logoTypeError": "仅支持图片文件",
+        "cropError": "无法打开裁剪器",
+        "logoRemoved": "已移除",
+        "logoRemovedMessage": "Logo 已清除",
+        "logoRemoveError": "暂不支持移除 Logo，请上传新的图片覆盖",
+        "apiKeyCopied": "已复制",
+        "apiKeyCopiedMessage": "API Key 已复制到剪贴板",
+        "regenerateConfirm": "确定要重新生成 API Key 吗？现有嵌入脚本将需要更新。",
+        "apiKeyRegenerated": "已更新",
+        "apiKeyRegeneratedMessage": "API Key 已重新生成",
+        "embedCodeCopied": "已复制",
+        "embedCodeCopiedMessage": "嵌入代码已复制到剪贴板",
+        "uploadSuccess": "上传成功",
+        "uploadSuccessMessage": "Logo 已更新",
+        "uploadError": "上传失败，请重试",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
+      },
+      "defaults": {
+        "widgetTitle": "欢迎光临",
+        "welcomeMessage": "您好！有什么可以帮您？"
+      }
+    },
+    "wecom": {
+      "title": "{{name}} - 企业微信配置",
+      "subtitle": "配置企业微信（WeCom）对接所需的凭据与回调。",
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "show": "显示",
+        "hide": "隐藏",
+        "copy": "复制"
+      },
+      "form": {
+        "platformName": "平台名称",
+        "platformNamePlaceholder": "请输入平台名称",
+        "corpId": "企业ID（CorpID）",
+        "corpIdPlaceholder": "例如：ww1234567890abcdef",
+        "corpIdHint": "可在「我的企业」-「企业信息」中查看。",
+        "agentId": "应用 AgentId",
+        "agentIdPlaceholder": "例如：1000002",
+        "agentIdHint": "在企业微信管理后台的应用详情页获取。",
+        "appSecret": "应用 Secret",
+        "appSecretPlaceholder": "请输入应用Secret",
+        "appSecretHint": "用于调用企业微信接口的凭证，请妥善保管。",
+        "token": "Token",
+        "tokenPlaceholder": "用于回调验证的 Token",
+        "tokenHint": "与企业微信回调配置中的 Token 保持一致。",
+        "encodingAESKey": "EncodingAESKey",
+        "encodingAESKeyPlaceholder": "43 位字符的消息加密密钥",
+        "encodingAESKeyHint": "在消息加解密方式为兼容/安全模式时使用。",
+        "callbackUrl": "回调 URL",
+        "callbackUrlPlaceholder": "平台创建后会生成回调URL",
+        "callbackUrlHint": "将此 URL 配置到企业微信「服务器配置」中的回调地址。"
+      },
+      "guide": {
+        "title": "企业微信（WeCom）配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下四步：①查找企业ID → ②获取应用 AgentId/Secret → ③配置服务器回调（URL/Token/EncodingAESKey）→ ④保存测试。",
+        "step1Title": "1️⃣ 查找企业ID（CorpID）",
+        "step1Item1": "登录 <a class=\"text-blue-600 hover:underline\" href=\"https://work.weixin.qq.com/wework_admin/frame\" target=\"_blank\" rel=\"noreferrer\">企业微信管理后台</a>。",
+        "step1Item2": "进入「我的企业」 → 「企业信息」页面。",
+        "step1Item3": "复制「企业ID（CorpID）」并粘贴到左侧表单「企业ID」。",
+        "step1Example": "示例：ww1234567890abcdef",
+        "step2Title": "2️⃣ 获取应用 AgentId 与 App Secret",
+        "step2Item1": "在后台左侧选择「应用管理」，打开你的自建应用。",
+        "step2Item2": "在应用详情页可看到「AgentId」。",
+        "step2Item3": "点击「Secret」显示或重置，复制后填入左侧表单「应用 Secret」。",
+        "step2SecurityTitle": "安全提示",
+        "step2SecurityText": "请妥善保管 Secret，不要泄露；生产环境建议使用最小权限与定期轮换。",
+        "step3Title": "3️⃣ 配置服务器回调（URL / Token / EncodingAESKey）",
+        "step3Item1": "在「应用管理」→ 你的应用 → 「接收消息」中，点击「设置」进入「服务器配置」。",
+        "step3Item2": "回调 URL：复制左侧表单中的回调 URL（只读）粘贴至后台；",
+        "step3Item3": "Token：自定义任意字符串，并确保与左侧表单一致；",
+        "step3Item4": "EncodingAESKey：点击生成 43 位密钥，并复制到左侧表单；",
+        "step3Item5": "消息加解密方式：建议选择「兼容模式」或「安全模式」。",
+        "step3ExampleTitle": "示例占位（仅供参考）",
+        "step3Note": "保存后，企业微信会进行 URL 校验，请确保服务端已正确返回校验响应。",
+        "step4Title": "4️⃣ 常见问题与排查",
+        "step4Item1": "URL 校验失败：检查你的回调服务是否可公网访问，TLS 证书是否有效。",
+        "step4Item2": "消息解密失败：确认 EncodingAESKey 正确且未包含多余空格。",
+        "step4Item3": "403/权限问题：确认应用已启用并授予所需权限；必要时重新生成 Secret。",
+        "bestPracticesTitle": "最佳实践",
+        "bestPracticesItem1": "将 Secret 存放于密钥管理服务（如 Vault、KMS），避免明文出现在代码库。",
+        "bestPracticesItem2": "为不同环境（开发/测试/生产）使用不同的 Token/AESKey。",
+        "bestPracticesItem3": "定期轮换 Secret，并在失效前完成服务端配置更新。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "企业微信平台配置已更新",
+        "platformDisabled": "平台已禁用",
+        "platformEnabled": "平台已启用",
+        "callbackUrlCopied": "回调URL已复制",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
+      }
+    },
+    "email": {
+      "header": {
+        "title": "邮件平台配置",
+        "subtitle": "配置 IMAP（接收）和 SMTP（发送）信息。"
+      },
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "show": "显示",
+        "hide": "隐藏",
+        "testConnection": "测试连接",
+        "testing": "测试中…"
+      },
+      "form": {
+        "name": "平台名称",
+        "namePlaceholder": "请输入平台名称",
+        "emailAddress": "邮箱地址",
+        "emailPlaceholder": "you@example.com",
+        "emailPassword": "邮箱密码",
+        "passwordPlaceholder": "请输入邮箱密码或授权码",
+        "passwordHint": "Gmail/QQ 邮箱需使用应用专用密码或授权码",
+        "autoDetected": "已自动识别为",
+        "showAdvanced": "显示高级设置",
+        "hideAdvanced": "隐藏高级设置",
+        "imapSection": "IMAP 配置（接收邮件）",
+        "imapHost": "IMAP 服务器",
+        "imapHostPlaceholder": "例如：imap.gmail.com",
+        "imapPort": "IMAP 端口",
+        "imapPortPlaceholder": "默认 993（SSL）或 143（非SSL）",
+        "imapUsername": "邮箱地址",
+        "imapUsernamePlaceholder": "you@example.com",
+        "imapPassword": "邮箱密码",
+        "imapPasswordPlaceholder": "请输入邮箱密码或授权码",
+        "useSsl": "使用 SSL",
+        "smtpSection": "SMTP 配置（发送邮件）",
+        "useSameCredentials": "SMTP 使用相同凭据（推荐）",
+        "smtpHost": "SMTP 服务器",
+        "smtpHostPlaceholder": "例如：smtp.gmail.com",
+        "smtpPort": "SMTP 端口",
+        "smtpPortPlaceholder": "默认 465（SSL）或 587（TLS）",
+        "smtpUsername": "SMTP 用户名",
+        "smtpUsernamePlaceholder": "通常与邮箱地址相同",
+        "smtpPassword": "SMTP 密码",
+        "smtpPasswordPlaceholder": "请输入 SMTP 密码",
+        "smtpPasswordSame": "使用 IMAP 密码",
+        "smtpUseSsl": "使用 SSL（端口 465）",
+        "smtpUseTls": "使用 TLS/STARTTLS（端口 587，推荐）"
+      },
+      "guide": {
+        "title": "邮件平台配置指南（IMAP 接收 + SMTP 发送）",
+        "tipTitle": "提示",
+        "tipMessage": "IMAP 用于接收邮件，SMTP 用于发送邮件。常用端口：<span class=\"font-mono\">IMAP SSL=993</span>，<span class=\"font-mono\">SMTP SSL=465</span>，<span class=\"font-mono\">SMTP TLS=587</span>。",
+        "section1Title": "一、获取邮箱凭据（通用步骤）",
+        "section1Step1": "登录邮箱服务商账号（Gmail / Outlook / QQ 邮箱等）。",
+        "section1Step2": "进入「账户设置」或「安全」页面，开启 IMAP/SMTP 服务（如需）。",
+        "section1Step3": "如服务商要求（如 Gmail/QQ），启用两步验证并创建「应用专用密码」。",
+        "section1Step4": "在左侧表单填写 IMAP 和 SMTP 配置。如果使用相同凭据，勾选「SMTP 使用相同凭据」。",
+        "section1Step5": "点击右上角「保存」，随后进行收发邮件测试。",
+        "section2Title": "二、常用邮箱服务器与端口",
+        "tableProvider": "服务商",
+        "tableImapServer": "IMAP 服务器",
+        "tableImapPort": "IMAP 端口",
+        "tableSmtpServer": "SMTP 服务器",
+        "tableSmtpPort": "SMTP 端口",
+        "tableQQMail": "QQ 邮箱",
+        "section3Title": "三、常见服务商详解",
+        "gmailTitle": "Gmail（应用专用密码）",
+        "gmailStep1": "前往 Google 账号安全中心 → 两步验证 → 应用专用密码；确认 IMAP/SMTP 已开启。",
+        "gmailStep2": "IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">imap.gmail.com</code>，端口：993（SSL）。",
+        "gmailStep3": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.gmail.com</code>，端口：465（SSL）或 587（TLS）。",
+        "gmailStep4": "用户名为你的 Gmail 地址；密码使用应用专用密码（IMAP 和 SMTP 使用相同密码）。",
+        "gmailPasswordPlaceholder": "应用专用密码",
+        "gmailDocs": "Gmail 官方指南",
+        "outlookTitle": "Outlook（Office 365）",
+        "outlookStep1": "IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">outlook.office365.com</code>，端口：993（SSL）。",
+        "outlookStep2": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.office365.com</code>，端口：587（TLS）。",
+        "outlookStep3": "用户名通常为邮箱地址；IMAP 和 SMTP 使用相同凭据。",
+        "outlookDocs": "Microsoft 文档",
+        "qqTitle": "QQ 邮箱（需开启 IMAP/SMTP）",
+        "qqStep1": "进入 QQ 邮箱设置 → 账户 → 开启「IMAP/SMTP 服务」。",
+        "qqStep2": "获取授权码作为密码；IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">imap.qq.com</code>，端口：993。",
+        "qqStep3": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.qq.com</code>，端口：465（SSL）或 587（TLS）。",
+        "qqStep4": "IMAP 和 SMTP 使用相同的授权码。",
+        "qqPasswordPlaceholder": "授权码",
+        "qqDocs": "QQ 邮箱帮助",
+        "troubleshootTitle": "排查指南",
+        "troubleshootItem1": "确认服务商已开启 IMAP/SMTP 服务；Gmail/QQ 需在设置中启用并使用应用专用密码/授权码。",
+        "troubleshootItem2": "IMAP 优先使用 SSL（端口 993）；SMTP 推荐使用 TLS（端口 587）或 SSL（端口 465）。",
+        "troubleshootItem3": "核对邮箱地址（用户名）与密码是否正确，注意大小写与空格。",
+        "troubleshootItem4": "如果勾选了「使用相同凭据」，确保 IMAP 和 SMTP 使用相同的用户名和密码。",
+        "troubleshootItem5": "若仍失败，检查是否需要在服务商后台允许第三方客户端访问。",
+        "moreInfo": "更多文档参考：各邮箱服务商官方文档与支持页面。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "邮件平台配置已保存",
+        "enabled": "平台已启用",
+        "disabled": "平台已禁用",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除",
+        "testSuccess": "连接测试成功",
+        "testSuccessMessage": "IMAP 和 SMTP 连接均正常",
+        "testFailed": "连接测试失败",
+        "testValidationError": "请先填写完整的邮箱配置信息"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
+      }
+    },
+    "douyin": {
+      "title": "{{name}} - 抖音平台配置",
+      "subtitle": "配置抖音开放平台凭据与回调信息。",
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "show": "显示",
+        "hide": "隐藏"
+      },
+      "form": {
+        "platformName": "平台名称",
+        "platformNamePlaceholder": "请输入平台名称",
+        "appId": "应用ID (App ID)",
+        "appIdPlaceholder": "例如：your_app_id",
+        "appSecret": "应用密钥 (App Secret)",
+        "appSecretPlaceholder": "请输入 App Secret",
+        "clientKey": "Client Key",
+        "clientKeyPlaceholder": "例如：your_client_key",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "请输入 Client Secret",
+        "callbackUrl": "回调 URL",
+        "callbackUrlPlaceholder": "平台创建后会生成回调URL",
+        "callbackUrlHint": "将此 URL 配置到抖音开放平台「回调地址」设置中。",
+        "authScope": "授权范围 (Authorization Scope)",
+        "authScopePlaceholder": "例如：user_info,video.list",
+        "authScopeHint": "多个权限用英文逗号分隔，例如：user_info,video.list。"
+      },
+      "guide": {
+        "title": "抖音开放平台配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下四步：① 注册开放平台账号 → ② 创建应用并获取凭据 → ③ 配置回调地址 → ④ 保存并测试。",
+        "step1Title": "1️⃣ 注册抖音开放平台账号",
+        "step1Item1": "访问 <a class=\"text-blue-600 hover:underline\" href=\"https://developer.open-douyin.com/\" target=\"_blank\" rel=\"noreferrer\">抖音开放平台</a> 并完成账号注册与主体认证（如需）。",
+        "step1Item2": "登录控制台，完善开发者信息。",
+        "step2Title": "2️⃣ 创建应用并获取凭据",
+        "step2Item1": "在控制台创建新应用，记下 App ID 与 App Secret。",
+        "step2Item2": "在应用设置中获取 Client Key 与 Client Secret。",
+        "step2Item3": "根据业务选择并开通所需的授权范围（Scope）。",
+        "step3Title": "3️⃣ 配置回调地址",
+        "step3Item1": "在开放平台「回调设置」中配置回调 URL：使用上方只读回调 URL。",
+        "step3Item2": "确保服务端可公网访问，并正确处理校验请求。",
+        "step4Title": "4️⃣ 常见问题与排查",
+        "step4Item1": "回调校验失败：检查回调 URL 是否可访问、TLS 证书是否有效。",
+        "step4Item2": "权限不足：确认所需 Scope 已在开放平台开通并授权。",
+        "step4Item3": "凭据错误：核对 App ID/Secret 与 Client Key/Secret 是否输入正确。",
+        "bestPracticesTitle": "最佳实践",
+        "bestPracticesItem1": "将密钥存放于安全的密钥管理服务（如 KMS/Vault），避免出现在代码库。",
+        "bestPracticesItem2": "不同环境（开发/测试/生产）使用不同的回调与凭据，按需最小授权。",
+        "bestPracticesItem3": "定期轮换密钥并最小化权限范围（Scope）。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "抖音平台配置已保存",
+        "platformDisabled": "平台已禁用",
+        "platformEnabled": "平台已启用",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
+      }
+    },
+    "custom": {
+      "title": "自定义平台配置",
+      "subtitle": "配置第三方程序集成所需的 API 信息与回调地址。",
+      "configSection": "配置信息",
+      "platformName": "平台名称",
+      "platformNamePlaceholder": "请输入平台名称",
+      "nameSaved": "平台名称已保存",
+      "chatUrl": "对话接口地址",
+      "chatUrlHint": "第三方程序调用此地址发送对话消息。",
+      "apiKeyHint": "在请求头中使用 X-Platform-API-Key 进行认证。",
+      "apiKey": "API 密钥",
+      "callbackUrl": "回调地址",
+      "callbackUrlHint": "当客服回复消息时，系统会将消息推送到此地址",
+      "callbackUrlPlaceholder": "https://your-domain.com/webhook/callback",
+      "callbackSaved": "回调地址已保存",
+      "callbackSaveFailed": "保存回调地址失败",
+      "invalidUrl": "无效的 URL 格式",
+      "invalidUrlHint": "请输入有效的 HTTP/HTTPS 地址",
+      "notAvailable": "暂无",
+      "copied": "{{label}} 已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "disabled": "平台已禁用",
+      "enabled": "平台已启用",
+      "toggleFailed": "切换状态失败",
+      "confirmRegenerate": "确定要重新生成 API 密钥吗？旧密钥将立即失效。",
+      "regenerated": "API 密钥已重新生成",
+      "regenerateFailed": "重新生成失败",
+      "regenerate": "重新生成",
+      "deleted": "平台已删除",
+      "deleteFailed": "删除失败",
+      "deleteTitle": "删除平台",
+      "deleteMessage": "确定要删除平台\"{{name}}\"吗？此操作无法撤销。",
+      "code": "代码",
+      "saveSuccess": "保存成功",
+      "integration": {
+        "title": "API 集成信息",
+        "guide": "集成指南",
+        "chatApi": "对话接口说明（发送消息到 TGO）",
+        "endpoint": "接口地址",
+        "authentication": "认证方式",
+        "authDesc": "在请求头中添加平台 API 密钥：",
+        "requiredParams": "必需参数",
+        "messagesDesc": "对话消息数组，格式与 OpenAI ChatGPT API 兼容",
+        "userDesc": "第三方平台的用户唯一标识（必需）",
+        "optionalFeatures": "可选功能",
+        "visitorRegisterDesc": "如需传递用户详细信息（姓名、头像等），可先调用访客注册接口：",
+        "simpleExample": "简单示例",
+        "responseHandling": "响应处理",
+        "responseHandlingDesc": "调用对话接口后，TGO 系统会返回 AI 助手的回复内容。第三方平台需要将返回的回复内容发送给对应的第三方用户。响应格式与 OpenAI ChatGPT API 兼容，支持流式和非流式响应。",
+        "callbackApi": "回调接口说明（接收客服回复）",
+        "callbackConfig": "配置回调地址",
+        "callbackConfigDesc": "在左侧「回调地址」字段中配置您的回调 URL，当客服回复消息时，系统会向该地址发送 POST 请求。",
+        "requestFormat": "请求格式",
+        "fieldDescriptions": "字段说明",
+        "messageIdDesc": "消息唯一标识",
+        "callbackUserDesc": "第三方用户标识（与对话接口中的 user 字段对应）",
+        "contentDesc": "客服回复的消息内容",
+        "timestampDesc": "消息时间戳（ISO 8601 格式）",
+        "responseRequirement": "响应要求",
+        "responseRequirementDesc": "请确保回调地址可公网访问，并返回 HTTP 200 状态码表示接收成功。",
+        "codeExamples": "代码示例"
+      }
+    }
+  },
+  "setup": {
+    "title": "系统安装向导",
+    "subtitle": "欢迎使用 Tgo CS，让我们开始配置您的系统",
+    "steps": {
+      "admin": "管理员账号",
+      "llm": "大模型配置",
+      "verify": "验证安装"
+    },
+    "stepIndicator": "步骤 {current} / {total}",
+    "admin": {
+      "title": "设置管理员账号",
+      "description": "创建系统管理员账号，用于登录和管理系统",
+      "username": "用户名",
+      "usernamePlaceholder": "请输入用户名（3-20个字符）",
+      "password": "密码",
+      "passwordPlaceholder": "请输入密码（至少8个字符）",
+      "confirmPassword": "确认密码",
+      "confirmPasswordPlaceholder": "请再次输入密码",
+      "validation": {
+        "usernameRequired": "请输入用户名",
+        "usernameLength": "用户名长度必须在3-20个字符之间",
+        "usernameFormat": "用户名只能包含字母、数字和下划线",
+        "passwordRequired": "请输入密码",
+        "passwordLength": "密码长度至少为8个字符",
+        "passwordStrength": "密码必须包含大小写字母和数字",
+        "confirmPasswordRequired": "请再次输入密码",
+        "passwordMismatch": "两次输入的密码不一致"
+      }
+    },
+    "llm": {
+      "title": "配置 AI 大模型",
+      "description": "选择您的大模型提供商，稍后也可以在系统设置中配置",
+      "optional": "（可选）",
+      "provider": "提供商",
+      "providerPlaceholder": "请选择大模型提供商",
+      "providers": {
+        "none": "暂不配置",
+        "openai": "OpenAI",
+        "azure": "Azure OpenAI",
+        "anthropic": "Anthropic",
+        "local": "本地模型",
+        "other": "其他"
+      },
+      "name": "显示名称",
+      "namePlaceholder": "例如：我的 OpenAI 提供商",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "请输入 API Key（例如：sk-...）",
+      "apiEndpoint": "API Endpoint",
+      "apiEndpointPlaceholder": "请输入 API Endpoint（可选）",
+      "model": "模型名称",
+      "modelPlaceholder": "例如：gpt-4, claude-3-opus",
+      "testConnection": "测试连接",
+      "testSuccess": "连接测试成功",
+      "testFailed": "连接测试失败",
+      "validation": {
+        "providerRequired": "请选择提供商",
+        "nameRequired": "请输入显示名称",
+        "apiKeyRequired": "请输入 API Key"
+      }
+    },
+    "verify": {
+      "title": "安装完成",
+      "description": "正在验证系统配置...",
+      "summary": "安装摘要",
+      "adminCreated": "管理员账号已创建",
+      "llmConfigured": "大模型已配置",
+      "llmNotConfigured": "大模型未配置（可稍后设置）",
+      "checks": {
+        "title": "系统检查",
+        "database": "数据库连接",
+        "admin": "管理员账号",
+        "llm": "大模型配置",
+        "status": {
+          "success": "成功",
+          "failed": "失败",
+          "skipped": "跳过"
+        }
+      },
+      "verifying": "正在验证...",
+      "verifySuccess": "验证成功",
+      "verifyFailed": "验证失败",
+      "installationComplete": "安装完成！",
+      "redirecting": "即将跳转到登录页面..."
+    },
+    "buttons": {
+      "previous": "上一步",
+      "next": "下一步",
+      "skip": "跳过",
+      "finish": "完成安装",
+      "retry": "重试"
+    },
+    "errors": {
+      "createAdminFailed": "创建管理员账号失败",
+      "configureLLMFailed": "配置大模型失败",
+      "verifyFailed": "验证安装失败",
+      "alreadyInstalled": "系统已安装，无需重复安装"
+    },
+    "success": {
+      "adminCreated": "管理员账号创建成功",
+      "llmConfigured": "大模型配置成功"
+    }
+  }
+}

@@ -1,0 +1,100 @@
+/**
+ * Centralized constants for common values used across the app
+ * Use these instead of hardcoded literals to improve maintainability.
+ */
+
+// ----------------------------------------------------------------------------
+// Channel types (WuKongIM)
+// ----------------------------------------------------------------------------
+
+/**
+ * Channel type constants from WuKongIM
+ * 1 = person, 2 = group, 3 = customer service
+ */
+export const CHANNEL_TYPE = {
+  PERSON: 1,
+  GROUP: 2,
+  CUSTOMER_SERVICE: 3,
+} as const;
+
+/** Default channel type to use when backend value is missing */
+export const DEFAULT_CHANNEL_TYPE = CHANNEL_TYPE.PERSON;
+
+// ----------------------------------------------------------------------------
+// Message sender types (ownership/display)
+// ----------------------------------------------------------------------------
+
+/**
+ * Sender type of a message in UI context
+ */
+export const MESSAGE_SENDER_TYPE = {
+  VISITOR: 'visitor',
+  STAFF: 'staff',
+  SYSTEM: 'system',
+} as const;
+
+// ----------------------------------------------------------------------------
+// Chat related enums
+// ----------------------------------------------------------------------------
+
+/** Chat status values */
+export const CHAT_STATUS = {
+  ACTIVE: 'active',
+  WAITING: 'waiting',
+  CLOSED: 'closed',
+  TRANSFERRED: 'transferred',
+} as const;
+
+/** Chat priority values */
+export const CHAT_PRIORITY = {
+  LOW: 'low',
+  NORMAL: 'normal',
+  HIGH: 'high',
+  URGENT: 'urgent',
+} as const;
+
+/** Visitor presence status values */
+export const VISITOR_STATUS = {
+  ONLINE: 'online',
+  AWAY: 'away',
+  OFFLINE: 'offline',
+} as const;
+
+// ----------------------------------------------------------------------------
+// WuKongIM UID conventions
+// ----------------------------------------------------------------------------
+
+/** Suffix appended to staff agent UIDs */
+export const STAFF_UID_SUFFIX = '-staff' as const;
+
+// ----------------------------------------------------------------------------
+// Auth / User
+// ----------------------------------------------------------------------------
+
+/** User role values */
+export const USER_ROLE = {
+  USER: 'user',
+  AGENT: 'agent',
+} as const;
+
+// ----------------------------------------------------------------------------
+// Storage keys
+// ----------------------------------------------------------------------------
+
+/** Keys used for localStorage/zustand persist */
+export const STORAGE_KEYS = {
+  AUTH: 'auth-storage',
+  CHAT: 'chat-store',
+  UI: 'ui-store',
+  PROVIDERS: 'providers-store',
+  AUTH_TOKEN: 'tgo-auth-token',
+} as const;
+
+// ----------------------------------------------------------------------------
+// Platform types
+// ----------------------------------------------------------------------------
+// Note: Use PlatformType enum from '@/types' for specific platforms.
+// This section is here to document the convention and avoid hardcoding
+// arbitrary strings. Prefer importing PlatformType where possible.
+export { PlatformType } from '@/types';
+
