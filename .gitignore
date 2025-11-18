@@ -166,4 +166,4 @@ uploads/
 .env
 
 envs/
-data/
+/data/
