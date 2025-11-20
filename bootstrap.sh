@@ -36,6 +36,8 @@ trap _finish EXIT
 OS_TYPE="unknown"
 OS_DISTRO="unknown"
 OS_IS_WSL=0
+DOCKER_GROUP_JUST_ADDED=0
+
 
 detect_os() {
   case "$(uname -s)" in
@@ -309,6 +311,16 @@ install_docker() {
       exit 1
     fi
 
+    # Track whether we are newly adding the current user to the 'docker' group.
+    local docker_group_was_present=0
+    if command -v id >/dev/null 2>&1; then
+      local groups_before=""
+      groups_before="$(id -nG "$USER" 2>/dev/null || echo "")"
+      case " $groups_before " in
+        *" docker "*) docker_group_was_present=1 ;;
+      esac
+    fi
+
     echo "[INFO] Installing Docker Engine from official Docker repository..."
     set +e
     case "$OS_DISTRO" in
@@ -348,6 +360,21 @@ install_docker() {
     if command -v getent >/dev/null 2>&1 && getent group docker >/dev/null 2>&1; then
       echo "[INFO] Adding current user to 'docker' group (you may need to log out and back in)."
       sudo usermod -aG docker "$USER" || true
+
+      # If the user was not previously in the 'docker' group but is now,
+      # remember this so we can avoid running tgo.sh in the same session,
+      # which would still lack Docker permissions.
+      if command -v id >/dev/null 2>&1; then
+        local groups_after=""
+        groups_after="$(id -nG "$USER" 2>/dev/null || echo "")"
+        case " $groups_after " in
+          *" docker "*)
+            if [ "$docker_group_was_present" -eq 0 ]; then
+              DOCKER_GROUP_JUST_ADDED=1
+            fi
+            ;;
+        esac
+      fi
     fi
   else
     echo "[FATAL] Unsupported OS. Please install Docker manually: https://docs.docker.com/get-docker/" >&2
@@ -448,6 +475,27 @@ check_prereqs() {
 # ---------- Main ----------
 main() {
   check_prereqs
+
+  # If Docker was just installed and we have just added this user to the
+  # 'docker' group on Linux, the current shell will not yet see that group.
+  # In that case, instruct the user to start a new session instead of
+  # continuing into tgo.sh install, which would hit permission errors.
+  detect_os
+  if [ "$OS_TYPE" = "linux" ] && [ "${DOCKER_GROUP_JUST_ADDED:-0}" -eq 1 ]; then
+    echo "[INFO] Docker Engine was installed and your user was just added to the 'docker' group." >&2
+    echo "[INFO] To use Docker without sudo, you must start a new shell session so the new group membership is applied." >&2
+    echo >&2
+    echo "Next steps (choose one):" >&2
+    echo "  1) Log out and log back in, then run (from your tgo-deploy repo directory):" >&2
+    echo "       ./tgo.sh install" >&2
+    echo "     OR" >&2
+    echo "  2) In this terminal, run:" >&2
+    echo "       newgrp docker" >&2
+    echo "       ./tgo.sh install" >&2
+    echo >&2
+    echo "[INFO] Exiting bootstrap now so you can restart your session with Docker permissions." >&2
+    return
+  fi
 
   # If we're already inside a tgo-deploy working dir, run tgo.sh install
   if [ -f "./tgo.sh" ] && [ -f "./docker-compose.yml" ]; then
