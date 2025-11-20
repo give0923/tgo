@@ -99,7 +99,7 @@ cmd_install() {
     shift || true
   fi
 
-  if [ -n "${1-:-}" ]; then
+  if [ "$#" -gt 0 ]; then
     echo "[ERROR] Unknown argument to install: $1" >&2
     usage
     exit 1
@@ -156,7 +156,7 @@ cmd_uninstall() {
     shift || true
   fi
 
-  if [ -n "${1-:-}" ]; then
+  if [ "$#" -gt 0 ]; then
     echo "[ERROR] Unknown argument to uninstall: $1" >&2
     usage
     exit 1
@@ -204,7 +204,7 @@ cmd_service() {
     shift || true
   fi
 
-  if [ -n "${1-:-}" ]; then
+  if [ "$#" -gt 0 ]; then
     echo "[ERROR] Unknown argument to service: $1" >&2
     usage
     exit 1
@@ -281,7 +281,7 @@ cmd_build() {
     exit 1
   fi
 
-  local target=${1:-}
+  local target=${1-}
   if [ -z "$target" ]; then
     echo "[ERROR] Missing service name for build." >&2
     usage
@@ -289,7 +289,7 @@ cmd_build() {
   fi
   shift || true
 
-  if [ -n "${1-:-}" ]; then
+  if [ "$#" -gt 0 ]; then
     echo "[ERROR] Too many arguments for build." >&2
     usage
     exit 1
