@@ -166,7 +166,7 @@ cmd_install() {
   wait_for_postgres "$compose_file_args"
 
   echo "[INFO] Running Alembic migrations for tgo-rag..."
-  docker compose --env-file "$ENV_FILE" $compose_file_args run --rm tgo-rag alembic upgrade head
+  docker compose --env-file "$ENV_FILE" $compose_file_args run --rm  tgo-rag alembic upgrade head
 
   echo "[INFO] Running Alembic migrations for tgo-ai..."
   docker compose --env-file "$ENV_FILE" $compose_file_args run --rm tgo-ai alembic upgrade head

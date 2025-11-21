@@ -34,22 +34,7 @@ COPY pyproject.toml ./
 COPY poetry.lock* ./
 
 # Install only production dependencies into .venv
-RUN poetry install --only=main --no-root && rm -rf "$POETRY_CACHE_DIR" && \
-    find /app/.venv -type d -name "tests" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "test" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "__pycache__" -exec rm -rf {} + && \
-    find /app/.venv -type f -name "*.pyc" -delete && \
-    find /app/.venv -type f -name "*.pyo" -delete && \
-    find /app/.venv -type d -name "*.dist-info" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "*.egg-info" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "doc" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "docs" -exec rm -rf {} + && \
-    find /app/.venv -type f -name "*.txt" -delete && \
-    find /app/.venv -type f -name "*.md" -delete && \
-    find /app/.venv -type f -name "*.rst" -delete && \
-    find /app/.venv -type d -name "cache" -exec rm -rf {} + && \
-    find /app/.venv -type d -name "caches" -exec rm -rf {} + && \
-    echo "Cleanup completed."
+RUN poetry install --only=main --no-root && rm -rf "$POETRY_CACHE_DIR"
 
 # Copy source code (for any build-time hooks)
 COPY . .
@@ -137,8 +122,8 @@ RUN groupadd -r rag && useradd -r -g rag rag && \
 WORKDIR /app
 
 # Copy virtualenv from builder
-COPY --from=builder --chown=rag:rag /app/.venv /opt/venv
-ENV PATH="/opt/venv/bin:$PATH"
+COPY --from=builder --chown=rag:rag /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Create necessary directories and fix ownership
 # RUN mkdir -p /app/uploads /app/logs && \
