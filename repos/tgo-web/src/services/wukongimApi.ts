@@ -4,7 +4,6 @@
  */
 
 import { BaseApiService } from './base/BaseApiService';
-import { getWuKongIMConfig } from '../config/wukongim';
 
 import { CHANNEL_TYPE, DEFAULT_CHANNEL_TYPE, MESSAGE_SENDER_TYPE, PlatformType, STAFF_UID_SUFFIX } from '@/constants';
 
@@ -117,12 +116,6 @@ export class WuKongIMApiService extends BaseApiService {
       throw new Error('Invalid ws_addr from route');
     } catch (err) {
       console.error('Failed to fetch WuKongIM route, using env fallback if available:', err);
-      const envUrl = getWuKongIMConfig().wsUrl;
-      if (envUrl) {
-        // Cache fallback briefly to avoid thrashing
-        this.setCachedWsUrl(uid, envUrl);
-        return envUrl;
-      }
       throw new Error('无法获取WuKongIM路由地址，请稍后重试');
     }
   }

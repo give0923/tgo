@@ -31,9 +31,14 @@ export default function App(){
   const markWelcomeInjected = usePlatformStore(s => s.markWelcomeInjected)
 
   // API base via env
-  const cfg = {
-    apiBase: (import.meta as any).env?.VITE_API_BASE as string | undefined,
-  }
+  // Priority: window.ENV (runtime) > import.meta.env (build-time) > undefined
+  const cfg = useMemo(() => ({
+    apiBase: (
+      (typeof window !== 'undefined' && (window as any).ENV?.VITE_API_BASE) ||
+      (import.meta as any).env?.VITE_API_BASE ||
+      undefined
+    ) as string | undefined,
+  }), [])
 
   useEffect(()=>{
     if (cfg.apiBase) {

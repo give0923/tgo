@@ -15,23 +15,6 @@ export interface WuKongIMConfig {
   maxReconnectDelay: number;
 }
 
-/**
- * Default WuKongIM configuration
- */
-export const defaultWuKongIMConfig: WuKongIMConfig = {
-  wsUrl: import.meta.env.VITE_WUKONGIM_WS_URL || 'ws://localhost:5200',
-  connectionTimeout: 10000, // 10 seconds
-  maxReconnectAttempts: 5,
-  reconnectDelay: 1000, // 1 second
-  maxReconnectDelay: 30000, // 30 seconds
-};
 
-/**
- * Get WuKongIM configuration with environment variable overrides
- */
-export const getWuKongIMConfig = (): WuKongIMConfig => {
-  return {
-    ...defaultWuKongIMConfig,
-    wsUrl: import.meta.env.VITE_WUKONGIM_WS_URL || defaultWuKongIMConfig.wsUrl,
-  };
-};
+
+

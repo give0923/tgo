@@ -6,7 +6,21 @@
 import i18n from '../i18n';
 
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+// Priority: window.ENV (runtime) > import.meta.env (build-time) > default
+const getApiBaseUrl = (): string => {
+  // First, try runtime configuration (set by docker-entrypoint.sh)
+  if (typeof window !== 'undefined' && (window as any).ENV?.VITE_API_BASE_URL) {
+    return (window as any).ENV.VITE_API_BASE_URL;
+  }
+  // Fall back to build-time environment variable
+  if (import.meta.env.VITE_API_BASE_URL) {
+    return import.meta.env.VITE_API_BASE_URL;
+  }
+  // Default fallback
+  return 'http://localhost:8000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 /**
  * Get current user language for API requests

@@ -206,6 +206,10 @@ services:
   tgo-web:
     image: ghcr.io/tgoai/tgo/tgo-web:latest
     container_name: tgo-web
+    environment:
+      # Runtime environment variables (injected by docker-entrypoint.sh)
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
+      DEBUG_MODE: ${DEBUG_MODE:-false}
     env_file:
       - ./envs/tgo-web.env
     ports:
@@ -216,6 +220,9 @@ services:
   tgo-widget-app:
     image: ghcr.io/tgoai/tgo/tgo-widget-app:latest
     container_name: tgo-widget-app
+    environment:
+      # Runtime environment variables (injected by docker-entrypoint.sh)
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:8000}
     env_file:
       - ./envs/tgo-widget-app.env
     ports:
