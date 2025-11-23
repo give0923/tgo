@@ -65,6 +65,7 @@ const config: Config = {
         alt: 'Tgo 文档',
         src: 'img/logo.svg',
         href: 'https://docs.tgo.ai/',
+        target: '_self',
       },
       items: [
         {
@@ -73,6 +74,7 @@ const config: Config = {
           position: 'left',
           label: '文档',
           href: 'https://docs.tgo.ai/',
+          target: '_self',
         },
         {
           href: 'https://github.com/tgoai/tgo',
