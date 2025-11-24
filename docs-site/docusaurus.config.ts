@@ -60,17 +60,18 @@ const config: Config = {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'Tgo 文档',
+      title: 'tgo',
       logo: {
-        alt: 'Tgo 文档',
+        alt: 'tgo Logo',
         src: 'img/logo.svg',
       },
+      hideOnScroll: true,
       items: [
         {
           type: 'docSidebar',
           sidebarId: 'docsSidebar',
           position: 'left',
-          label: '文档'
+          label: '文档',
         },
         {
           href: 'https://github.com/tgoai/tgo',
@@ -80,27 +81,8 @@ const config: Config = {
       ],
     },
     footer: {
-      style: 'dark',
-      links: [
-        {
-          title: '文档',
-          items: [
-            {
-              label: '概览',
-              to: '/',
-            },
-          ],
-        },
-        {
-          title: '社区与更多',
-          items: [
-            {
-              label: 'GitHub',
-              href: 'https://github.com/tgoai/tgo',
-            },
-          ],
-        },
-      ],
+      style: 'light',
+      links: [],
       copyright: `Copyright © ${new Date().getFullYear()} tgo.`,
     },
     prism: {
