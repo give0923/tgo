@@ -215,7 +215,7 @@ export const WebSocketManager: React.FC = () => {
         console.error('🔌 WebSocket Manager: Auto-connect failed:', error);
       });
     } else {
-      console.log('🔌 WebSocket Manager: Token or user not available', {
+      console.log('🔌 WebSocket Manager: Token or user not available 1111', {
         hasToken: !!token,
         hasUser: !!user?.id
       });
