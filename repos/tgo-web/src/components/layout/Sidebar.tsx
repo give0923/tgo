@@ -44,7 +44,7 @@ const Sidebar: React.FC = () => {
     <aside className="w-16 flex flex-col items-center bg-white/70 backdrop-blur-lg border-r border-gray-200/50 py-4 space-y-4 shrink-0 relative z-20">
       {/* System Logo */}
       <div className="mb-2">
-          <img src="/logo.svg" alt="Logo" className="w-full h-full object-contain object-center select-none" />
+          <img src="/logo.svg" alt="Logo" className="w-8 h-8 object-contain object-center select-none" />
       </div>
 
       {/* Navigation */}
