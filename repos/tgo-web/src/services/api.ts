@@ -17,7 +17,7 @@ const getApiBaseUrl = (): string => {
     return import.meta.env.VITE_API_BASE_URL;
   }
   // Default fallback
-  return 'http://localhost:8000';
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
