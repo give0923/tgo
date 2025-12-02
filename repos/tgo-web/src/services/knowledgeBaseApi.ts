@@ -155,62 +155,39 @@ export interface WebsiteCrawlRequest {
   options?: CrawlOptionsRequest;
 }
 
-export interface CrawlProgressResponse {
-  pages_discovered: number;
-  pages_crawled: number;
-  pages_processed: number;
-  pages_failed: number;
-  progress_percent: number;
-}
-
-export interface WebsiteCrawlJobResponse {
-  id: string;
-  collection_id: string;
-  start_url: string;
-  max_pages: number;
-  max_depth: number;
-  include_patterns?: string[] | null;
-  exclude_patterns?: string[] | null;
-  status: 'pending' | 'crawling' | 'processing' | 'completed' | 'failed' | 'cancelled';
-  progress: CrawlProgressResponse;
-  crawl_options?: Record<string, any> | null;
-  error_message?: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface WebsiteCrawlCreateResponse {
-  job_id: string;
-  status: string;
-  start_url: string;
-  collection_id: string;
-  created_at: string;
-  message: string;
-}
-
-export interface WebsiteCrawlJobListResponse extends PaginatedResponse<WebsiteCrawlJobResponse> {}
-
-// Website Page Types
+// New Website Page Types (based on new API spec)
 export interface WebsitePageResponse {
   id: string;
-  crawl_job_id: string;
+  collection_id: string;
+  parent_page_id?: string | null;
   url: string;
   title?: string | null;
   depth: number;
   content_length: number;
-  status: 'pending' | 'fetched' | 'extracted' | 'processed' | 'failed';
+  meta_description?: string | null;
+  status: 'pending' | 'crawling' | 'fetched' | 'extracted' | 'processing' | 'processed' | 'failed' | 'skipped';
+  crawl_source?: 'initial' | 'discovered' | 'manual' | 'deep_crawl' | null;
   http_status_code?: number | null;
   file_id?: string | null;
+  discovered_links?: Array<Record<string, any>> | null;
   error_message?: string | null;
+  tree_completed?: boolean; // Whether this page and all its descendant pages have been processed or skipped
+  has_children?: boolean; // Whether this page has any child pages
+  children?: WebsitePageResponse[] | null; // Child pages (populated when tree_depth > 0)
   created_at: string;
   updated_at: string;
 }
 
 export interface WebsitePageListResponse extends PaginatedResponse<WebsitePageResponse> {}
 
-// Add Page Types
+// Add Page Types (new API)
 export interface AddPageRequest {
   url: string;
+  parent_page_id?: string | null; // Parent page ID. If provided, the new page will be a child of this page
+  max_depth?: number; // 0-10, default 0 (only this page)
+  include_patterns?: string[] | null;
+  exclude_patterns?: string[] | null;
+  options?: CrawlOptionsRequest | null;
 }
 
 export interface AddPageResponse {
@@ -237,6 +214,17 @@ export interface CrawlDeeperResponse {
   added_urls?: string[] | null;
 }
 
+// Crawl Progress Types (new API)
+export interface CrawlProgressSchema {
+  total_pages: number;
+  pages_pending: number;
+  pages_crawled: number;
+  pages_processing: number;
+  pages_processed: number;
+  pages_failed: number;
+  progress_percent: number;
+}
+
 // Website Metadata Types
 export interface WebsiteMetadataRequest {
   url: string;
@@ -252,6 +240,72 @@ export interface WebsiteMetadataResponse {
   error?: string | null;
 }
 
+// QA Pair Types
+export interface QAPairResponse {
+  id: string;
+  collection_id: string;
+  question: string;
+  answer: string;
+  question_hash: string;
+  category?: string | null;
+  subcategory?: string | null;
+  tags?: string[] | null;
+  qa_metadata?: Record<string, any> | null;
+  source_type: 'manual' | 'import' | 'ai_generated';
+  status: 'pending' | 'processing' | 'processed' | 'failed';
+  priority: number;
+  document_id?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QAPairListResponse {
+  data: QAPairResponse[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface QAPairCreateRequest {
+  question: string;
+  answer: string;
+  category?: string | null;
+  subcategory?: string | null;
+  tags?: string[] | null;
+  qa_metadata?: Record<string, any> | null;
+  priority?: number;
+}
+
+export interface QAPairUpdateRequest {
+  question?: string | null;
+  answer?: string | null;
+  category?: string | null;
+  subcategory?: string | null;
+  tags?: string[] | null;
+  qa_metadata?: Record<string, any> | null;
+  priority?: number | null;
+}
+
+export interface QAPairBatchCreateRequest {
+  qa_pairs: QAPairCreateRequest[];
+}
+
+export interface QAPairBatchCreateResponse {
+  success: boolean;
+  created_count: number;
+  skipped_count: number;
+  failed_count: number;
+  created_ids?: string[] | null;
+  errors?: Array<Record<string, any>> | null;
+}
+
+export interface QAPairImportRequest {
+  format: 'json' | 'csv';
+  data: string;
+  category?: string | null;
+  tags?: string[] | null;
+}
+
 // API Endpoints - Use relative paths since the API client already includes the base URL
 const API_VERSION = 'v1';
 
@@ -259,22 +313,24 @@ export const KNOWLEDGE_BASE_ENDPOINTS = {
   // Collections
   COLLECTIONS: `/${API_VERSION}/rag/collections`,
   COLLECTION_BY_ID: (id: string) => `/${API_VERSION}/rag/collections/${id}`,
-  COLLECTION_CRAWL_JOBS: (collectionId: string) => `/${API_VERSION}/rag/collections/${collectionId}/crawl-jobs`,
-  COLLECTION_PAGES: (collectionId: string) => `/${API_VERSION}/rag/collections/${collectionId}/pages`,
 
   // Files
   FILES: `/${API_VERSION}/rag/files`,
   FILE_BY_ID: (id: string) => `/${API_VERSION}/rag/files/${id}`,
   FILES_BATCH: `/${API_VERSION}/rag/files/batch`,
 
-  // Website Crawl
-  WEBSITE_CRAWL: `/${API_VERSION}/rag/websites/crawl`,
-  WEBSITE_CRAWL_JOB: (jobId: string) => `/${API_VERSION}/rag/websites/crawl/${jobId}`,
-  WEBSITE_CRAWL_CANCEL: (jobId: string) => `/${API_VERSION}/rag/websites/crawl/${jobId}/cancel`,
-  WEBSITE_CRAWL_PAGES: (jobId: string) => `/${API_VERSION}/rag/websites/crawl/${jobId}/pages`,
-
-  // Website Pages
+  // Website Pages (new API)
+  WEBSITE_PAGES: `/${API_VERSION}/rag/websites/pages`,
+  WEBSITE_PAGE_BY_ID: (pageId: string) => `/${API_VERSION}/rag/websites/pages/${pageId}`,
+  WEBSITE_PAGE_RECRAWL: (pageId: string) => `/${API_VERSION}/rag/websites/pages/${pageId}/recrawl`,
   WEBSITE_PAGE_CRAWL_DEEPER: (pageId: string) => `/${API_VERSION}/rag/websites/pages/${pageId}/crawl-deeper`,
+  WEBSITE_CRAWL_PROGRESS: `/${API_VERSION}/rag/websites/progress`,
+
+  // QA Pairs
+  QA_PAIRS: (collectionId: string) => `/${API_VERSION}/rag/${collectionId}/qa-pairs`,
+  QA_PAIRS_BATCH: (collectionId: string) => `/${API_VERSION}/rag/${collectionId}/qa-pairs/batch`,
+  QA_PAIRS_IMPORT: (collectionId: string) => `/${API_VERSION}/rag/${collectionId}/qa-pairs/import`,
+  QA_PAIR_BY_ID: (qaPairId: string) => `/${API_VERSION}/rag/qa-pairs/${qaPairId}`,
 
   // Utils
   EXTRACT_WEBSITE_METADATA: `/${API_VERSION}/utils/extract-website-metadata`,
@@ -456,93 +512,7 @@ export class KnowledgeBaseApiService extends BaseApiService {
     }
   }
 
-  // Website Crawl API
-
-  /**
-   * Create a new website crawl job
-   */
-  static async createCrawlJob(
-    collectionId: string,
-    crawlConfig: WebsiteCrawlRequest
-  ): Promise<WebsiteCrawlCreateResponse> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      const url = `${KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL}?collection_id=${collectionId}`;
-      return await service.post<WebsiteCrawlCreateResponse>(url, crawlConfig);
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
-
-  /**
-   * List crawl jobs for a collection
-   */
-  static async getCrawlJobs(params?: {
-    collection_id?: string;
-    status?: string;
-    limit?: number;
-    offset?: number;
-  }): Promise<WebsiteCrawlJobListResponse> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      const queryParams = new URLSearchParams();
-      if (params?.collection_id) queryParams.append('collection_id', params.collection_id);
-      if (params?.status) queryParams.append('status', params.status);
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
-      if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
-
-      const url = queryParams.toString()
-        ? `${KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL}?${queryParams.toString()}`
-        : KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL;
-
-      return await service.get<WebsiteCrawlJobListResponse>(url);
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
-
-  /**
-   * Get a specific crawl job
-   */
-  static async getCrawlJob(jobId: string): Promise<WebsiteCrawlJobResponse> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      return await service.get<WebsiteCrawlJobResponse>(
-        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL_JOB(jobId)
-      );
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
-
-  /**
-   * Cancel a running crawl job
-   */
-  static async cancelCrawlJob(jobId: string): Promise<WebsiteCrawlJobResponse> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      return await service.post<WebsiteCrawlJobResponse>(
-        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL_CANCEL(jobId),
-        {}
-      );
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
-
-  /**
-   * Delete a crawl job and all associated pages
-   */
-  static async deleteCrawlJob(jobId: string): Promise<void> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      await service.delete<void>(
-        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL_JOB(jobId)
-      );
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
+  // Website Pages API (new API structure)
 
   /**
    * Extract metadata (title, description, favicon, og:image) from a website URL
@@ -560,40 +530,16 @@ export class KnowledgeBaseApiService extends BaseApiService {
   }
 
   /**
-   * List crawl jobs for a specific collection
+   * List pages for a collection (supports hierarchical queries via parent_page_id)
+   * GET /v1/rag/websites/pages?collection_id=...
    */
-  static async getCollectionCrawlJobs(
+  static async getWebsitePages(
     collectionId: string,
     params?: {
       status?: string;
-      limit?: number;
-      offset?: number;
-    }
-  ): Promise<WebsiteCrawlJobListResponse> {
-    const service = new KnowledgeBaseApiService();
-    try {
-      const queryParams = new URLSearchParams();
-      if (params?.status) queryParams.append('status', params.status);
-      if (params?.limit) queryParams.append('limit', params.limit.toString());
-      if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
-
-      const url = queryParams.toString()
-        ? `${KNOWLEDGE_BASE_ENDPOINTS.COLLECTION_CRAWL_JOBS(collectionId)}?${queryParams.toString()}`
-        : KNOWLEDGE_BASE_ENDPOINTS.COLLECTION_CRAWL_JOBS(collectionId);
-
-      return await service.get<WebsiteCrawlJobListResponse>(url);
-    } catch (error) {
-      throw new Error(service['handleApiError'](error));
-    }
-  }
-
-  /**
-   * List pages for a specific collection
-   */
-  static async getCollectionPages(
-    collectionId: string,
-    params?: {
-      status?: string;
+      depth?: number;
+      parent_page_id?: string | null;
+      tree_depth?: number; // Number of child levels to include: 0/undefined=no children, 1=direct children, -1=unlimited
       limit?: number;
       offset?: number;
     }
@@ -601,14 +547,22 @@ export class KnowledgeBaseApiService extends BaseApiService {
     const service = new KnowledgeBaseApiService();
     try {
       const queryParams = new URLSearchParams();
+      queryParams.append('collection_id', collectionId);
       if (params?.status) queryParams.append('status', params.status);
+      if (params?.depth !== undefined) queryParams.append('depth', params.depth.toString());
+      if (params?.parent_page_id !== undefined) {
+        // null means get root pages, string means get children of that page
+        if (params.parent_page_id === null) {
+          // For root pages, don't send parent_page_id or send empty
+        } else {
+          queryParams.append('parent_page_id', params.parent_page_id);
+        }
+      }
+      if (params?.tree_depth !== undefined) queryParams.append('tree_depth', params.tree_depth.toString());
       if (params?.limit) queryParams.append('limit', params.limit.toString());
       if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
 
-      const url = queryParams.toString()
-        ? `${KNOWLEDGE_BASE_ENDPOINTS.COLLECTION_PAGES(collectionId)}?${queryParams.toString()}`
-        : KNOWLEDGE_BASE_ENDPOINTS.COLLECTION_PAGES(collectionId);
-
+      const url = `${KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGES}?${queryParams.toString()}`;
       return await service.get<WebsitePageListResponse>(url);
     } catch (error) {
       throw new Error(service['handleApiError'](error));
@@ -616,17 +570,62 @@ export class KnowledgeBaseApiService extends BaseApiService {
   }
 
   /**
-   * Add a single page URL to an existing crawl job
+   * Get a specific page by ID
+   * GET /v1/rag/websites/pages/{page_id}
    */
-  static async addPageToCrawlJob(
-    jobId: string,
+  static async getWebsitePageDetail(pageId: string): Promise<WebsitePageResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.get<WebsitePageResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGE_BY_ID(pageId)
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Add a page to a collection
+   * POST /v1/rag/websites/pages?collection_id=...
+   */
+  static async addWebsitePage(
+    collectionId: string,
     request: AddPageRequest
   ): Promise<AddPageResponse> {
     const service = new KnowledgeBaseApiService();
     try {
+      const url = `${KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGES}?collection_id=${collectionId}`;
+      return await service.post<AddPageResponse>(url, request);
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Delete a page from the collection
+   * DELETE /v1/rag/websites/pages/{page_id}
+   */
+  static async deleteWebsitePage(pageId: string): Promise<void> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      await service.delete<void>(
+        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGE_BY_ID(pageId)
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Recrawl an existing page
+   * POST /v1/rag/websites/pages/{page_id}/recrawl
+   */
+  static async recrawlWebsitePage(pageId: string): Promise<AddPageResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
       return await service.post<AddPageResponse>(
-        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL_PAGES(jobId),
-        request
+        KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGE_RECRAWL(pageId),
+        {}
       );
     } catch (error) {
       throw new Error(service['handleApiError'](error));
@@ -635,6 +634,7 @@ export class KnowledgeBaseApiService extends BaseApiService {
 
   /**
    * Crawl deeper from an existing page - extract links and add them to crawl queue
+   * POST /v1/rag/websites/pages/{page_id}/crawl-deeper
    */
   static async crawlDeeperFromPage(
     pageId: string,
@@ -645,6 +645,157 @@ export class KnowledgeBaseApiService extends BaseApiService {
       return await service.post<CrawlDeeperResponse>(
         KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_PAGE_CRAWL_DEEPER(pageId),
         request || {}
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Get crawl progress for a collection
+   * GET /v1/rag/websites/progress?collection_id=...
+   */
+  static async getWebsiteCrawlProgress(collectionId: string): Promise<CrawlProgressSchema> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      const url = `${KNOWLEDGE_BASE_ENDPOINTS.WEBSITE_CRAWL_PROGRESS}?collection_id=${collectionId}`;
+      return await service.get<CrawlProgressSchema>(url);
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  // QA Pairs API
+
+  /**
+   * List QA pairs for a collection
+   * GET /v1/rag/{collection_id}/qa-pairs
+   */
+  static async getQAPairs(
+    collectionId: string,
+    params?: {
+      limit?: number;
+      offset?: number;
+      category?: string;
+      status?: string;
+    }
+  ): Promise<QAPairListResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      const queryParams = new URLSearchParams();
+      if (params?.limit) queryParams.append('limit', params.limit.toString());
+      if (params?.offset !== undefined) queryParams.append('offset', params.offset.toString());
+      if (params?.category) queryParams.append('category', params.category);
+      if (params?.status) queryParams.append('status', params.status);
+
+      const baseUrl = KNOWLEDGE_BASE_ENDPOINTS.QA_PAIRS(collectionId);
+      const url = queryParams.toString() ? `${baseUrl}?${queryParams.toString()}` : baseUrl;
+      return await service.get<QAPairListResponse>(url);
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Create a single QA pair
+   * POST /v1/rag/{collection_id}/qa-pairs
+   */
+  static async createQAPair(
+    collectionId: string,
+    request: QAPairCreateRequest
+  ): Promise<QAPairResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.post<QAPairResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIRS(collectionId),
+        request
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Get a single QA pair by ID
+   * GET /v1/rag/qa-pairs/{qa_pair_id}
+   */
+  static async getQAPair(qaPairId: string): Promise<QAPairResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.get<QAPairResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIR_BY_ID(qaPairId)
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Update a QA pair
+   * PUT /v1/rag/qa-pairs/{qa_pair_id}
+   */
+  static async updateQAPair(
+    qaPairId: string,
+    request: QAPairUpdateRequest
+  ): Promise<QAPairResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.put<QAPairResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIR_BY_ID(qaPairId),
+        request
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Delete a QA pair
+   * DELETE /v1/rag/qa-pairs/{qa_pair_id}
+   */
+  static async deleteQAPair(qaPairId: string): Promise<void> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      await service.delete<void>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIR_BY_ID(qaPairId)
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Batch create QA pairs
+   * POST /v1/rag/{collection_id}/qa-pairs/batch
+   */
+  static async batchCreateQAPairs(
+    collectionId: string,
+    request: QAPairBatchCreateRequest
+  ): Promise<QAPairBatchCreateResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.post<QAPairBatchCreateResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIRS_BATCH(collectionId),
+        request
+      );
+    } catch (error) {
+      throw new Error(service['handleApiError'](error));
+    }
+  }
+
+  /**
+   * Import QA pairs from JSON or CSV
+   * POST /v1/rag/{collection_id}/qa-pairs/import
+   */
+  static async importQAPairs(
+    collectionId: string,
+    request: QAPairImportRequest
+  ): Promise<QAPairBatchCreateResponse> {
+    const service = new KnowledgeBaseApiService();
+    try {
+      return await service.post<QAPairBatchCreateResponse>(
+        KNOWLEDGE_BASE_ENDPOINTS.QA_PAIRS_IMPORT(collectionId),
+        request
       );
     } catch (error) {
       throw new Error(service['handleApiError'](error));

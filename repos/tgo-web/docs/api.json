@@ -410,7 +410,7 @@
           "Projects"
         ],
         "summary": "Get Project Ai Config",
-        "description": "Get default AI model configuration for a project.\n\nIf a record does not exist yet, create an empty configuration and return it (HTTP 200).",
+        "description": "Get default AI model configuration for a project.\n\nIf a record does not exist yet, create an empty configuration and return it (HTTP 200).\nValidates that referenced provider IDs exist and are active; if not, returns None for those fields.",
         "operationId": "get_project_ai_config_v1_projects__project_id__ai_config_get",
         "security": [
           {
@@ -557,6 +557,87 @@
             }
           }
         }
+      }
+    },
+    "/v1/onboarding": {
+      "get": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Get onboarding progress",
+        "description": "Get the current onboarding progress for the authenticated user's project.\n\n    Automatically detects completion status for each step:\n    - Step 1: AI Provider configured\n    - Step 2: Default models set\n    - Step 3: RAG Collection created\n    - Step 4: Agent with knowledge base created\n    - Step 5: First chat started\n\n    If the record does not exist, creates an initial empty record.",
+        "operationId": "get_onboarding_progress_v1_onboarding_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/onboarding/skip": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Skip onboarding",
+        "description": "Skip the onboarding process for the authenticated user's project.\n\n    Marks the onboarding as completed without requiring all steps to be finished.\n    This allows users to dismiss the onboarding guide if they don't want to follow it.",
+        "operationId": "skip_onboarding_v1_onboarding_skip_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/v1/onboarding/reset": {
+      "post": {
+        "tags": [
+          "Onboarding"
+        ],
+        "summary": "Reset onboarding",
+        "description": "Reset the onboarding progress for the authenticated user's project.\n\n    Clears all step completion statuses and allows the user to restart\n    the onboarding process. Useful for testing or when users want to\n    review the onboarding steps again.",
+        "operationId": "reset_onboarding_v1_onboarding_reset_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OnboardingProgressResponse"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
       }
     },
     "/v1/staff/login": {
@@ -5095,130 +5176,6 @@
         }
       }
     },
-    "/v1/rag/collections/{collection_id}/crawl-jobs": {
-      "get": {
-        "tags": [
-          "RAG Collections"
-        ],
-        "summary": "List Collection Crawl Jobs",
-        "description": "Retrieve all crawl jobs for a specific website collection.\n\n    This endpoint returns the list of website crawl jobs associated with the collection.\n    Only works for collections with collection_type='website'.\n    Results are ordered by creation time (newest first).",
-        "operationId": "list_collection_crawl_jobs_v1_rag_collections__collection_id__crawl_jobs_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "collection_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Collection Id"
-            }
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by job status (pending, crawling, completed, failed, cancelled)",
-              "title": "Status"
-            },
-            "description": "Filter by job status (pending, crawling, completed, failed, cancelled)"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Number of crawl jobs to return",
-              "default": 20,
-              "title": "Limit"
-            },
-            "description": "Number of crawl jobs to return"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Number of crawl jobs to skip",
-              "default": 0,
-              "title": "Offset"
-            },
-            "description": "Number of crawl jobs to skip"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteCrawlJobListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/rag/collections/{collection_id}/pages": {
       "get": {
         "tags": [
@@ -5953,145 +5910,14 @@
         }
       }
     },
-    "/v1/rag/websites/crawl": {
+    "/v1/rag/websites/pages": {
       "get": {
         "tags": [
           "RAG Websites"
         ],
-        "summary": "List Crawl Jobs",
-        "description": "List all website crawl jobs for the current project.",
-        "operationId": "list_crawl_jobs_v1_rag_websites_crawl_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "collection_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "uuid"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by collection ID",
-              "title": "Collection Id"
-            },
-            "description": "Filter by collection ID"
-          },
-          {
-            "name": "status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Filter by status",
-              "title": "Status"
-            },
-            "description": "Filter by status"
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Number of jobs to return",
-              "default": 20,
-              "title": "Limit"
-            },
-            "description": "Number of jobs to return"
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "description": "Number of jobs to skip",
-              "default": 0,
-              "title": "Offset"
-            },
-            "description": "Number of jobs to skip"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteCrawlJobListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "RAG Websites"
-        ],
-        "summary": "Create Crawl Job",
-        "description": "Create a new website crawl job to crawl and index web pages.",
-        "operationId": "create_crawl_job_v1_rag_websites_crawl_post",
+        "summary": "List Pages",
+        "description": "List all pages in a collection.\n\n    When tree_depth is specified, the response includes child pages in a hierarchical structure:\n    - tree_depth=0 or None: Flat list (no children)\n    - tree_depth=1: Include direct children only\n    - tree_depth=2: Include children and grandchildren\n    - tree_depth=-1: Include all descendants (unlimited depth)\n\n    When no parent_page_id filter is specified and tree_depth \u003E 0, returns root pages\n    (where parent_page_id IS NULL) with their children.",
+        "operationId": "list_pages_v1_rag_websites_pages_get",
         "security": [
           {
             "HTTPBearer": []
@@ -6105,367 +5931,10 @@
             "schema": {
               "type": "string",
               "format": "uuid",
-              "description": "Target collection ID",
+              "description": "Collection ID",
               "title": "Collection Id"
             },
-            "description": "Target collection ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WebsiteCrawlRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteCrawlCreateResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Resource already exists or conflict with current state",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/rag/websites/crawl/{job_id}": {
-      "get": {
-        "tags": [
-          "RAG Websites"
-        ],
-        "summary": "Get Crawl Job",
-        "description": "Get details of a specific crawl job.",
-        "operationId": "get_crawl_job_v1_rag_websites_crawl__job_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteCrawlJobResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found - Resource not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "RAG Websites"
-        ],
-        "summary": "Delete Crawl Job",
-        "description": "Delete a crawl job and all associated pages.",
-        "operationId": "delete_crawl_job_v1_rag_websites_crawl__job_id__delete",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found - Resource not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/rag/websites/crawl/{job_id}/cancel": {
-      "post": {
-        "tags": [
-          "RAG Websites"
-        ],
-        "summary": "Cancel Crawl Job",
-        "description": "Cancel a running crawl job.",
-        "operationId": "cancel_crawl_job_v1_rag_websites_crawl__job_id__cancel_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/WebsiteCrawlJobResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Invalid request data or parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Authentication required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Access denied to resource",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found - Resource not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/rag/websites/crawl/{job_id}/pages": {
-      "get": {
-        "tags": [
-          "RAG Websites"
-        ],
-        "summary": "List Crawl Pages",
-        "description": "List all pages crawled for a specific job.",
-        "operationId": "list_crawl_pages_v1_rag_websites_crawl__job_id__pages_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Job Id"
-            }
+            "description": "Collection ID"
           },
           {
             "name": "status",
@@ -6484,6 +5953,63 @@
               "title": "Status"
             },
             "description": "Filter by page status"
+          },
+          {
+            "name": "depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by depth",
+              "title": "Depth"
+            },
+            "description": "Filter by depth"
+          },
+          {
+            "name": "parent_page_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by parent page ID",
+              "title": "Parent Page Id"
+            },
+            "description": "Filter by parent page ID"
+          },
+          {
+            "name": "tree_depth",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "maximum": 10,
+                  "minimum": -1
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Number of child levels to include. 0/None=no children, 1=direct children, -1=unlimited",
+              "title": "Tree Depth"
+            },
+            "description": "Number of child levels to include. 0/None=no children, 1=direct children, -1=unlimited"
           },
           {
             "name": "limit",
@@ -6570,9 +6096,9 @@
         "tags": [
           "RAG Websites"
         ],
-        "summary": "Add Page To Crawl Job",
-        "description": "Add a single page URL to an existing crawl job.\n\n    This endpoint allows manually adding a new page to the crawl queue.\n    The page will be crawled and processed like other pages in the job.\n\n    Deduplication rules:\n    - If the URL already exists in the collection, it will be skipped\n    - If the URL is currently being crawled (pending/fetched), it will be skipped\n    - New pages are added with depth=0 (as new starting points)",
-        "operationId": "add_page_to_crawl_job_v1_rag_websites_crawl__job_id__pages_post",
+        "summary": "Add Page",
+        "description": "Add a page to crawl in a collection.\n\n    This will create a page record and trigger crawling.\n    If max_depth \u003E 0, discovered links will also be crawled.\n\n    Page Hierarchy:\n    - If `parent_page_id` is provided, the new page will be a child of that page\n    - The new page's depth will be parent.depth + 1\n    - This allows building hierarchical page structures\n\n    Deduplication:\n    - If the URL already exists in the collection, it will be skipped",
+        "operationId": "add_page_v1_rag_websites_pages_post",
         "security": [
           {
             "HTTPBearer": []
@@ -6580,14 +6106,16 @@
         ],
         "parameters": [
           {
-            "name": "job_id",
-            "in": "path",
+            "name": "collection_id",
+            "in": "query",
             "required": true,
             "schema": {
               "type": "string",
               "format": "uuid",
-              "title": "Job Id"
-            }
+              "description": "Target collection ID",
+              "title": "Collection Id"
+            },
+            "description": "Target collection ID"
           }
         ],
         "requestBody": {
@@ -6664,6 +6192,264 @@
         }
       }
     },
+    "/v1/rag/websites/pages/{page_id}": {
+      "get": {
+        "tags": [
+          "RAG Websites"
+        ],
+        "summary": "Get Page",
+        "description": "Get details of a specific page.",
+        "operationId": "get_page_v1_rag_websites_pages__page_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Page Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebsitePageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "RAG Websites"
+        ],
+        "summary": "Delete Page",
+        "description": "Delete a page from the collection.",
+        "operationId": "delete_page_v1_rag_websites_pages__page_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Page Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/websites/pages/{page_id}/recrawl": {
+      "post": {
+        "tags": [
+          "RAG Websites"
+        ],
+        "summary": "Recrawl Page",
+        "description": "Trigger re-crawling of an existing page.",
+        "operationId": "recrawl_page_v1_rag_websites_pages__page_id__recrawl_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "page_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Page Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddPageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/rag/websites/pages/{page_id}/crawl-deeper": {
       "post": {
         "tags": [
@@ -6709,6 +6495,800 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/websites/progress": {
+      "get": {
+        "tags": [
+          "RAG Websites"
+        ],
+        "summary": "Get Crawl Progress",
+        "description": "Get crawl progress for a collection.",
+        "operationId": "get_crawl_progress_v1_rag_websites_progress_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Collection ID",
+              "title": "Collection Id"
+            },
+            "description": "Collection ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrawlProgressSchema"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/{collection_id}/qa-pairs": {
+      "post": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Create QA Pair",
+        "description": "Add a single question-answer pair to a QA collection.",
+        "operationId": "create_qa_pair_v1_rag__collection_id__qa_pairs_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QAPairCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "List QA Pairs",
+        "description": "Get paginated list of QA pairs in a collection.",
+        "operationId": "list_qa_pairs_v1_rag__collection_id__qa_pairs_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Collection Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 20,
+              "title": "Limit"
+            },
+            "description": "Page size"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Page offset",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Page offset"
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by category",
+              "title": "Category"
+            },
+            "description": "Filter by category"
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by status",
+              "title": "Status"
+            },
+            "description": "Filter by status"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/{collection_id}/qa-pairs/batch": {
+      "post": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Batch Create QA Pairs",
+        "description": "Create multiple QA pairs at once (max 1000).",
+        "operationId": "batch_create_qa_pairs_v1_rag__collection_id__qa_pairs_batch_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QAPairBatchCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairBatchCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/{collection_id}/qa-pairs/import": {
+      "post": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Import QA Pairs",
+        "description": "Import QA pairs from JSON or CSV format.",
+        "operationId": "import_qa_pairs_v1_rag__collection_id__qa_pairs_import_post",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QAPairImportRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairBatchCreateResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Resource already exists or conflict with current state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/rag/qa-pairs/{qa_pair_id}": {
+      "get": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Get QA Pair",
+        "description": "Get a single QA pair by ID.",
+        "operationId": "get_qa_pair_v1_rag_qa_pairs__qa_pair_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "qa_pair_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Qa Pair Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Update QA Pair",
+        "description": "Update an existing QA pair.",
+        "operationId": "update_qa_pair_v1_rag_qa_pairs__qa_pair_id__put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "qa_pair_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Qa Pair Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QAPairUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QAPairResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "RAG QA Pairs"
+        ],
+        "summary": "Delete QA Pair",
+        "description": "Soft delete a QA pair and its associated document.",
+        "operationId": "delete_qa_pair_v1_rag_qa_pairs__qa_pair_id__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "qa_pair_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Qa Pair Id"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
           },
           "400": {
             "description": "Bad Request - Invalid request data or parameters",
@@ -9997,7 +10577,72 @@
             "maxLength": 2083,
             "minLength": 1,
             "title": "Url",
-            "description": "URL of the page to add"
+            "description": "URL of the page to add",
+            "examples": [
+              "https://docs.python.org/3/"
+            ]
+          },
+          "parent_page_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Page Id",
+            "description": "Parent page ID. If provided, the new page will be a child of this page with depth = parent.depth + 1"
+          },
+          "max_depth": {
+            "type": "integer",
+            "maximum": 10,
+            "minimum": 0,
+            "title": "Max Depth",
+            "description": "Maximum crawl depth from this page (0 = only this page)",
+            "default": 0
+          },
+          "include_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Include Patterns",
+            "description": "URL patterns to include (glob patterns)"
+          },
+          "exclude_patterns": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Exclude Patterns",
+            "description": "URL patterns to exclude (glob patterns)"
+          },
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CrawlOptionsSchema"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Crawl options (overrides collection defaults)"
           }
         },
         "type": "object",
@@ -10005,7 +10650,7 @@
           "url"
         ],
         "title": "AddPageRequest",
-        "description": "Schema for adding a single page to crawl queue."
+        "description": "Schema for adding a page to crawl."
       },
       "AddPageResponse": {
         "properties": {
@@ -10035,7 +10680,7 @@
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "Result status: 'added', 'exists', or 'crawling'"
+            "description": "Result status: 'added', 'exists', 'crawling'"
           }
         },
         "type": "object",
@@ -12911,29 +13556,41 @@
       },
       "CrawlProgressSchema": {
         "properties": {
-          "pages_discovered": {
+          "total_pages": {
             "type": "integer",
             "minimum": 0,
-            "title": "Pages Discovered",
-            "description": "Number of pages discovered"
+            "title": "Total Pages",
+            "description": "Total number of pages in collection"
+          },
+          "pages_pending": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Pages Pending",
+            "description": "Number of pages pending crawl"
           },
           "pages_crawled": {
             "type": "integer",
             "minimum": 0,
             "title": "Pages Crawled",
-            "description": "Number of pages crawled"
+            "description": "Number of pages successfully crawled"
+          },
+          "pages_processing": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Pages Processing",
+            "description": "Number of pages being processed"
           },
           "pages_processed": {
             "type": "integer",
             "minimum": 0,
             "title": "Pages Processed",
-            "description": "Number of pages processed"
+            "description": "Number of pages processed into documents"
           },
           "pages_failed": {
             "type": "integer",
             "minimum": 0,
             "title": "Pages Failed",
-            "description": "Number of pages that failed"
+            "description": "Number of pages that failed to process"
           },
           "progress_percent": {
             "type": "number",
@@ -12945,14 +13602,16 @@
         },
         "type": "object",
         "required": [
-          "pages_discovered",
+          "total_pages",
+          "pages_pending",
           "pages_crawled",
+          "pages_processing",
           "pages_processed",
           "pages_failed",
           "progress_percent"
         ],
         "title": "CrawlProgressSchema",
-        "description": "Schema for crawl job progress information."
+        "description": "Schema for collection crawl progress (computed from pages)."
       },
       "CreateAdminRequest": {
         "properties": {
@@ -13830,6 +14489,128 @@
         ],
         "title": "ModelListResponse",
         "description": "Response for model list from provider."
+      },
+      "OnboardingProgressResponse": {
+        "properties": {
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "Onboarding progress record ID"
+          },
+          "project_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Project Id",
+            "description": "Associated project ID"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/OnboardingStepStatus"
+            },
+            "type": "array",
+            "title": "Steps",
+            "description": "Status of each onboarding step"
+          },
+          "current_step": {
+            "type": "integer",
+            "maximum": 6,
+            "minimum": 1,
+            "title": "Current Step",
+            "description": "Current step number (1-5 for in-progress, 6 if all completed)"
+          },
+          "progress_percentage": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Progress Percentage",
+            "description": "Completion percentage (0-100)"
+          },
+          "is_completed": {
+            "type": "boolean",
+            "title": "Is Completed",
+            "description": "Whether all steps are completed or skipped"
+          },
+          "completed_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Completed At",
+            "description": "Timestamp when onboarding was completed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "created_at",
+          "updated_at",
+          "id",
+          "project_id",
+          "steps",
+          "current_step",
+          "progress_percentage",
+          "is_completed"
+        ],
+        "title": "OnboardingProgressResponse",
+        "description": "Response schema for onboarding progress."
+      },
+      "OnboardingStepStatus": {
+        "properties": {
+          "step_number": {
+            "type": "integer",
+            "maximum": 5,
+            "minimum": 1,
+            "title": "Step Number",
+            "description": "Step number (1-5)"
+          },
+          "step_name": {
+            "type": "string",
+            "title": "Step Name",
+            "description": "Step identifier name"
+          },
+          "is_completed": {
+            "type": "boolean",
+            "title": "Is Completed",
+            "description": "Whether this step is completed"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description",
+            "description": "Human-readable step description"
+          },
+          "route": {
+            "type": "string",
+            "title": "Route",
+            "description": "Frontend route path for this step"
+          }
+        },
+        "type": "object",
+        "required": [
+          "step_number",
+          "step_name",
+          "is_completed",
+          "description",
+          "route"
+        ],
+        "title": "OnboardingStepStatus",
+        "description": "Status of a single onboarding step."
       },
       "OpenAIChatCompletionRequest": {
         "properties": {
@@ -14866,6 +15647,597 @@
         "title": "ProjectUpdate",
         "description": "Schema for updating a project."
       },
+      "QAPairBatchCreateRequest": {
+        "properties": {
+          "qa_pairs": {
+            "items": {
+              "$ref": "#/components/schemas/QAPairCreateRequest"
+            },
+            "type": "array",
+            "maxItems": 1000,
+            "minItems": 1,
+            "title": "Qa Pairs",
+            "description": "List of QA pairs to create (max 1000)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "qa_pairs"
+        ],
+        "title": "QAPairBatchCreateRequest",
+        "description": "Schema for batch creating QA pairs."
+      },
+      "QAPairBatchCreateResponse": {
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Whether operation succeeded"
+          },
+          "created_count": {
+            "type": "integer",
+            "title": "Created Count",
+            "description": "Number of QA pairs created"
+          },
+          "skipped_count": {
+            "type": "integer",
+            "title": "Skipped Count",
+            "description": "Number skipped (duplicates)"
+          },
+          "failed_count": {
+            "type": "integer",
+            "title": "Failed Count",
+            "description": "Number failed"
+          },
+          "created_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created Ids",
+            "description": "Created QA pair IDs"
+          },
+          "errors": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Errors",
+            "description": "Error details"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Summary message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "success",
+          "created_count",
+          "skipped_count",
+          "failed_count",
+          "message"
+        ],
+        "title": "QAPairBatchCreateResponse",
+        "description": "Schema for batch create response."
+      },
+      "QAPairCreateRequest": {
+        "properties": {
+          "question": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Question",
+            "description": "The question text",
+            "examples": [
+              "如何重置密码？"
+            ]
+          },
+          "answer": {
+            "type": "string",
+            "maxLength": 50000,
+            "minLength": 1,
+            "title": "Answer",
+            "description": "The answer text",
+            "examples": [
+              "您可以通过以下步骤重置密码：1. 点击登录页面的'忘记密码'..."
+            ]
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Category for organizing QA pairs",
+            "examples": [
+              "账户管理"
+            ]
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory",
+            "description": "Subcategory for finer organization",
+            "examples": [
+              "密码相关"
+            ]
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "Tags for filtering and search",
+            "examples": [
+              [
+                "密码",
+                "重置",
+                "账户"
+              ]
+            ]
+          },
+          "qa_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qa Metadata",
+            "description": "Additional metadata",
+            "examples": [
+              {
+                "source": "user_manual",
+                "version": "2.0"
+              }
+            ]
+          },
+          "priority": {
+            "type": "integer",
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Priority",
+            "description": "Priority for ordering (0-100, higher = more important)",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "question",
+          "answer"
+        ],
+        "title": "QAPairCreateRequest",
+        "description": "Schema for creating a single QA pair."
+      },
+      "QAPairImportFormatEnum": {
+        "type": "string",
+        "enum": [
+          "json",
+          "csv"
+        ],
+        "title": "QAPairImportFormatEnum",
+        "description": "Import format enum."
+      },
+      "QAPairImportRequest": {
+        "properties": {
+          "format": {
+            "$ref": "#/components/schemas/QAPairImportFormatEnum",
+            "description": "Import format: json or csv",
+            "default": "json"
+          },
+          "data": {
+            "type": "string",
+            "title": "Data",
+            "description": "JSON array string or CSV content"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Default category for all imported pairs"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "Default tags for all imported pairs"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "QAPairImportRequest",
+        "description": "Schema for importing QA pairs from JSON/CSV."
+      },
+      "QAPairListResponse": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/QAPairResponse"
+            },
+            "type": "array",
+            "title": "Data",
+            "description": "List of QA pairs"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total",
+            "description": "Total count"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit",
+            "description": "Page size"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset",
+            "description": "Page offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "QAPairListResponse",
+        "description": "Schema for paginated QA pair list responses."
+      },
+      "QAPairResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id",
+            "description": "QA pair unique identifier"
+          },
+          "collection_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Collection Id",
+            "description": "Associated collection ID"
+          },
+          "question": {
+            "type": "string",
+            "title": "Question",
+            "description": "The question text"
+          },
+          "answer": {
+            "type": "string",
+            "title": "Answer",
+            "description": "The answer text"
+          },
+          "question_hash": {
+            "type": "string",
+            "title": "Question Hash",
+            "description": "Question hash for deduplication"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Category"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory",
+            "description": "Subcategory"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags",
+            "description": "Tags"
+          },
+          "qa_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qa Metadata",
+            "description": "Additional metadata"
+          },
+          "source_type": {
+            "type": "string",
+            "title": "Source Type",
+            "description": "Source type: manual, import, ai_generated"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Processing status"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "description": "Priority"
+          },
+          "document_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Id",
+            "description": "Associated document ID"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "collection_id",
+          "question",
+          "answer",
+          "question_hash",
+          "source_type",
+          "status",
+          "priority",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "QAPairResponse",
+        "description": "Schema for QA pair API responses."
+      },
+      "QAPairUpdateRequest": {
+        "properties": {
+          "question": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 10000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Question",
+            "description": "Updated question text"
+          },
+          "answer": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 50000,
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Answer",
+            "description": "Updated answer text"
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category"
+          },
+          "subcategory": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Subcategory"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tags"
+          },
+          "qa_metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Qa Metadata"
+          },
+          "priority": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 100,
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "title": "QAPairUpdateRequest",
+        "description": "Schema for updating a QA pair."
+      },
+      "SearchMetadata": {
+        "properties": {
+          "query": {
+            "type": "string",
+            "title": "Query",
+            "description": "Original search query"
+          },
+          "total_results": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Total Results",
+            "description": "Total number of results found"
+          },
+          "returned_results": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Returned Results",
+            "description": "Number of results returned in this response"
+          },
+          "search_time_ms": {
+            "type": "integer",
+            "minimum": 0,
+            "title": "Search Time Ms",
+            "description": "Search execution time in milliseconds"
+          },
+          "filters_applied": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Filters Applied",
+            "description": "Filters that were applied to the search"
+          },
+          "search_type": {
+            "type": "string",
+            "title": "Search Type",
+            "description": "Type of search performed",
+            "default": "semantic",
+            "examples": [
+              "semantic",
+              "keyword",
+              "hybrid"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "query",
+          "total_results",
+          "returned_results",
+          "search_time_ms"
+        ],
+        "title": "SearchMetadata",
+        "description": "Schema for search metadata."
+      },
       "SearchPagination": {
         "properties": {
           "page": {
@@ -14916,52 +16288,130 @@
             },
             "type": "array",
             "title": "Results",
-            "description": "Search results"
+            "description": "List of search results"
           },
-          "total": {
-            "type": "integer",
-            "title": "Total",
-            "description": "Total number of matching documents"
-          },
-          "query": {
-            "type": "string",
-            "title": "Query",
-            "description": "Original search query"
-          },
-          "took": {
-            "type": "number",
-            "title": "Took",
-            "description": "Search execution time in seconds"
+          "search_metadata": {
+            "$ref": "#/components/schemas/SearchMetadata",
+            "description": "Search execution metadata"
           }
         },
         "type": "object",
         "required": [
           "results",
-          "total",
-          "query",
-          "took"
+          "search_metadata"
         ],
         "title": "SearchResponse",
-        "description": "Schema for search response."
+        "description": "Schema for search responses."
       },
       "SearchResult": {
         "properties": {
-          "id": {
+          "document_id": {
             "type": "string",
-            "title": "Id",
+            "format": "uuid",
+            "title": "Document Id",
             "description": "Document unique identifier"
           },
-          "content": {
-            "type": "string",
-            "title": "Content",
-            "description": "Document content"
+          "file_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Id",
+            "description": "Associated file ID"
           },
-          "score": {
+          "collection_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Collection Id",
+            "description": "Associated collection ID"
+          },
+          "relevance_score": {
             "type": "number",
-            "title": "Score",
-            "description": "Relevance score (0-1)"
+            "maximum": 1,
+            "minimum": 0,
+            "title": "Relevance Score",
+            "description": "Relevance score (0-1, higher is more relevant)"
           },
-          "metadata": {
+          "content_preview": {
+            "type": "string",
+            "title": "Content Preview",
+            "description": "Preview of the document content"
+          },
+          "document_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Document Title",
+            "description": "Document title or heading"
+          },
+          "content_type": {
+            "type": "string",
+            "title": "Content Type",
+            "description": "Type of content",
+            "examples": [
+              "paragraph",
+              "heading",
+              "table",
+              "list",
+              "code",
+              "image",
+              "metadata"
+            ]
+          },
+          "chunk_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Chunk Index",
+            "description": "Index of this chunk within the document"
+          },
+          "page_number": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page Number",
+            "description": "Page number in original document"
+          },
+          "section_title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Section Title",
+            "description": "Section or chapter title"
+          },
+          "tags": {
             "anyOf": [
               {
                 "additionalProperties": true,
@@ -14971,18 +16421,26 @@
                 "type": "null"
               }
             ],
-            "title": "Metadata",
-            "description": "Document metadata"
+            "title": "Tags",
+            "description": "Document tags and metadata"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Document creation timestamp"
           }
         },
         "type": "object",
         "required": [
-          "id",
-          "content",
-          "score"
+          "document_id",
+          "relevance_score",
+          "content_preview",
+          "content_type",
+          "created_at"
         ],
         "title": "SearchResult",
-        "description": "Schema for individual search result."
+        "description": "Schema for individual search results."
       },
       "SearchScope": {
         "type": "string",
@@ -18876,289 +20334,6 @@
         "title": "VisitorUpdate",
         "description": "Schema for updating a visitor."
       },
-      "WebsiteCrawlCreateResponse": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Job Id",
-            "description": "Created crawl job ID"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Initial job status"
-          },
-          "start_url": {
-            "type": "string",
-            "title": "Start Url",
-            "description": "Starting URL"
-          },
-          "collection_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Collection Id",
-            "description": "Target collection ID"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Job creation timestamp"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message",
-            "description": "Status message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "status",
-          "start_url",
-          "collection_id",
-          "created_at",
-          "message"
-        ],
-        "title": "WebsiteCrawlCreateResponse",
-        "description": "Schema for crawl job creation response."
-      },
-      "WebsiteCrawlJobListResponse": {
-        "properties": {
-          "data": {
-            "items": {
-              "$ref": "#/components/schemas/WebsiteCrawlJobResponse"
-            },
-            "type": "array",
-            "title": "Data",
-            "description": "List of crawl jobs"
-          },
-          "pagination": {
-            "$ref": "#/components/schemas/PaginationMetadata",
-            "description": "Pagination metadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "data",
-          "pagination"
-        ],
-        "title": "WebsiteCrawlJobListResponse",
-        "description": "Schema for paginated crawl job list responses."
-      },
-      "WebsiteCrawlJobResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id",
-            "description": "Crawl job unique identifier"
-          },
-          "collection_id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Collection Id",
-            "description": "Target collection ID"
-          },
-          "start_url": {
-            "type": "string",
-            "title": "Start Url",
-            "description": "Starting URL for the crawl"
-          },
-          "max_pages": {
-            "type": "integer",
-            "title": "Max Pages",
-            "description": "Maximum number of pages to crawl"
-          },
-          "max_depth": {
-            "type": "integer",
-            "title": "Max Depth",
-            "description": "Maximum crawl depth"
-          },
-          "include_patterns": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Include Patterns",
-            "description": "URL patterns to include"
-          },
-          "exclude_patterns": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Exclude Patterns",
-            "description": "URL patterns to exclude"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status",
-            "description": "Job status: pending, crawling, processing, completed, failed, cancelled"
-          },
-          "progress": {
-            "$ref": "#/components/schemas/CrawlProgressSchema",
-            "description": "Crawl progress information"
-          },
-          "crawl_options": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Crawl Options",
-            "description": "Crawl configuration options"
-          },
-          "error_message": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error Message",
-            "description": "Error message if job failed"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At",
-            "description": "Job creation timestamp"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At",
-            "description": "Job last update timestamp"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "collection_id",
-          "start_url",
-          "max_pages",
-          "max_depth",
-          "status",
-          "progress",
-          "created_at",
-          "updated_at"
-        ],
-        "title": "WebsiteCrawlJobResponse",
-        "description": "Schema for website crawl job API responses."
-      },
-      "WebsiteCrawlRequest": {
-        "properties": {
-          "start_url": {
-            "type": "string",
-            "maxLength": 2083,
-            "minLength": 1,
-            "title": "Start Url",
-            "description": "Starting URL for the crawl",
-            "examples": [
-              "https://docs.python.org/3/"
-            ]
-          },
-          "max_pages": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 10000,
-                "minimum": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Pages",
-            "description": "Maximum number of pages to crawl",
-            "default": 100
-          },
-          "max_depth": {
-            "anyOf": [
-              {
-                "type": "integer",
-                "maximum": 10,
-                "minimum": 1
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Depth",
-            "description": "Maximum crawl depth from start URL",
-            "default": 3
-          },
-          "include_patterns": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Include Patterns",
-            "description": "URL patterns to include (glob patterns)"
-          },
-          "exclude_patterns": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Exclude Patterns",
-            "description": "URL patterns to exclude (glob patterns)"
-          },
-          "options": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/CrawlOptionsSchema"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Additional crawl options"
-          }
-        },
-        "type": "object",
-        "required": [
-          "start_url"
-        ],
-        "title": "WebsiteCrawlRequest",
-        "description": "Schema for creating a new website crawl job."
-      },
       "WebsiteMetadataRequest": {
         "properties": {
           "url": {
@@ -19289,11 +20464,24 @@
             "title": "Id",
             "description": "Page unique identifier"
           },
-          "crawl_job_id": {
+          "collection_id": {
             "type": "string",
             "format": "uuid",
-            "title": "Crawl Job Id",
-            "description": "Associated crawl job ID"
+            "title": "Collection Id",
+            "description": "Associated collection ID"
+          },
+          "parent_page_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Page Id",
+            "description": "Parent page ID (for hierarchical structure)"
           },
           "url": {
             "type": "string",
@@ -19315,17 +20503,41 @@
           "depth": {
             "type": "integer",
             "title": "Depth",
-            "description": "Crawl depth from start URL"
+            "description": "Crawl depth from root page"
           },
           "content_length": {
             "type": "integer",
             "title": "Content Length",
             "description": "Content length in characters"
           },
+          "meta_description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Meta Description",
+            "description": "Page meta description"
+          },
           "status": {
             "type": "string",
             "title": "Status",
-            "description": "Page status: pending, fetched, extracted, processed, failed"
+            "description": "Page status: pending, crawling, fetched, extracted, processing, processed, failed, skipped"
+          },
+          "crawl_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Crawl Source",
+            "description": "How this page was added: initial, discovered, manual, deep_crawl"
           },
           "http_status_code": {
             "anyOf": [
@@ -19352,6 +20564,22 @@
             "title": "File Id",
             "description": "Associated file ID (after processing)"
           },
+          "discovered_links": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Discovered Links",
+            "description": "Links discovered on this page"
+          },
           "error_message": {
             "anyOf": [
               {
@@ -19363,6 +20591,33 @@
             ],
             "title": "Error Message",
             "description": "Error message if processing failed"
+          },
+          "tree_completed": {
+            "type": "boolean",
+            "title": "Tree Completed",
+            "description": "Whether this page and all its descendant pages have been processed or skipped",
+            "default": false
+          },
+          "has_children": {
+            "type": "boolean",
+            "title": "Has Children",
+            "description": "Whether this page has any child pages",
+            "default": false
+          },
+          "children": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/WebsitePageResponse"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Children",
+            "description": "Child pages (populated when tree_depth \u003E 0)"
           },
           "created_at": {
             "type": "string",
@@ -19380,7 +20635,7 @@
         "type": "object",
         "required": [
           "id",
-          "crawl_job_id",
+          "collection_id",
           "url",
           "depth",
           "content_length",

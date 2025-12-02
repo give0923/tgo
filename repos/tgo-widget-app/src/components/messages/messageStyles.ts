@@ -5,8 +5,33 @@ export const Bubble = styled.div<{self:boolean}>`
   background: ${p => p.self ? 'var(--primary)' : 'var(--bg-bubble-agent, #f5f6f7)'};
   color: ${p => p.self ? '#fff' : 'var(--text-primary, #111827)'};
   border-top-${p => p.self ? 'right' : 'left'}-radius: 6px;
-  pre { overflow:auto; margin:8px 0; }
-  code { font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; font-size: 12px; }
+
+  /* Code block styling with dark mode support */
+  pre {
+    overflow: auto;
+    margin: 8px 0;
+    padding: 12px;
+    border-radius: 8px;
+    background: var(--bg-code, #f6f8fa);
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+  }
+  code {
+    font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;
+    font-size: 12px;
+    background: var(--bg-code-inline, rgba(0,0,0,0.05));
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+
+  /* Override highlight.js background for dark mode */
+  .hljs {
+    background: var(--bg-code, #f6f8fa) !important;
+    color: var(--text-primary, #111827);
+  }
+
   a { color: ${p => p.self ? '#fff' : 'var(--link-color, #2563eb)'}; text-decoration: underline; }
 `
 

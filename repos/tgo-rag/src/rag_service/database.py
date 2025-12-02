@@ -23,31 +23,34 @@ async_session_factory = None
 def reset_db_state():
     """
     Reset the global database engine and session factory.
-    
+
     This function MUST be called before creating a new asyncio event loop
     in Celery workers to avoid 'Future attached to a different loop' errors.
-    
+
     The issue occurs because:
     1. SQLAlchemy async engine/connections are bound to a specific event loop
     2. When Celery tasks create new event loops, old connections are still bound
        to the previous (closed) event loop
     3. This causes 'Event loop is closed' or 'attached to a different loop' errors
-    
+
     Call this function in:
     - Celery worker_process_init signal handler
     - Before creating a new event loop in any Celery task
     """
     global engine, async_session_factory
-    
-    # Dispose of old engine if it exists (cleanup connections)
-    if engine is not None:
-        try:
-            # Note: We can't await dispose() here since we may not have an event loop
-            # The next task will create a fresh engine anyway
-            pass
-        except Exception:
-            pass
-    
+
+    # Simply reset the global references without trying to dispose connections
+    # The connections will be garbage collected, and new ones will be created
+    # when the next task runs with a new event loop.
+    #
+    # Note: We don't call engine.dispose() or engine.sync_engine.pool.dispose()
+    # because asyncpg connections require an async context to close properly,
+    # and calling sync dispose causes MissingGreenlet errors.
+    #
+    # This approach relies on:
+    # 1. Python GC to clean up orphaned connections
+    # 2. PostgreSQL connection timeout to reclaim connections
+    # 3. pool_pre_ping=True to detect stale connections
     engine = None
     async_session_factory = None
     logger.debug("Database state reset for new event loop")

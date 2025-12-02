@@ -1,5 +1,6 @@
 import React, { useState, useRef, KeyboardEvent } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { getTagClasses } from '@/utils/tagColors';
 
 interface TagInputProps {
@@ -19,15 +20,19 @@ interface TagInputProps {
 export const TagInput: React.FC<TagInputProps> = ({
   tags = [],
   onTagsChange,
-  placeholder = '输入标签并按回车键添加',
+  placeholder,
   maxTags = 10,
   maxTagLength = 20,
   disabled = false,
   className = ''
 }) => {
+  const { t } = useTranslation();
   const [inputValue, setInputValue] = useState('');
   const [error, setError] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Use i18n for default placeholder
+  const displayPlaceholder = placeholder || t('tagInput.placeholder', '输入标签并按回车键添加');
 
   // Clear error after a delay
   const clearError = () => {
@@ -37,28 +42,28 @@ export const TagInput: React.FC<TagInputProps> = ({
   // Validate and add a new tag
   const addTag = (tagName: string) => {
     const trimmedTag = tagName.trim();
-    
+
     // Validation checks
     if (!trimmedTag) {
-      setError('标签名称不能为空');
+      setError(t('tagInput.errors.empty', '标签名称不能为空'));
       clearError();
       return false;
     }
 
     if (trimmedTag.length > maxTagLength) {
-      setError(`标签名称不能超过${maxTagLength}个字符`);
+      setError(t('tagInput.errors.tooLong', { max: maxTagLength, defaultValue: `标签名称不能超过${maxTagLength}个字符` }));
       clearError();
       return false;
     }
 
     if (tags.includes(trimmedTag)) {
-      setError('该标签已存在');
+      setError(t('tagInput.errors.duplicate', '该标签已存在'));
       clearError();
       return false;
     }
 
     if (tags.length >= maxTags) {
-      setError(`最多只能添加${maxTags}个标签`);
+      setError(t('tagInput.errors.maxReached', { max: maxTags, defaultValue: `最多只能添加${maxTags}个标签` }));
       clearError();
       return false;
     }
@@ -121,11 +126,11 @@ export const TagInput: React.FC<TagInputProps> = ({
     e.preventDefault();
     const pastedText = e.clipboardData.getData('text');
     const potentialTags = pastedText.split(/[,，\n\t]/).map(tag => tag.trim()).filter(tag => tag);
-    
+
     let addedCount = 0;
     for (const tag of potentialTags) {
       if (tags.length + addedCount >= maxTags) {
-        setError(`最多只能添加${maxTags}个标签`);
+        setError(t('tagInput.errors.maxReached', { max: maxTags, defaultValue: `最多只能添加${maxTags}个标签` }));
         clearError();
         break;
       }
@@ -174,7 +179,7 @@ export const TagInput: React.FC<TagInputProps> = ({
                     removeTag(index);
                   }}
                   className="flex-shrink-0 hover:bg-black/10 dark:hover:bg-white/10 rounded-full p-0.5 transition-colors"
-                  title="删除标签"
+                  title={t('tagInput.removeTag', '删除标签')}
                 >
                   <X className="w-3 h-3" />
                 </button>
@@ -191,7 +196,7 @@ export const TagInput: React.FC<TagInputProps> = ({
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder={tags.length === 0 ? placeholder : ''}
+              placeholder={tags.length === 0 ? displayPlaceholder : ''}
               className="flex-1 min-w-[120px] outline-none bg-transparent text-sm dark:text-gray-100 dark:placeholder-gray-400"
               disabled={disabled}
             />
@@ -206,15 +211,15 @@ export const TagInput: React.FC<TagInputProps> = ({
             <span className="text-red-600 dark:text-red-400">{error}</span>
           ) : (
             <span>
-              {tags.length}/{maxTags} 个标签
-              {inputValue && ` • 当前输入: ${inputValue.length}/${maxTagLength} 字符`}
+              {t('tagInput.count', { current: tags.length, max: maxTags, defaultValue: `${tags.length}/${maxTags} 个标签` })}
+              {inputValue && ` • ${t('tagInput.currentInput', { current: inputValue.length, max: maxTagLength, defaultValue: `当前输入: ${inputValue.length}/${maxTagLength} 字符` })}`}
             </span>
           )}
         </div>
-        
+
         {!disabled && (
           <div className="text-gray-400 dark:text-gray-500">
-            回车或逗号添加标签
+            {t('tagInput.hint', '回车或逗号添加标签')}
           </div>
         )}
       </div>

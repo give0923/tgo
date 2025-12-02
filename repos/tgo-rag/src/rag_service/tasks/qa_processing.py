@@ -305,6 +305,8 @@ def process_qa_pair_task(self, qa_pair_id: str, project_id: str, is_update: bool
             )
             return result
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
 
     except Exception as e:
@@ -343,6 +345,8 @@ def process_qa_pairs_batch_task(self, qa_pair_ids: List[str], project_id: str) -
             )
             return result
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
 
     except Exception as e:

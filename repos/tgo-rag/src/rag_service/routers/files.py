@@ -102,7 +102,7 @@ async def list_files(
         limit=limit,
         offset=offset,
         has_next=offset + limit < total,
-        has_previous=offset > 0,
+        has_prev=offset > 0,
     )
     
     return FileListResponse(
@@ -409,7 +409,7 @@ async def list_file_documents(
         limit=limit,
         offset=offset,
         has_next=offset + limit < total,
-        has_previous=offset > 0,
+        has_prev=offset > 0,
     )
     
     return DocumentListResponse(

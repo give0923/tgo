@@ -1,306 +1,473 @@
 """
 Website crawling tasks for RAG document generation.
 
-This module provides Celery tasks for website crawling operations,
-orchestrating the complete pipeline from URL crawling to document embedding.
+This module provides Celery tasks for single-page crawling with hierarchical
+page discovery. Each page is crawled independently, with child pages being
+created and queued as new tasks.
+
+Design:
+- crawl_page_task: Crawls a single page, creates File, discovers child pages
+- Each page tracks parent_page_id for tree structure
+- Crawl configuration is stored in Collection.crawl_config
+
+Performance optimizations:
+- Batch child page creation with single transaction
+- Minimize database round-trips by caching page counts
+- Use batch task queueing for child pages
 """
 
 import asyncio
-from typing import Any, Dict
-from uuid import UUID
+import os
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional
+from uuid import UUID, uuid4
+
+from sqlalchemy import and_, func, select
 
 from .celery_app import celery_app
+from ..config import get_settings
+from ..database import get_db_session, reset_db_state
 from ..logging_config import get_logger
+from ..models import Collection, File, WebsitePage
+from ..services.crawler import CrawlOptions, WebCrawlerService, url_hash
 
 logger = get_logger(__name__)
+settings = get_settings()
 
 
-async def process_crawl_job_async(
-    job_id: UUID,
-    task_id: str = None,
+@dataclass
+class PageInfo:
+    """Container for page information used during crawling."""
+    id: UUID
+    url: str
+    depth: int
+    collection_id: UUID
+    project_id: UUID
+    crawl_config: Optional[Dict[str, Any]]
+
+
+@dataclass
+class CrawlConfig:
+    """Parsed crawl configuration with defaults."""
+    max_depth: int
+    max_pages: int
+    include_patterns: List[str]
+    exclude_patterns: List[str]
+    render_js: bool
+    delay_seconds: float
+    user_agent: Optional[str]
+    timeout_seconds: int
+
+    @classmethod
+    def from_dict(cls, config: Dict[str, Any], max_depth_override: Optional[int] = None) -> "CrawlConfig":
+        """Create CrawlConfig from dictionary with defaults."""
+        return cls(
+            max_depth=max_depth_override if max_depth_override is not None else config.get("max_depth", 3),
+            max_pages=config.get("max_pages", 100),
+            include_patterns=config.get("include_patterns", []),
+            exclude_patterns=config.get("exclude_patterns", []),
+            render_js=config.get("render_js", False),
+            delay_seconds=config.get("delay_seconds", 1.0),
+            user_agent=config.get("user_agent"),
+            timeout_seconds=config.get("timeout_seconds", 30),
+        )
+
+
+def merge_crawl_configs(
+    collection_config: Optional[Dict[str, Any]],
+    page_config: Optional[Dict[str, Any]],
 ) -> Dict[str, Any]:
     """
-    Async function to process a website crawl job.
-    
-    This function orchestrates the complete crawling pipeline:
-    1. Load crawl job configuration
-    2. Initialize crawler with settings
-    3. Crawl pages and extract content
-    4. Create file records for each page
-    5. Trigger document processing for RAG
-    6. Update job status and metrics
-    
+    Merge crawl configurations with page-level config taking priority.
+
     Args:
-        job_id: UUID of the crawl job to process
-        task_id: Optional Celery task ID for tracking
-        
+        collection_config: Base configuration from Collection.crawl_config
+        page_config: Override configuration from WebsitePage.crawl_config
+
     Returns:
-        Dictionary containing crawl results and metrics
+        Merged configuration dictionary where page_config values override
+        collection_config values for the same keys.
     """
-    from sqlalchemy import select, update
-    from ..database import get_db_session
-    from ..models import WebsiteCrawlJob, WebsitePage, File, Collection
-    from ..services.crawler import WebCrawlerService, CrawlOptions
-    from ..config import get_settings
-    import os
-    from uuid import uuid4
-    
-    settings = get_settings()
-    
-    try:
-        # Load crawl job from database
-        async with get_db_session() as db:
-            result = await db.execute(
-                select(WebsiteCrawlJob).where(WebsiteCrawlJob.id == job_id)
-            )
-            job = result.scalar_one_or_none()
-            
-            if not job:
-                logger.error(f"Crawl job not found: {job_id}")
-                return {"status": "failed", "error": "Job not found"}
-            
-            # Update status to crawling
-            job.status = "crawling"
-            job.celery_task_id = task_id
+    return {**(collection_config or {}), **(page_config or {})}
+
+
+async def _load_page_and_config(
+    page_id: UUID,
+    max_depth_override: Optional[int] = None,
+) -> tuple[Optional[PageInfo], Optional[CrawlConfig], Optional[str]]:
+    """
+    Load page and collection configuration from database.
+
+    Returns:
+        Tuple of (page_info, crawl_config, error_message)
+        If error_message is set, page_info and crawl_config will be None.
+    """
+    async with get_db_session() as db:
+        result = await db.execute(
+            select(WebsitePage).where(WebsitePage.id == page_id)
+        )
+        page = result.scalar_one_or_none()
+
+        if not page:
+            return None, None, "Page not found"
+
+        if page.status not in ("pending", "retry"):
+            return None, None, f"invalid_status: {page.status}"
+
+        # Load collection for configuration
+        coll_result = await db.execute(
+            select(Collection).where(Collection.id == page.collection_id)
+        )
+        collection = coll_result.scalar_one_or_none()
+
+        if not collection:
+            return None, None, "Collection not found"
+
+        # Merge and parse crawl configurations
+        merged_config = merge_crawl_configs(collection.crawl_config, page.crawl_config)
+        crawl_config = CrawlConfig.from_dict(merged_config, max_depth_override)
+
+        page_info = PageInfo(
+            id=page.id,
+            url=page.url,
+            depth=page.depth,
+            collection_id=page.collection_id,
+            project_id=page.project_id,
+            crawl_config=page.crawl_config,
+        )
+
+        # Update status to crawling
+        page.status = "crawling"
+        await db.commit()
+
+    return page_info, crawl_config, None
+
+
+async def _update_page_status(
+    page_id: UUID,
+    status: str,
+    error_message: Optional[str] = None,
+) -> None:
+    """Update page status in database."""
+    async with get_db_session() as db:
+        result = await db.execute(select(WebsitePage).where(WebsitePage.id == page_id))
+        page = result.scalar_one_or_none()
+        if page:
+            page.status = status
+            if error_message:
+                page.error_message = error_message
             await db.commit()
-            
-            # Store job config for use outside session
-            job_config = {
-                "id": job.id,
-                "project_id": job.project_id,
-                "collection_id": job.collection_id,
-                "start_url": job.start_url,
-                "max_pages": job.max_pages,
-                "max_depth": job.max_depth,
-                "include_patterns": job.include_patterns,
-                "exclude_patterns": job.exclude_patterns,
-                "crawl_options": job.crawl_options or {},
-            }
-        
-        # Initialize crawler
+
+
+async def crawl_page_async(
+    page_id: UUID,
+    auto_discover: bool = True,
+    max_depth: Optional[int] = None,
+) -> Dict[str, Any]:
+    """
+    Async function to crawl a single page.
+
+    This function handles:
+    1. Load page and collection configuration
+    2. Crawl the page content
+    3. Save content and create File record
+    4. Discover and create child pages (if auto_discover)
+    5. Trigger document processing
+    6. Update page status
+
+    Args:
+        page_id: UUID of the page to crawl
+        auto_discover: Whether to automatically create child page tasks
+        max_depth: Override max depth (uses collection config if None)
+
+    Returns:
+        Dictionary containing crawl results
+    """
+    try:
+        # Step 1: Load page and collection info
+        page_info, crawl_config, error = await _load_page_and_config(page_id, max_depth)
+
+        if error:
+            if error.startswith("invalid_status"):
+                logger.warning(f"Page {page_id} {error}, skipping")
+                return {"page_id": str(page_id), "status": "skipped", "reason": error}
+            logger.error(f"Page {page_id}: {error}")
+            return {"page_id": str(page_id), "status": "failed", "error": error}
+
+        # Step 2: Check depth limit
+        if page_info.depth > crawl_config.max_depth:
+            await _update_page_status(
+                page_id, "skipped",
+                f"Exceeded max depth: {page_info.depth} > {crawl_config.max_depth}"
+            )
+            return {"page_id": str(page_id), "status": "skipped", "reason": "max_depth_exceeded"}
+
+        # Step 3: Initialize crawler and crawl the page
         options = CrawlOptions(
-            render_js=job_config["crawl_options"].get("render_js", False),
-            respect_robots_txt=job_config["crawl_options"].get("respect_robots_txt", True),
-            delay_seconds=job_config["crawl_options"].get("delay_seconds", 1.0),
-            user_agent=job_config["crawl_options"].get("user_agent"),
-            timeout_seconds=job_config["crawl_options"].get("timeout_seconds", 30),
+            render_js=crawl_config.render_js,
+            delay_seconds=crawl_config.delay_seconds,
+            user_agent=crawl_config.user_agent,
+            timeout_seconds=crawl_config.timeout_seconds,
         )
-        
+
         crawler = WebCrawlerService(
-            start_url=job_config["start_url"],
-            max_pages=job_config["max_pages"],
-            max_depth=job_config["max_depth"],
-            include_patterns=job_config["include_patterns"],
-            exclude_patterns=job_config["exclude_patterns"],
             options=options,
+            include_patterns=crawl_config.include_patterns,
+            exclude_patterns=crawl_config.exclude_patterns,
         )
-        
-        pages_crawled = 0
-        pages_processed = 0
-        pages_failed = 0
-        
-        # Crawl website and process pages
-        async for page in crawler.crawl_website():
-            try:
+
+        crawled_page = await crawler.crawl_page(page_info.url, depth=page_info.depth)
+
+        # Handle crawl failure
+        if not crawled_page:
+            await _update_page_status(page_id, "failed", "Crawl returned empty result")
+            return {"page_id": str(page_id), "status": "failed", "error": "empty_result"}
+
+        # Step 4: Save crawl results and create File
+        file_id = None
+        async with get_db_session() as db:
+            result = await db.execute(select(WebsitePage).where(WebsitePage.id == page_id))
+            page = result.scalar_one()
+
+            # Update page with crawled content
+            page.title = crawled_page.title
+            page.content_markdown = crawled_page.content_markdown
+            page.content_length = crawled_page.content_length
+            page.content_hash = crawled_page.content_hash
+            page.meta_description = crawled_page.meta_description
+            page.http_status_code = crawled_page.http_status_code
+            page.discovered_links = [
+                {"url": link, "created": False}
+                for link in crawled_page.links
+            ]
+            page.status = "fetched"
+
+            # Create File record if content exists
+            if crawled_page.content_markdown and crawled_page.content_length > 0:
+                file_id = uuid4()
+                safe_title = (crawled_page.title or "page")[:100].replace("/", "_").replace("\\", "_")
+                filename = f"{safe_title}_{file_id}.md"
+                storage_path = os.path.join(settings.upload_dir, str(file_id))
+
+                os.makedirs(os.path.dirname(storage_path) if os.path.dirname(storage_path) else settings.upload_dir, exist_ok=True)
+                with open(storage_path, "w", encoding="utf-8") as f:
+                    f.write(crawled_page.content_markdown)
+
+                file_record = File(
+                    id=file_id,
+                    project_id=page_info.project_id,
+                    collection_id=page_info.collection_id,
+                    original_filename=filename,
+                    file_size=len(crawled_page.content_markdown.encode("utf-8")),
+                    content_type="text/markdown",
+                    storage_provider="local",
+                    storage_path=storage_path,
+                    storage_metadata={
+                        "source": "website_crawl",
+                        "source_url": page_info.url,
+                        "page_id": str(page_id),
+                    },
+                    status="pending",
+                    description=crawled_page.meta_description,
+                )
+                db.add(file_record)
+
+                page.file_id = file_id
+                page.status = "extracted"
+
+            await db.commit()
+
+        # Step 5: Discover and create child pages (optimized batch processing)
+        children_created = 0
+        max_pages_reached = False
+        created_child_ids: List[UUID] = []
+
+        if auto_discover and page_info.depth < crawl_config.max_depth:
+            # Filter links first (no DB access needed)
+            valid_links = crawler.filter_links(crawled_page.links, page_info.url)
+
+            if valid_links:
+                # Single transaction for all child page operations
                 async with get_db_session() as db:
-                    # Create WebsitePage record
-                    website_page = WebsitePage(
-                        crawl_job_id=job_config["id"],
-                        collection_id=job_config["collection_id"],
-                        project_id=job_config["project_id"],
-                        url=page.url,
-                        url_hash=page.url_hash,
-                        title=page.title,
-                        depth=page.depth,
-                        content_markdown=page.content_markdown,
-                        content_length=page.content_length,
-                        content_hash=page.content_hash,
-                        meta_description=page.meta_description,
-                        http_status_code=page.http_status_code,
-                        page_metadata=page.metadata,
-                        status="fetched",
-                    )
-                    db.add(website_page)
-                    await db.flush()
-                    
-                    # Create a virtual file for document processing
-                    if page.content_markdown and page.content_length > 0:
-                        # Save markdown content to temp file
-                        file_id = uuid4()
-                        safe_title = (page.title or "page")[:100].replace("/", "_")
-                        filename = f"{safe_title}_{file_id}.md"
-                        storage_path = os.path.join(settings.upload_dir, str(file_id))
-                        
-                        os.makedirs(os.path.dirname(storage_path), exist_ok=True)
-                        with open(storage_path, "w", encoding="utf-8") as f:
-                            f.write(page.content_markdown)
-                        
-                        # Create File record
-                        file_record = File(
-                            id=file_id,
-                            project_id=job_config["project_id"],
-                            collection_id=job_config["collection_id"],
-                            original_filename=filename,
-                            file_size=len(page.content_markdown.encode("utf-8")),
-                            content_type="text/markdown",
-                            storage_provider="local",
-                            storage_path=storage_path,
-                            storage_metadata={
-                                "source": "website_crawl",
-                                "source_url": page.url,
-                                "crawl_job_id": str(job_config["id"]),
-                            },
-                            status="pending",
-                            description=page.meta_description,
+                    # Get current page count once
+                    current_page_count = await db.scalar(
+                        select(func.count()).select_from(WebsitePage).where(
+                            WebsitePage.collection_id == page_info.collection_id
                         )
-                        db.add(file_record)
+                    )
 
-                        # Link page to file
-                        website_page.file_id = file_id
-                        website_page.status = "extracted"
+                    max_pages = crawl_config.max_pages
 
+                    if current_page_count >= max_pages:
+                        logger.info(
+                            f"Collection {page_info.collection_id} reached max_pages limit "
+                            f"({current_page_count}/{max_pages}), skipping child discovery"
+                        )
+                        max_pages_reached = True
+                    else:
+                        remaining_quota = max_pages - current_page_count
+
+                        # Limit valid_links to remaining quota
+                        if len(valid_links) > remaining_quota:
+                            logger.info(
+                                f"Limiting child pages from {len(valid_links)} to {remaining_quota} "
+                                f"(max_pages={max_pages}, current={current_page_count})"
+                            )
+                            valid_links = valid_links[:remaining_quota]
+
+                        # Batch check for existing URLs - get all existing hashes in one query
+                        link_hashes = {url_hash(link): link for link in valid_links}
+                        existing_result = await db.execute(
+                            select(WebsitePage.url_hash).where(
+                                and_(
+                                    WebsitePage.collection_id == page_info.collection_id,
+                                    WebsitePage.url_hash.in_(list(link_hashes.keys())),
+                                )
+                            )
+                        )
+                        existing_hashes = set(row[0] for row in existing_result.fetchall())
+
+                        # Filter out existing URLs
+                        new_links = [
+                            (h, url) for h, url in link_hashes.items()
+                            if h not in existing_hashes
+                        ]
+
+                        # Build child crawl config once
+                        child_crawl_config = None
+                        if page_info.crawl_config and "max_depth" in page_info.crawl_config:
+                            child_crawl_config = {"max_depth": page_info.crawl_config["max_depth"]}
+
+                        # Batch create child pages
+                        for link_hash, link_url in new_links:
+                            child_page = WebsitePage(
+                                collection_id=page_info.collection_id,
+                                project_id=page_info.project_id,
+                                parent_page_id=page_id,
+                                url=link_url,
+                                url_hash=link_hash,
+                                depth=page_info.depth + 1,
+                                status="pending",
+                                crawl_source="discovered",
+                                crawl_config=child_crawl_config,
+                            )
+                            db.add(child_page)
+                            await db.flush()  # Get the ID
+                            created_child_ids.append(child_page.id)
+                            children_created += 1
+
+                        # Single commit for all child pages
+                        if children_created > 0:
+                            await db.commit()
+
+                # Queue child tasks outside the DB session
+                for child_id in created_child_ids:
+                    crawl_page_task.delay(
+                        str(child_id),
+                        auto_discover=True,
+                        max_depth=crawl_config.max_depth,
+                    )
+
+                # Update discovered_links to mark created ones
+                if children_created > 0:
+                    created_urls = {link_hashes[h] for h, _ in new_links[:children_created]}
+                    async with get_db_session() as db:
+                        result = await db.execute(select(WebsitePage).where(WebsitePage.id == page_id))
+                        page = result.scalar_one()
+                        if page.discovered_links:
+                            for link_info in page.discovered_links:
+                                if link_info["url"] in created_urls:
+                                    link_info["created"] = True
                         await db.commit()
 
-                        # Trigger document processing
-                        from .document_processing import process_file_task
-                        process_file_task.delay(
-                            str(file_id),
-                            str(job_config["collection_id"])
-                        )
-
-                        website_page.status = "processed"
-                        pages_processed += 1
-                    else:
-                        website_page.status = "failed"
-                        website_page.error_message = "No content extracted"
-                        pages_failed += 1
-
-                    await db.commit()
-
-                    # Update job progress
-                    await db.execute(
-                        update(WebsiteCrawlJob)
-                        .where(WebsiteCrawlJob.id == job_config["id"])
-                        .values(
-                            pages_discovered=crawler.pages_discovered,
-                            pages_crawled=crawler.pages_crawled,
-                            pages_processed=pages_processed,
-                            pages_failed=pages_failed,
-                        )
-                    )
-                    await db.commit()
-
-                pages_crawled += 1
-
-            except Exception as e:
-                logger.error(f"Error processing page {page.url}: {e}")
-                pages_failed += 1
-
-                async with get_db_session() as db:
-                    await db.execute(
-                        update(WebsiteCrawlJob)
-                        .where(WebsiteCrawlJob.id == job_config["id"])
-                        .values(pages_failed=pages_failed)
-                    )
-                    await db.commit()
-
-        # Update final job status
-        async with get_db_session() as db:
-            await db.execute(
-                update(WebsiteCrawlJob)
-                .where(WebsiteCrawlJob.id == job_config["id"])
-                .values(
-                    status="completed",
-                    pages_discovered=crawler.pages_discovered,
-                    pages_crawled=pages_crawled,
-                    pages_processed=pages_processed,
-                    pages_failed=pages_failed,
-                )
-            )
-            await db.commit()
+        # Step 6: Trigger document processing
+        if file_id:
+            from .document_processing import process_file_task
+            process_file_task.delay(str(file_id), str(page_info.collection_id))
+            await _update_page_status(page_id, "processing")
 
         logger.info(
-            f"Crawl job {job_id} completed: "
-            f"crawled={pages_crawled}, processed={pages_processed}, failed={pages_failed}"
+            f"Crawled page {page_id}: {crawled_page.content_length} chars, "
+            f"{len(crawled_page.links)} links, {children_created} children created"
+            f"{' (max_pages reached)' if max_pages_reached else ''}"
         )
 
         return {
-            "status": "completed",
-            "job_id": str(job_id),
-            "pages_crawled": pages_crawled,
-            "pages_processed": pages_processed,
-            "pages_failed": pages_failed,
+            "page_id": str(page_id),
+            "url": page_info.url,
+            "status": "success",
+            "content_length": crawled_page.content_length,
+            "links_discovered": len(crawled_page.links),
+            "children_created": children_created,
+            "file_id": str(file_id) if file_id else None,
+            "max_pages_reached": max_pages_reached,
         }
 
     except Exception as e:
-        logger.error(f"Crawl job {job_id} failed: {e}")
-
-        # Update job status to failed
-        try:
-            async with get_db_session() as db:
-                await db.execute(
-                    update(WebsiteCrawlJob)
-                    .where(WebsiteCrawlJob.id == job_id)
-                    .values(
-                        status="failed",
-                        error_message=str(e),
-                    )
-                )
-                await db.commit()
-        except Exception as db_error:
-            logger.error(f"Failed to update job status: {db_error}")
-
+        logger.error(f"Error crawling page {page_id}: {e}")
+        await _update_page_status(page_id, "failed", str(e))
         return {
+            "page_id": str(page_id),
             "status": "failed",
-            "job_id": str(job_id),
             "error": str(e),
         }
 
 
-@celery_app.task(bind=True, name="crawl_website_task")
-def crawl_website_task(self, job_id: str) -> Dict[str, Any]:
+@celery_app.task(bind=True, name="crawl_page_task")
+def crawl_page_task(
+    self,
+    page_id: str,
+    auto_discover: bool = True,
+    max_depth: Optional[int] = None,
+) -> Dict[str, Any]:
     """
-    Celery task for processing website crawl jobs.
+    Celery task for crawling a single page.
 
-    This task orchestrates the complete website crawling pipeline:
-    1. Load crawl job configuration from database
-    2. Initialize crawl4ai crawler
-    3. Crawl pages and extract content
-    4. Create file records for each page
-    5. Trigger document processing for RAG embedding
-    6. Update job status and metrics
+    This task handles:
+    1. Crawl the page content using crawl4ai
+    2. Save content and create File record
+    3. Discover child links and create child page records
+    4. Queue child pages for crawling (if auto_discover)
+    5. Trigger document processing
 
     Args:
-        job_id: UUID string of the crawl job to process
+        page_id: UUID string of the page to crawl
+        auto_discover: Whether to automatically discover and crawl child pages
+        max_depth: Override max crawl depth (uses collection config if None)
 
     Returns:
-        Dictionary containing crawl results and metrics
+        Dictionary containing crawl results
     """
-    from ..database import reset_db_state
-
     try:
-        job_uuid = UUID(job_id)
+        page_uuid = UUID(page_id)
 
-        # Reset database state
+        # Reset database state for Celery worker
         reset_db_state()
 
-        # Run async processing
+        # Run async crawling
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
         try:
             result = loop.run_until_complete(
-                process_crawl_job_async(job_uuid, self.request.id)
+                crawl_page_async(
+                    page_id=page_uuid,
+                    auto_discover=auto_discover,
+                    max_depth=max_depth,
+                )
             )
             return result
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
 
     except Exception as e:
-        logger.error(f"Crawl task failed for job {job_id}: {e}")
+        logger.error(f"Crawl page task failed for {page_id}: {e}")
         return {
+            "page_id": page_id,
             "status": "failed",
-            "job_id": job_id,
             "error": str(e),
         }
+
 

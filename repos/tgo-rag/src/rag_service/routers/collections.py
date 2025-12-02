@@ -2,18 +2,20 @@
 Collections management endpoints.
 """
 
+import hashlib
+import os
 from typing import List, Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..database import get_db_session_dependency
 from ..logging_config import get_logger
 from ..models import Collection, CollectionType, FileDocument, File as FileModel
-from ..models import WebsiteCrawlJob, WebsitePage
+from ..models import WebsitePage
 from ..schemas.collections import (
     CollectionBatchRequest,
     CollectionBatchResponse,
@@ -31,8 +33,6 @@ from ..schemas.common import PaginationMetadata
 from ..schemas.search import SearchResponse
 from ..schemas.websites import (
     CrawlProgressSchema,
-    WebsiteCrawlJobListResponse,
-    WebsiteCrawlJobResponse,
     WebsitePageListResponse,
     WebsitePageResponse,
 )
@@ -160,7 +160,7 @@ async def list_collections(
         limit=limit,
         offset=offset,
         has_next=offset + limit < total,
-        has_previous=offset > 0,
+        has_prev=offset > 0,
     )
     
     return CollectionListResponse(
@@ -190,6 +190,10 @@ async def create_collection(
     Collections help organize RAG content and can contain metadata about embedding models,
     chunk sizes, and other processing parameters. Collection is scoped to the specified project.
     Supports collection_type to specify the source: file, website, or qa.
+
+    For website collections:
+    - If crawl_config contains a start_url, a WebsitePage record is automatically created
+    - Crawling is triggered automatically using the start_url
     """
     # Convert schema enum to model enum
     model_collection_type = CollectionType(collection_data.collection_type.value)
@@ -208,6 +212,54 @@ async def create_collection(
     db.add(collection)
     await db.commit()
     await db.refresh(collection)
+
+    # For website collections, auto-trigger crawling if start_url is provided
+    if model_collection_type == CollectionType.website and collection_data.crawl_config:
+        start_url = collection_data.crawl_config.get("start_url")
+        if start_url:
+            # Create the initial WebsitePage record
+            url_hash_value = hashlib.sha256(start_url.encode()).hexdigest()
+
+            # Check if URL already exists (unlikely for new collection, but safety check)
+            existing_query = select(WebsitePage).where(
+                and_(
+                    WebsitePage.collection_id == collection.id,
+                    WebsitePage.url_hash == url_hash_value,
+                )
+            )
+            existing_result = await db.execute(existing_query)
+            existing_page = existing_result.scalar_one_or_none()
+
+            if not existing_page:
+                # Create new page
+                new_page = WebsitePage(
+                    collection_id=collection.id,
+                    project_id=project_id,
+                    url=start_url,
+                    url_hash=url_hash_value,
+                    depth=0,
+                    status="pending",
+                    crawl_source="initial",
+                )
+                db.add(new_page)
+                await db.commit()
+                await db.refresh(new_page)
+
+                # Trigger crawl task
+                max_depth = collection_data.crawl_config.get("max_depth", 3)
+                from ..tasks.website_crawling import crawl_page_task
+                try:
+                    task = crawl_page_task.delay(
+                        str(new_page.id),
+                        auto_discover=(max_depth > 0),
+                        max_depth=max_depth,
+                    )
+                    logger.info(
+                        f"Auto-triggered crawl for website collection {collection.id}, "
+                        f"page {new_page.id}, task {task.id}"
+                    )
+                except Exception as e:
+                    logger.warning(f"Failed to trigger crawl task for collection {collection.id}: {e}")
 
     # Create response manually with file_count = 0 (new collection has no files)
     return CollectionResponse(
@@ -590,11 +642,20 @@ async def update_collection(
 async def delete_collection(
     collection_id: UUID,
     project_id: UUID = Query(..., description="Project ID"),
+    hard_delete: bool = Query(True, description="Perform hard delete (permanent removal). Set to False for soft delete."),
     db: AsyncSession = Depends(get_db_session_dependency),
 ):
     """
-    Delete a specific collection by its UUID. This will set collection_id to NULL
-    for associated files and documents but will not delete them. Collection must belong to the specified project.
+    Delete a specific collection by its UUID.
+
+    By default, performs a hard delete (permanent removal):
+    - For website collections: deletes all WebsitePages, Files, FileDocuments, and physical files
+    - For other collections: deletes all Files, FileDocuments, and physical files
+    - Permanently removes the collection from the database
+
+    If hard_delete=False, performs a soft delete (sets deleted_at timestamp).
+
+    Collection must belong to the specified project.
     """
     # Find the collection with project filtering
     query = select(Collection).where(
@@ -610,11 +671,75 @@ async def delete_collection(
 
     if not collection:
         raise HTTPException(status_code=404, detail="Collection not found or not accessible")
-    
-    # Soft delete the collection
-    collection.soft_delete()
-    
-    await db.commit()
+
+    if hard_delete:
+        # Hard delete: permanently remove all associated resources
+        storage_paths_to_delete = []
+
+        # For website collections, delete WebsitePages first
+        if collection.collection_type == CollectionType.website:
+            # Get all pages in this collection
+            pages_query = select(WebsitePage).where(
+                WebsitePage.collection_id == collection_id
+            )
+            pages_result = await db.execute(pages_query)
+            pages = list(pages_result.scalars().all())
+
+            # Collect file IDs from pages
+            file_ids = [page.file_id for page in pages if page.file_id]
+
+            # Delete all pages
+            await db.execute(
+                delete(WebsitePage).where(WebsitePage.collection_id == collection_id)
+            )
+            logger.info(f"Deleted {len(pages)} WebsitePage records for collection {collection_id}")
+        else:
+            # For non-website collections, get file IDs directly
+            files_query = select(FileModel.id).where(
+                FileModel.collection_id == collection_id
+            )
+            files_result = await db.execute(files_query)
+            file_ids = [row[0] for row in files_result.fetchall()]
+
+        # Delete FileDocuments and Files
+        if file_ids:
+            # Get storage paths before deletion
+            paths_query = select(FileModel.storage_path).where(
+                FileModel.id.in_(file_ids)
+            )
+            paths_result = await db.execute(paths_query)
+            storage_paths_to_delete = [row[0] for row in paths_result.fetchall() if row[0]]
+
+            # Delete FileDocuments
+            await db.execute(
+                delete(FileDocument).where(FileDocument.file_id.in_(file_ids))
+            )
+            logger.info(f"Deleted FileDocument records for {len(file_ids)} files in collection {collection_id}")
+
+            # Delete Files
+            await db.execute(
+                delete(FileModel).where(FileModel.id.in_(file_ids))
+            )
+            logger.info(f"Deleted {len(file_ids)} File records for collection {collection_id}")
+
+        # Delete the collection itself
+        await db.delete(collection)
+        logger.info(f"Hard deleted collection {collection_id}")
+
+        await db.commit()
+
+        # Delete physical files after successful DB commit
+        for storage_path in storage_paths_to_delete:
+            if storage_path and os.path.exists(storage_path):
+                try:
+                    os.remove(storage_path)
+                    logger.debug(f"Deleted physical file: {storage_path}")
+                except Exception as e:
+                    logger.warning(f"Failed to delete physical file {storage_path}: {e}")
+    else:
+        # Soft delete the collection
+        collection.soft_delete()
+        await db.commit()
 
 
 @router.get(
@@ -702,7 +827,7 @@ async def list_collection_documents(
         limit=limit,
         offset=offset,
         has_next=offset + limit < total,
-        has_previous=offset > 0,
+        has_prev=offset > 0,
     )
     
     return DocumentListResponse(
@@ -761,126 +886,6 @@ async def search_collection_documents(
 
     return search_response
 
-
-@router.get(
-    "/{collection_id}/crawl-jobs",
-    response_model=WebsiteCrawlJobListResponse,
-    responses={
-        404: {"model": ErrorResponse, "description": "Collection not found or not accessible"},
-        400: {"model": ErrorResponse, "description": "Collection is not of type 'website'"},
-        500: {"model": ErrorResponse, "description": "Internal server error"}
-    }
-)
-async def list_collection_crawl_jobs(
-    collection_id: UUID,
-    limit: int = Query(20, ge=1, le=100, description="Number of crawl jobs to return"),
-    offset: int = Query(0, ge=0, description="Number of crawl jobs to skip"),
-    status: Optional[str] = Query(None, description="Filter by job status"),
-    project_id: UUID = Query(..., description="Project ID"),
-    db: AsyncSession = Depends(get_db_session_dependency),
-):
-    """
-    Retrieve all crawl jobs for a specific website collection.
-
-    This endpoint returns the list of website crawl jobs associated with the collection.
-    Only works for collections with collection_type='website'.
-    Results are ordered by creation time (newest first).
-    """
-    # Verify collection exists, belongs to project, and is website type
-    collection_query = select(Collection).where(
-        and_(
-            Collection.id == collection_id,
-            Collection.project_id == project_id,
-            Collection.deleted_at.is_(None)
-        )
-    )
-    collection_result = await db.execute(collection_query)
-    collection = collection_result.scalar_one_or_none()
-
-    if not collection:
-        raise HTTPException(status_code=404, detail="Collection not found or not accessible")
-
-    if collection.collection_type != CollectionType.website:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Collection is not of type 'website'. Current type: {collection.collection_type.value}"
-        )
-
-    # Build query for crawl jobs
-    query = select(WebsiteCrawlJob).where(
-        and_(
-            WebsiteCrawlJob.collection_id == collection_id,
-            WebsiteCrawlJob.project_id == project_id,
-            WebsiteCrawlJob.deleted_at.is_(None)
-        )
-    )
-
-    # Apply status filter if provided
-    if status:
-        query = query.where(WebsiteCrawlJob.status == status)
-
-    # Get total count
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar()
-
-    # Apply pagination and ordering
-    query = query.order_by(WebsiteCrawlJob.created_at.desc()).offset(offset).limit(limit)
-
-    # Execute query
-    result = await db.execute(query)
-    crawl_jobs = result.scalars().all()
-
-    # Convert to response models
-    job_responses = []
-    for job in crawl_jobs:
-        # Calculate progress percentage
-        # If job is completed/cancelled/failed, progress is 100%
-        if job.status in ("completed", "cancelled", "failed"):
-            progress_percent = 100.0
-        else:
-            # Calculate based on pages_discovered (actual work to do)
-            # Not max_pages (which is just a limit)
-            total = max(job.pages_discovered, 1)
-            progress_percent = min(100.0, (job.pages_crawled / total) * 100) if total > 0 else 0.0
-
-        progress = CrawlProgressSchema(
-            pages_discovered=job.pages_discovered,
-            pages_crawled=job.pages_crawled,
-            pages_processed=job.pages_processed,
-            pages_failed=job.pages_failed,
-            progress_percent=progress_percent,
-        )
-
-        job_responses.append(WebsiteCrawlJobResponse(
-            id=job.id,
-            collection_id=job.collection_id,
-            start_url=job.start_url,
-            max_pages=job.max_pages,
-            max_depth=job.max_depth,
-            include_patterns=job.include_patterns,
-            exclude_patterns=job.exclude_patterns,
-            status=job.status,
-            progress=progress,
-            crawl_options=job.crawl_options,
-            error_message=job.error_message,
-            created_at=job.created_at,
-            updated_at=job.updated_at,
-        ))
-
-    # Create pagination metadata
-    pagination = PaginationMetadata(
-        total=total,
-        limit=limit,
-        offset=offset,
-        has_next=offset + limit < total,
-        has_previous=offset > 0,
-    )
-
-    return WebsiteCrawlJobListResponse(
-        data=job_responses,
-        pagination=pagination
-    )
 
 
 @router.get(
@@ -978,7 +983,7 @@ async def list_collection_pages(
         limit=limit,
         offset=offset,
         has_next=offset + limit < total,
-        has_previous=offset > 0,
+        has_prev=offset > 0,
     )
 
     return WebsitePageListResponse(

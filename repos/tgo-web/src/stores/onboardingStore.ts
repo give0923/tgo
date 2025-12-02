@@ -1,128 +1,181 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
+import { onboardingApi, OnboardingStepStatus, OnboardingProgressResponse } from '@/services/onboardingApi';
 
 /**
- * Onboarding task types
- */
-export type OnboardingTask = 
-  | 'platformCreated'
-  | 'knowledgeBaseUploaded'
-  | 'agentCreated'
-  | 'messageReceived';
-
-/**
- * Onboarding state interface
+ * Onboarding state interface (API-backed)
  */
 interface OnboardingState {
-  // Whether the user has dismissed the onboarding checklist
-  isDismissed: boolean;
-  
-  // Task completion status
-  tasksCompleted: {
-    platformCreated: boolean;
-    knowledgeBaseUploaded: boolean;
-    agentCreated: boolean;
-    messageReceived: boolean;
-  };
-  
-  // Whether the checklist is collapsed
-  isCollapsed: boolean;
-  
+  // API data
+  steps: OnboardingStepStatus[];
+  currentStep: number;           // 1-5 for in-progress, 6 if all completed
+  progressPercentage: number;    // 0-100
+  isCompleted: boolean;          // All steps completed or skipped
+
+  // UI state
+  isLoading: boolean;
+  error: string | null;
+  showWelcomeModal: boolean;     // Show full-page welcome modal
+  isPanelExpanded: boolean;      // Sidebar panel expanded state
+  hasInitialized: boolean;       // Has fetched from API at least once
+
   // Actions
-  markTaskCompleted: (task: OnboardingTask) => void;
-  dismissOnboarding: () => void;
-  toggleCollapse: () => void;
-  resetOnboarding: () => void;
-  
-  // Computed properties
+  fetchProgress: () => Promise<void>;
+  skipOnboarding: () => Promise<void>;
+  resetOnboarding: () => Promise<void>;
+  goToStep: (stepNumber: number) => string | null;  // Returns route or null
+  setShowWelcomeModal: (show: boolean) => void;
+  togglePanelExpanded: () => void;
+
+  // Legacy compatibility (no-op, backend auto-detects step completion)
+  markTaskCompleted: (taskId: string) => void;
+
+  // Computed
   getCompletedCount: () => number;
   getTotalCount: () => number;
-  isAllCompleted: () => boolean;
+  getCurrentStepData: () => OnboardingStepStatus | null;
+  getNextIncompleteStep: () => OnboardingStepStatus | null;
 }
 
 /**
+ * Update state from API response
+ */
+const updateFromResponse = (response: OnboardingProgressResponse) => ({
+  steps: response.steps,
+  currentStep: response.current_step,
+  progressPercentage: response.progress_percentage,
+  isCompleted: response.is_completed,
+  hasInitialized: true,
+  isLoading: false,
+  error: null,
+});
+
+/**
  * Onboarding Store
- * Manages the state of the onboarding checklist
+ * Manages the state of the onboarding with API backend
  */
 export const useOnboardingStore = create<OnboardingState>()(
   devtools(
     persist(
       (set, get) => ({
         // Initial state
-        isDismissed: false,
-        tasksCompleted: {
-          platformCreated: false,
-          knowledgeBaseUploaded: false,
-          agentCreated: false,
-          messageReceived: false,
+        steps: [],
+        currentStep: 1,
+        progressPercentage: 0,
+        isCompleted: false,
+        isLoading: false,
+        error: null,
+        showWelcomeModal: false,
+        isPanelExpanded: true,
+        hasInitialized: false,
+
+        // Fetch progress from API
+        fetchProgress: async () => {
+          set({ isLoading: true, error: null }, false, 'fetchProgress:start');
+          try {
+            const response = await onboardingApi.getProgress();
+            const { hasInitialized, showWelcomeModal } = get();
+
+            // Show welcome modal on first load if not completed
+            const shouldShowWelcome = !hasInitialized && !response.is_completed;
+
+            set({
+              ...updateFromResponse(response),
+              showWelcomeModal: shouldShowWelcome || showWelcomeModal,
+            }, false, 'fetchProgress:success');
+          } catch (error) {
+            // Set hasInitialized to true even on error to prevent infinite retry loops
+            set({
+              isLoading: false,
+              hasInitialized: true,
+              error: error instanceof Error ? error.message : 'Failed to fetch onboarding progress',
+            }, false, 'fetchProgress:error');
+          }
         },
-        isCollapsed: false,
-        
-        // Mark a task as completed
-        markTaskCompleted: (task: OnboardingTask) => {
-          set(
-            (state) => ({
-              tasksCompleted: {
-                ...state.tasksCompleted,
-                [task]: true,
-              },
-            }),
-            false,
-            `markTaskCompleted:${task}`
-          );
+
+        // Skip onboarding
+        skipOnboarding: async () => {
+          set({ isLoading: true, error: null }, false, 'skipOnboarding:start');
+          try {
+            const response = await onboardingApi.skip();
+            set({
+              ...updateFromResponse(response),
+              showWelcomeModal: false,
+            }, false, 'skipOnboarding:success');
+          } catch (error) {
+            set({
+              isLoading: false,
+              error: error instanceof Error ? error.message : 'Failed to skip onboarding',
+            }, false, 'skipOnboarding:error');
+          }
         },
-        
-        // Dismiss the onboarding checklist permanently
-        dismissOnboarding: () => {
-          set({ isDismissed: true }, false, 'dismissOnboarding');
+
+        // Reset onboarding
+        resetOnboarding: async () => {
+          set({ isLoading: true, error: null }, false, 'resetOnboarding:start');
+          try {
+            const response = await onboardingApi.reset();
+            set({
+              ...updateFromResponse(response),
+              showWelcomeModal: true,
+            }, false, 'resetOnboarding:success');
+          } catch (error) {
+            set({
+              isLoading: false,
+              error: error instanceof Error ? error.message : 'Failed to reset onboarding',
+            }, false, 'resetOnboarding:error');
+          }
         },
-        
-        // Toggle collapse state
-        toggleCollapse: () => {
-          set((state) => ({ isCollapsed: !state.isCollapsed }), false, 'toggleCollapse');
+
+        // Get route for a step and navigate
+        goToStep: (stepNumber: number) => {
+          const { steps } = get();
+          const step = steps.find(s => s.step_number === stepNumber);
+          return step?.route || null;
         },
-        
-        // Reset onboarding state (for testing/debugging)
-        resetOnboarding: () => {
-          set(
-            {
-              isDismissed: false,
-              tasksCompleted: {
-                platformCreated: false,
-                knowledgeBaseUploaded: false,
-                agentCreated: false,
-                messageReceived: false,
-              },
-              isCollapsed: false,
-            },
-            false,
-            'resetOnboarding'
-          );
+
+        // UI actions
+        setShowWelcomeModal: (show: boolean) => {
+          set({ showWelcomeModal: show }, false, 'setShowWelcomeModal');
         },
-        
-        // Get the number of completed tasks
+
+        togglePanelExpanded: () => {
+          set((state) => ({ isPanelExpanded: !state.isPanelExpanded }), false, 'togglePanelExpanded');
+        },
+
+        // Legacy compatibility - no-op since backend auto-detects step completion
+        // Kept for backward compatibility with existing code
+        markTaskCompleted: (_taskId: string) => {
+          // No-op: Backend automatically detects step completion
+          // Do NOT call fetchProgress here to avoid infinite loops
+        },
+
+        // Computed
         getCompletedCount: () => {
-          const { tasksCompleted } = get();
-          return Object.values(tasksCompleted).filter(Boolean).length;
+          const { steps } = get();
+          return steps.filter(s => s.is_completed).length;
         },
-        
-        // Get the total number of tasks
+
         getTotalCount: () => {
-          return 4;
+          const { steps } = get();
+          return steps.length || 5;
         },
-        
-        // Check if all tasks are completed
-        isAllCompleted: () => {
-          const { tasksCompleted } = get();
-          return Object.values(tasksCompleted).every(Boolean);
+
+        getCurrentStepData: () => {
+          const { steps, currentStep } = get();
+          return steps.find(s => s.step_number === currentStep) || null;
+        },
+
+        getNextIncompleteStep: () => {
+          const { steps } = get();
+          return steps.find(s => !s.is_completed) || null;
         },
       }),
       {
         name: 'onboarding-store',
         partialize: (state) => ({
-          isDismissed: state.isDismissed,
-          tasksCompleted: state.tasksCompleted,
-          isCollapsed: state.isCollapsed,
+          isPanelExpanded: state.isPanelExpanded,
+          // Don't persist showWelcomeModal - should be determined by API response
         }),
       }
     ),

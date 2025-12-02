@@ -40,7 +40,7 @@ logger = get_logger(__name__)
 def process_file_task(self, file_id: str, collection_id: str) -> Dict[str, Any]:
     """
     Celery task for processing uploaded files.
-    
+
     This task orchestrates the complete document processing pipeline:
     1. Load and validate file information
     2. Extract content using appropriate document loader
@@ -48,31 +48,32 @@ def process_file_task(self, file_id: str, collection_id: str) -> Dict[str, Any]:
     4. Generate embeddings using configured embedding service
     5. Store documents and embeddings in database
     6. Update file status and metrics
-    
+
     Args:
         file_id: UUID string of the file to process
         collection_id: UUID string of the collection the file belongs to
-        
+
     Returns:
         Dictionary containing processing results and metrics
     """
     import asyncio
     from uuid import UUID
     from ..database import reset_db_state
-    
+    from .document_processing_core import update_website_page_status_by_file_id
+
     try:
         # Convert string IDs to UUIDs
         file_uuid = UUID(file_id)
         collection_uuid = UUID(collection_id)
-        
+
         # Reset database state before creating new event loop
         # This prevents 'Future attached to a different loop' errors
         reset_db_state()
-        
+
         # Run the async processing function
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
         try:
             result = loop.run_until_complete(
                 process_file_async(file_uuid, collection_uuid, self.request.id)
@@ -87,10 +88,29 @@ def process_file_task(self, file_id: str, collection_id: str) -> Dict[str, Any]:
                 "error": result.error
             }
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
-            
+
     except Exception as e:
         logger.error(f"Task execution failed for file {file_id}: {e}")
+
+        # Update WebsitePage status if this file came from crawling
+        # This ensures pages don't get stuck in "processing" state
+        try:
+            reset_db_state()
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            try:
+                loop.run_until_complete(
+                    update_website_page_status_by_file_id(file_id, "failed", str(e))
+                )
+            finally:
+                reset_db_state()
+                loop.close()
+        except Exception as status_error:
+            logger.error(f"Failed to update page status for file {file_id}: {status_error}")
+
         return {
             "status": ProcessingStatus.FAILED.value,
             "file_id": file_id,

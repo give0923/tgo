@@ -9,6 +9,7 @@ import PlatformTypeSelector from './PlatformTypeSelector';
 import { useToast } from '@/hooks/useToast';
 import { showApiError, showSuccess } from '@/utils/toastHelpers';
 import { getPlatformColor, getPlatformIconComponent, getPlatformLabel, toPlatformType } from '@/utils/platformUtils';
+import OnboardingSidebarPanel from '@/components/onboarding/OnboardingSidebarPanel';
 
 interface PlatformListItemProps {
   platform: Platform;
@@ -220,6 +221,9 @@ const PlatformList: React.FC = () => {
           </div>
         )}
       </nav>
+
+      {/* Onboarding Panel */}
+      <OnboardingSidebarPanel />
     </aside>
     <PlatformTypeSelector
       open={showTypeSelector}

@@ -18,7 +18,8 @@ import UIBadge from '@/components/ui/Badge';
 import { useAppSettingsStore } from '@/stores/appSettingsStore';
 // Provider options will be constructed inside the component with i18n labels/hints to avoid hardcoded text.
 
-type Draft = Omit<ModelProviderConfig, 'id' | 'createdAt' | 'updatedAt'> & { id?: string };
+type ModelType = 'chat' | 'embedding';
+type Draft = Omit<ModelProviderConfig, 'id' | 'createdAt' | 'updatedAt'> & { id?: string; modelType?: ModelType };
 
 const emptyDraft = (t: (k: string, d: string)=>string): Draft => ({
   kind: 'openai',
@@ -28,7 +29,8 @@ const emptyDraft = (t: (k: string, d: string)=>string): Draft => ({
   models: [],
   defaultModel: '',
   enabled: true,
-  params: { azure: { apiVersion: '2024-02-15-preview' } }
+  params: { azure: { apiVersion: '2024-02-15-preview' } },
+  modelType: 'chat'
 });
 
 
@@ -429,8 +431,44 @@ const ModelProvidersSettings: React.FC = () => {
 
   const renderEditForm = (d: Draft, idForState: string) => {
     const selected = providerOptions.find(o => o.value === d.kind);
+    const isEmbeddingMode = d.modelType === 'embedding';
     return (
       <div className="mt-4 space-y-4">
+        {/* Model Type Selector - Only show for new providers */}
+        {editingId === 'new' && (
+          <FieldRow label={t('settings.providers.fields.modelType', '模型类型')} required>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDraft({ ...d, modelType: 'chat', models: [], defaultModel: '' })}
+                className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                  !isEmbeddingMode
+                    ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                {t('settings.providers.modelType.chat', '聊天模型')}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  // 切换到嵌入模型时，如果当前提供商不支持嵌入，则默认选择 openai
+                  const supportedKind = (d.kind === 'openai' || d.kind === 'qwen') ? d.kind : 'openai';
+                  const defaultModel = supportedKind === 'openai' ? 'text-embedding-3-small' : 'text-embedding-v4';
+                  setDraft({ ...d, modelType: 'embedding', kind: supportedKind, models: [defaultModel], defaultModel });
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg border-2 transition-all text-sm font-medium ${
+                  isEmbeddingMode
+                    ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+                    : 'border-gray-200 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500'
+                }`}
+              >
+                {t('settings.providers.modelType.embedding', '嵌入模型')}
+              </button>
+            </div>
+          </FieldRow>
+        )}
+
         <FieldRow label={t('settings.providers.fields.kind', '提供商')} required>
           <select
             className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -462,29 +500,62 @@ const ModelProvidersSettings: React.FC = () => {
                 }
               }
 
+              // 嵌入模型：根据提供商自动填充默认模型名称
+              if (isEmbeddingMode) {
+                if (kind === 'openai') {
+                  next.models = ['text-embedding-3-small'];
+                  next.defaultModel = 'text-embedding-3-small';
+                } else if (kind === 'qwen') {
+                  next.models = ['text-embedding-v4'];
+                  next.defaultModel = 'text-embedding-v4';
+                }
+              }
+
               setDraft(next);
             }}
           >
-            {providerOptions.map(o => (
+            {/* 嵌入模型只支持 OpenAI 和千问 */}
+            {(isEmbeddingMode
+              ? providerOptions.filter(o => o.value === 'openai' || o.value === 'qwen')
+              : providerOptions
+            ).map(o => (
               <option key={o.value} value={o.value}>{o.label}</option>
             ))}
           </select>
         </FieldRow>
 
-        <FieldRow label={t('settings.providers.fields.name', '名称/别名')}>
-          <input
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={d.name}
-            onChange={(e) => setDraft({ ...d, name: e.target.value })}
-            placeholder={providerLabel(d.kind)}
-          />
-        </FieldRow>
+        {/* Name field - hide for embedding mode */}
+        {!isEmbeddingMode && (
+          <FieldRow label={t('settings.providers.fields.name', '名称/别名')}>
+            <input
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={d.name}
+              onChange={(e) => setDraft({ ...d, name: e.target.value })}
+              placeholder={providerLabel(d.kind)}
+            />
+          </FieldRow>
+        )}
 
-        <div className="pt-1 text-xs font-medium text-gray-700 dark:text-gray-200 border-t border-gray-100 dark:border-gray-700 mt-2">
-          {t('settings.providers.groups.connection', '认证与连接')}
-        </div>
+        {/* Connection section header - hide for embedding mode */}
+        {!isEmbeddingMode && (
+          <div className="pt-1 text-xs font-medium text-gray-700 dark:text-gray-200 border-t border-gray-100 dark:border-gray-700 mt-2">
+            {t('settings.providers.groups.connection', '认证与连接')}
+          </div>
+        )}
 
+        {/* Base URL field - show before API Key for chat mode, hide for embedding mode */}
+        {!isEmbeddingMode && (
+          <FieldRow label={t('settings.providers.fields.baseUrl', 'API Base URL')} required={d.kind !== 'ollama'}>
+            <input
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={d.apiBaseUrl || ''}
+              onChange={(e) => setDraft({ ...d, apiBaseUrl: e.target.value })}
+              placeholder={selected?.hint}
+            />
+          </FieldRow>
+        )}
 
+        {/* API Key field */}
         <FieldRow label={t('settings.providers.fields.apiKey', 'API Key')} required>
           <div className="flex items-center gap-2">
             <input
@@ -505,16 +576,8 @@ const ModelProvidersSettings: React.FC = () => {
           </div>
         </FieldRow>
 
-        <FieldRow label={t('settings.providers.fields.baseUrl', 'API Base URL')} required={d.kind !== 'ollama'}>
-          <input
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={d.apiBaseUrl || ''}
-            onChange={(e) => setDraft({ ...d, apiBaseUrl: e.target.value })}
-            placeholder={selected?.hint}
-          />
-        </FieldRow>
-
-        {d.kind === 'azure' && (
+        {/* Azure configuration - hide for embedding mode */}
+        {d.kind === 'azure' && !isEmbeddingMode && (
           <div className="grid grid-cols-12 gap-3">
             <div className="col-span-12 md:col-span-4">
               <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('settings.providers.fields.azure.deployment', 'Deployment Name')}</label>
@@ -525,7 +588,6 @@ const ModelProvidersSettings: React.FC = () => {
                 placeholder="gpt-4o"
               />
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('settings.providers.help.azure.deployment', 'Azure 中的部署名称，区别于模型 ID')}</div>
-
             </div>
             <div className="col-span-6 md:col-span-4">
               <label className="block text-sm text-gray-600 dark:text-gray-300 mb-1">{t('settings.providers.fields.azure.resource', 'Resource')}</label>
@@ -545,26 +607,37 @@ const ModelProvidersSettings: React.FC = () => {
                 onChange={(e) => setDraft({ ...d, params: { ...d.params, azure: { ...(d.params?.azure || {}), apiVersion: e.target.value } } })}
                 placeholder="2024-02-15-preview"
               />
-
-
-          {t('settings.providers.groups.models', '')}
-
-
-
               <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">{t('settings.providers.help.azure.apiVersion', 'Azure OpenAI API 版本号，如 2024-02-15-preview')}</div>
             </div>
-
           </div>
-
-
         )}
 
+        {/* Embedding Model - Simple single model input */}
+        {isEmbeddingMode && (
+          <FieldRow label={t('settings.providers.fields.embeddingModel', '嵌入模型')} required>
+            <input
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={(d.models && d.models[0]) || ''}
+              onChange={(e) => {
+                const modelName = e.target.value;
+                setDraft({ ...d, models: modelName ? [modelName] : [], defaultModel: modelName || '' });
+              }}
+              placeholder={t('settings.providers.placeholders.embeddingModel', '例如：text-embedding-3-small') || '例如：text-embedding-3-small'}
+            />
+            <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              {t('settings.providers.help.embeddingModel', '输入嵌入模型的名称，如 text-embedding-3-small、text-embedding-ada-002')}
+            </div>
+          </FieldRow>
+        )}
 
-        <div className="pt-1 text-xs font-medium text-gray-700 dark:text-gray-200 border-t border-gray-100 dark:border-gray-700 mt-3 mb-1">
-          {t('settings.providers.groups.modelsTitle', '模型与默认值')}
-        </div>
+        {/* Chat Model - Full models section */}
+        {!isEmbeddingMode && (
+          <>
+            <div className="pt-1 text-xs font-medium text-gray-700 dark:text-gray-200 border-t border-gray-100 dark:border-gray-700 mt-3 mb-1">
+              {t('settings.providers.groups.modelsTitle', '模型与默认值')}
+            </div>
 
-        <FieldRow label={t('settings.providers.fields.models', '可用模型列表')}>
+            <FieldRow label={t('settings.providers.fields.models', '可用模型列表')}>
           <div className="relative" ref={modelsBoxRef}>
 
 
@@ -687,26 +760,31 @@ const ModelProvidersSettings: React.FC = () => {
                 </div>
               </div>
             )}
-          </div>
-        </FieldRow>
+            </div>
+          </FieldRow>
 
-        <FieldRow label={t('settings.providers.fields.defaultModel', '默认模型')}>
-          <select
-            className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            value={d.defaultModel || ''}
-            onChange={(e) => setDraft({ ...d, defaultModel: e.target.value })}
-            disabled={!d.models || d.models.length === 0}
-          >
-            <option value="" disabled>{t('settings.providers.selectDefaultModel', '请先添加模型')}</option>
-            {(d.models || []).map(m => (
-              <option key={m} value={m}>{m}</option>
-            ))}
-          </select>
-        </FieldRow>
+          <FieldRow label={t('settings.providers.fields.defaultModel', '默认模型')}>
+            <select
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              value={d.defaultModel || ''}
+              onChange={(e) => setDraft({ ...d, defaultModel: e.target.value })}
+              disabled={!d.models || d.models.length === 0}
+            >
+              <option value="" disabled>{t('settings.providers.selectDefaultModel', '请先添加模型')}</option>
+              {(d.models || []).map(m => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </FieldRow>
+          </>
+        )}
 
-        <FieldRow label={t('settings.providers.enableButton', '启用')}>
-          <Toggle checked={!!d.enabled} onChange={(v) => setDraft({ ...d, enabled: v })} />
-        </FieldRow>
+        {/* Enable toggle - hide for embedding mode */}
+        {!isEmbeddingMode && (
+          <FieldRow label={t('settings.providers.enableButton', '启用')}>
+            <Toggle checked={!!d.enabled} onChange={(v) => setDraft({ ...d, enabled: v })} />
+          </FieldRow>
+        )}
 
         <div className="flex items-center gap-2 pt-4 mt-2 border-t border-gray-100 dark:border-gray-700">
           <Button variant="primary" size="md" onClick={saveDraft}>{t('common.save', '保存')}</Button>
@@ -750,20 +828,39 @@ const ModelProvidersSettings: React.FC = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-1">
               {t('settings.models.defaults.llmLabel', '默认 LLM')}
             </label>
-            <select
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-gray-400 focus:ring-0"
-              value={llmSelection}
-              onChange={(e) => setLlmSelection(e.target.value)}
-              onFocus={ensureFetchChatOptions}
-            >
-              <option value="">{t('settings.models.defaults.none', '未设置')}</option>
-              {chatLoading && <option value="" disabled>{t('common.loading', '加载中...')}</option>}
-              {filteredChatModels.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            {/* Show empty state with add button when loaded but no models available */}
+            {chatLoaded && !chatLoading && filteredChatModels.length === 0 ? (
+              <div className="w-full rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('settings.models.defaults.noModels', '暂无可用模型')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={startAdd}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center gap-1"
+                  >
+                    <span>+</span>
+                    {t('settings.models.defaults.addProvider', '添加供应商')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-gray-400 focus:ring-0"
+                value={llmSelection}
+                onChange={(e) => setLlmSelection(e.target.value)}
+                onFocus={ensureFetchChatOptions}
+              >
+                <option value="">{t('settings.models.defaults.none', '未设置')}</option>
+                {chatLoading && <option value="" disabled>{t('common.loading', '加载中...')}</option>}
+                {filteredChatModels.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div>
@@ -809,20 +906,39 @@ const ModelProvidersSettings: React.FC = () => {
                 )}
               </div>
             </div>
-            <select
-              className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-gray-400 focus:ring-0"
-              value={embSelection}
-              onChange={(e) => setEmbSelection(e.target.value)}
-              onFocus={ensureFetchEmbeddingOptions}
-            >
-              <option value="">{t('settings.models.defaults.none', '未设置')}</option>
-              {embLoading && <option value="" disabled>{t('common.loading', '加载中...')}</option>}
-              {filteredEmbeddingModels.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+            {/* Show empty state with add button when loaded but no models available */}
+            {embLoaded && !embLoading && filteredEmbeddingModels.length === 0 ? (
+              <div className="w-full rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-3 py-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
+                    {t('settings.models.defaults.noEmbeddingModels', '暂无可用嵌入模型')}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={startAdd}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium flex items-center gap-1"
+                  >
+                    <span>+</span>
+                    {t('settings.models.defaults.addProvider', '添加供应商')}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <select
+                className="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-gray-400 focus:ring-0"
+                value={embSelection}
+                onChange={(e) => setEmbSelection(e.target.value)}
+                onFocus={ensureFetchEmbeddingOptions}
+              >
+                <option value="">{t('settings.models.defaults.none', '未设置')}</option>
+                {embLoading && <option value="" disabled>{t('common.loading', '加载中...')}</option>}
+                {filteredEmbeddingModels.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
         <div className="mt-4 flex gap-2">

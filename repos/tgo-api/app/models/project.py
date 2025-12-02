@@ -112,6 +112,14 @@ class Project(Base):
         lazy="select",
     )
 
+    onboarding_progress: Mapped[Optional["ProjectOnboardingProgress"]] = relationship(
+        "ProjectOnboardingProgress",
+        back_populates="project",
+        uselist=False,
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+
 
     def __repr__(self) -> str:
         """String representation of the project."""

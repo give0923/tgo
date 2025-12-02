@@ -1,22 +1,23 @@
 """
 Web crawler service using crawl4ai.
 
-This module provides website crawling functionality for RAG document generation,
+This module provides single-page crawling functionality for RAG document generation,
 utilizing the crawl4ai library for efficient and LLM-friendly content extraction.
 
-Uses crawl4ai's built-in deep crawling strategies for optimal performance.
+Design: Single-page crawling with link extraction
+- Each page is crawled independently
+- Links are extracted for discovery of child pages
+- Page hierarchy is managed externally (by website_crawling tasks)
 """
 
 import fnmatch
 import hashlib
 import time
 from dataclasses import dataclass, field
-from typing import AsyncGenerator, Dict, List, Optional
+from typing import Dict, List, Optional
+from urllib.parse import urljoin, urlparse
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
-from crawl4ai.content_scraping_strategy import LXMLWebScrapingStrategy
-from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
-from crawl4ai.deep_crawling.filters import FilterChain, URLPatternFilter
 
 from ..logging_config import get_logger
 
@@ -64,76 +65,32 @@ def content_hash(content: str) -> str:
 
 class WebCrawlerService:
     """
-    Website crawler service using crawl4ai's built-in deep crawling.
+    Single-page crawler service using crawl4ai.
 
-    This service provides async website crawling with:
-    - BFS deep crawling strategy (native crawl4ai)
-    - Depth-limited crawling via max_depth
-    - URL pattern filtering via FilterChain
-    - Content extraction optimized for RAG
-    - Rate limiting via delay_between_requests
-    - Automatic deduplication
+    This service provides async single-page crawling with:
+    - Content extraction optimized for RAG (markdown)
+    - Link extraction for child page discovery
+    - URL pattern filtering for include/exclude
+    - Configurable browser options
     """
 
     def __init__(
         self,
-        start_url: str,
-        max_pages: int = 100,
-        max_depth: int = 3,
+        options: Optional[CrawlOptions] = None,
         include_patterns: Optional[List[str]] = None,
         exclude_patterns: Optional[List[str]] = None,
-        options: Optional[CrawlOptions] = None,
     ):
-        self.start_url = start_url
-        self.max_pages = max_pages
-        self.max_depth = max_depth
+        """
+        Initialize crawler service.
+
+        Args:
+            options: Crawl configuration options
+            include_patterns: URL patterns to include (glob)
+            exclude_patterns: URL patterns to exclude (glob)
+        """
+        self.options = options or CrawlOptions()
         self.include_patterns = include_patterns or []
         self.exclude_patterns = exclude_patterns or []
-        self.options = options or CrawlOptions()
-
-        # Tracking
-        self._pages_crawled = 0
-        self._pages_discovered = 0
-
-    def _should_exclude(self, url: str) -> bool:
-        """Check if URL matches any exclude pattern."""
-        return any(fnmatch.fnmatch(url, pattern) for pattern in self.exclude_patterns)
-
-    def _extract_links(self, result) -> List[str]:
-        """Extract internal links from crawl result."""
-        links = []
-        if not result.links:
-            return links
-
-        for link_info in result.links.get("internal", []):
-            link_url = link_info.get("href") if isinstance(link_info, dict) else str(link_info)
-            if link_url:
-                links.append(link_url)
-
-        return list(set(links))
-
-    def _build_crawled_page(self, result, depth: int) -> CrawledPage:
-        """Build CrawledPage from crawl4ai result."""
-        markdown_content = result.markdown or ""
-        metadata = result.metadata or {}
-
-        return CrawledPage(
-            url=result.url,
-            url_hash=url_hash(result.url),
-            title=metadata.get("title"),
-            content_markdown=markdown_content,
-            content_length=len(markdown_content),
-            content_hash=content_hash(markdown_content),
-            meta_description=metadata.get("description"),
-            http_status_code=result.status_code or 200,
-            depth=depth,
-            links=self._extract_links(result),
-            metadata={
-                "crawled_at": time.time(),
-                "word_count": len(markdown_content.split()),
-                "score": metadata.get("score"),
-            }
-        )
 
     def _get_browser_config(self) -> BrowserConfig:
         """Create browser configuration."""
@@ -147,96 +104,140 @@ class WebCrawlerService:
 
         return config
 
-    async def crawl_website(self) -> AsyncGenerator[CrawledPage, None]:
+    def _extract_links(self, result, base_url: str) -> List[str]:
         """
-        Crawl website using crawl4ai's native deep crawling.
+        Extract and normalize internal links from crawl result.
 
-        Uses BFSDeepCrawlStrategy for breadth-first exploration with:
-        - max_depth: Controls crawl depth
-        - max_pages: Limits total pages crawled
-        - include_external=False: Stay within same domain
+        Args:
+            result: Crawl4ai result object
+            base_url: Base URL for resolving relative links
 
-        Yields:
-            CrawledPage objects for each successfully crawled page
+        Returns:
+            List of absolute URLs found on the page
         """
-        # Build filter chain for URL patterns
-        filter_chain = None
+        links = []
+        if not result.links:
+            return links
+
+        base_domain = urlparse(base_url).netloc
+
+        for link_info in result.links.get("internal", []):
+            link_url = link_info.get("href") if isinstance(link_info, dict) else str(link_info)
+            if not link_url:
+                continue
+
+            # Resolve relative URLs
+            if not link_url.startswith(("http://", "https://")):
+                link_url = urljoin(base_url, link_url)
+
+            # Parse and validate
+            parsed = urlparse(link_url)
+
+            # Skip non-http(s) URLs
+            if parsed.scheme not in ("http", "https"):
+                continue
+
+            # Skip external links
+            if parsed.netloc != base_domain:
+                continue
+
+            # Skip fragments and certain patterns
+            if link_url.startswith(("#", "javascript:", "mailto:", "tel:")):
+                continue
+
+            # Normalize: remove fragments
+            normalized = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
+            if parsed.query:
+                normalized += f"?{parsed.query}"
+
+            links.append(normalized)
+
+        return list(set(links))  # Deduplicate
+
+    def _build_crawled_page(self, result, url: str, depth: int) -> CrawledPage:
+        """Build CrawledPage from crawl4ai result."""
+        markdown_content = result.markdown or ""
+        metadata = result.metadata or {}
+
+        return CrawledPage(
+            url=result.url or url,
+            url_hash=url_hash(result.url or url),
+            title=metadata.get("title"),
+            content_markdown=markdown_content,
+            content_length=len(markdown_content),
+            content_hash=content_hash(markdown_content),
+            meta_description=metadata.get("description"),
+            http_status_code=result.status_code or 200,
+            depth=depth,
+            links=self._extract_links(result, result.url or url),
+            metadata={
+                "crawled_at": time.time(),
+                "word_count": len(markdown_content.split()),
+                "score": metadata.get("score"),
+            }
+        )
+
+    def should_crawl_url(self, url: str) -> bool:
+        """
+        Check if URL should be crawled based on include/exclude patterns.
+
+        Args:
+            url: URL to check
+
+        Returns:
+            True if URL should be crawled
+        """
+        # Check exclude patterns first
+        for pattern in self.exclude_patterns:
+            if fnmatch.fnmatch(url, pattern):
+                return False
+
+        # If include patterns exist, URL must match at least one
         if self.include_patterns:
-            try:
-                filter_chain = FilterChain([
-                    URLPatternFilter(patterns=self.include_patterns)
-                ])
-            except Exception as e:
-                logger.warning(f"Failed to create filter chain: {e}")
+            return any(fnmatch.fnmatch(url, p) for p in self.include_patterns)
 
-        # Configure deep crawl strategy (BFS - breadth first)
-        deep_crawl_strategy = BFSDeepCrawlStrategy(
-            max_depth=self.max_depth,
-            max_pages=self.max_pages,
-            include_external=False,
-            filter_chain=filter_chain,
-        )
+        return True
 
-        # Configure crawler run
-        run_config = CrawlerRunConfig(
-            deep_crawl_strategy=deep_crawl_strategy,
-            scraping_strategy=LXMLWebScrapingStrategy(),
-            word_count_threshold=10,
-            remove_overlay_elements=True,
-            exclude_external_links=True,
-            verbose=False,
-        )
+    def filter_links(self, links: List[str], base_url: str) -> List[str]:
+        """
+        Filter discovered links based on patterns and domain.
 
-        logger.info(
-            f"Starting deep crawl of {self.start_url} "
-            f"(max_depth={self.max_depth}, max_pages={self.max_pages})"
-        )
+        Args:
+            links: List of discovered URLs
+            base_url: Base URL to determine domain
 
-        async with AsyncWebCrawler(config=self._get_browser_config()) as crawler:
-            results = await crawler.arun(url=self.start_url, config=run_config)
+        Returns:
+            Filtered list of URLs to crawl
+        """
+        base_domain = urlparse(base_url).netloc
+        valid_links = []
 
-            # Ensure results is iterable
-            if not isinstance(results, list):
-                results = [results]
+        for link in links:
+            # Must be same domain
+            if urlparse(link).netloc != base_domain:
+                continue
 
-            for result in results:
-                if not result.success:
-                    logger.warning(f"Failed to crawl {result.url}: {result.error_message}")
-                    continue
+            # Must pass include/exclude filters
+            if not self.should_crawl_url(link):
+                continue
 
-                if self._should_exclude(result.url):
-                    logger.debug(f"Skipping excluded URL: {result.url}")
-                    continue
+            valid_links.append(link)
 
-                self._pages_crawled += 1
-                depth = (result.metadata or {}).get("depth", 0)
-
-                logger.info(
-                    f"Crawled page {self._pages_crawled}/{self.max_pages}: "
-                    f"{result.url} (depth={depth})"
-                )
-
-                page = self._build_crawled_page(result, depth)
-                self._pages_discovered += len(page.links)
-
-                yield page
-
-        logger.info(f"Deep crawl completed. Total pages: {self._pages_crawled}")
+        return valid_links
 
     async def crawl_page(self, url: str, depth: int = 0) -> Optional[CrawledPage]:
         """
         Crawl a single page using crawl4ai.
 
-        This method is for crawling individual pages outside of deep crawl.
-        For full website crawling, use crawl_website() instead.
-
         Args:
             url: URL to crawl
-            depth: Current depth from start URL
+            depth: Current depth from root page
 
         Returns:
             CrawledPage object or None if crawl failed
         """
+        logger.info(f"Crawling page: {url} (depth={depth})")
+
         try:
             run_config = CrawlerRunConfig(
                 word_count_threshold=10,
@@ -251,19 +252,14 @@ class WebCrawlerService:
                     logger.warning(f"Failed to crawl {url}: {result.error_message}")
                     return None
 
-                return self._build_crawled_page(result, depth)
+                page = self._build_crawled_page(result, url, depth)
+                logger.info(
+                    f"Crawled {url}: {page.content_length} chars, "
+                    f"{len(page.links)} links found"
+                )
+                return page
 
         except Exception as e:
             logger.error(f"Error crawling {url}: {e}")
             return None
-
-    @property
-    def pages_crawled(self) -> int:
-        """Get number of pages crawled so far."""
-        return self._pages_crawled
-
-    @property
-    def pages_discovered(self) -> int:
-        """Get number of pages discovered so far."""
-        return self._pages_discovered
 

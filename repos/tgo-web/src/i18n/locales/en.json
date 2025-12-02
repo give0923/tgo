@@ -48,7 +48,21 @@
     "copied": "Copied",
     "copyFailed": "Copy failed",
     "enable": "Enable",
-    "more": "more"
+    "more": "more",
+    "optional": "Optional"
+  },
+  "tagInput": {
+    "placeholder": "Enter tag and press Enter to add",
+    "removeTag": "Remove tag",
+    "count": "{{current}}/{{max}} tags",
+    "currentInput": "Current input: {{current}}/{{max}} characters",
+    "hint": "Press Enter or comma to add tag",
+    "errors": {
+      "empty": "Tag name cannot be empty",
+      "tooLong": "Tag name cannot exceed {{max}} characters",
+      "duplicate": "This tag already exists",
+      "maxReached": "Maximum of {{max}} tags allowed"
+    }
   },
   "settings": {
     "title": "Settings",
@@ -123,7 +137,10 @@
               "models": ["text-embedding-v4"]
             }
           }
-        }
+        },
+        "noModels": "No models available",
+        "noEmbeddingModels": "No embedding models available",
+        "addProvider": "Add Provider"
       },
       "toast": {
         "saved": "Default models saved",
@@ -164,26 +181,33 @@
 	        "baseUrl": "API Base URL",
 	        "models": "Available Models",
 	        "defaultModel": "Default Model",
+	        "modelType": "Model Type",
+	        "embeddingModel": "Embedding Model",
 	        "azure": {
 	          "deployment": "Deployment Name",
 	          "resource": "Resource",
 	          "apiVersion": "API Version"
 	        }
 	      },
+	      "modelType": {
+	        "chat": "Chat Model",
+	        "embedding": "Embedding Model"
+	      },
 	      "help": {
 	        "azure": {
 	          "deployment": "Deployment name in Azure, different from model ID",
 	          "resource": "Azure resource name, e.g. your OpenAI service resource",
 	          "apiVersion": "Azure OpenAI API version, e.g. 2024-02-15-preview"
-	        }
-        ,
-        "modelsCustom": "If the list is empty or you can't find the model you need, you can manually enter a custom model name"
+	        },
+	        "modelsCustom": "If the list is empty or you can't find the model you need, you can manually enter a custom model name",
+	        "embeddingModel": "Enter the embedding model name, e.g. text-embedding-3-small, text-embedding-ada-002"
 	      },
 	      "placeholders": {
 	        "apiKeyMasked": "Configured: {{mask}}, leave empty to keep",
 	        "apiKey": "Paste API Key",
 	        "modelsSearch": "Search or enter model ID...",
-	        "baseUrl": { "custom": "Custom Base URL" }
+	        "baseUrl": { "custom": "Custom Base URL" },
+	        "embeddingModel": "e.g., text-embedding-3-small"
 	      },
 	      "fetchModels": {
 	        "failed": "Failed to fetch models",
@@ -598,13 +622,16 @@
     "title": "Knowledge Base",
     "subtitle": "Manage knowledge sources available to agents.",
     "create": "Create Knowledge Base",
+    "createDesc": "Select knowledge base type and fill in basic information",
     "edit": "Edit Knowledge Base",
+    "editDesc": "Modify knowledge base basic information",
     "delete": "Delete Knowledge Base",
     "name": "Name",
     "description": "Description",
     "category": "Category",
     "namePlaceholder": "Enter knowledge base name",
     "descriptionPlaceholder": "Describe the content and purpose of the knowledge base",
+    "descriptionHelper": "The more accurate the description, the easier it is for AI to use this knowledge base correctly",
     "icon": "Icon",
     "iconHelper": "Choose an icon to identify your knowledge base",
     "tags": "Tags",
@@ -612,6 +639,19 @@
     "tagsHelper": "Adding tags helps you organize and find knowledge bases",
     "filesCount": "{{count}} files",
     "manage": "Manage Knowledge Base",
+    "basicInfo": "Basic Information",
+    "selectType": "Select Type",
+    "typeFileShort": "File",
+    "typeWebsiteShort": "Website",
+    "typeQAShort": "QA",
+    "typeTmall": "Tmall",
+    "typeTmallShort": "Tmall Products",
+    "typeTaobao": "Taobao",
+    "typeTaobaoShort": "Taobao Products",
+    "typeJD": "JD.com",
+    "typeJDShort": "JD Products",
+    "comingSoon": "Coming Soon",
+    "comingSoonBadge": "Coming Soon",
     "selectModal": {
       "title": "Select Knowledge Base",
       "searchPlaceholder": "Search knowledge bases...",
@@ -635,8 +675,10 @@
     "type": "Type",
     "typeFile": "File",
     "typeWebsite": "Website",
+    "typeQA": "QA Pairs",
     "typeFileDesc": "Upload document files to build knowledge base",
     "typeWebsiteDesc": "Crawl website content to build knowledge base",
+    "typeQADesc": "Create QA pairs to build knowledge base",
     "typeReadonly": "Knowledge base type cannot be changed after creation",
     "advancedSettings": "Advanced Settings",
     "metadata": {
@@ -650,6 +692,7 @@
     "crawl": {
       "title": "Crawl Configuration",
       "info": "Crawl Configuration",
+      "urlSection": "Website URL",
       "startUrl": "Website URL",
       "startUrlPlaceholder": "https://example.com",
       "maxPages": "Max Pages",
@@ -693,13 +736,10 @@
     "website": {
       "loading": "Loading...",
       "loadFailed": "Failed to load knowledge base",
-      "loadJobsFailed": "Failed to load crawl jobs",
       "loadPagesFailed": "Failed to load pages",
       "noPages": "No crawled pages yet",
-      "noJobs": "No crawl jobs yet",
       "tabs": {
-        "pages": "Pages",
-        "jobs": "Crawl Jobs"
+        "pages": "Pages"
       },
       "columns": {
         "url": "URL",
@@ -711,35 +751,56 @@
       },
       "pageStatus": {
         "pending": "Pending",
+        "crawling": "Crawling",
         "fetched": "Fetched",
         "extracted": "Extracted",
-        "processed": "Processed",
-        "failed": "Failed"
-      },
-      "jobCreated": "Created",
-      "progress": "Progress",
-      "jobStatus": {
-        "status": "Crawl Status"
-      },
-      "jobDetails": {
-        "discovered": "Discovered",
-        "crawled": "Crawled",
+        "processing": "Processing",
         "processed": "Processed",
         "failed": "Failed",
-        "maxDepth": "Max Depth",
-        "maxPages": "Max Pages",
-        "error": "Error"
+        "skipped": "Skipped"
+      },
+      "progress": {
+        "title": "Crawl Progress",
+        "crawling": "Crawling",
+        "completed": "Completed",
+        "total": "Total Pages",
+        "pending": "Pending",
+        "crawled": "Crawled",
+        "processing": "Processing",
+        "processed": "Processed",
+        "failed": "Failed"
       },
       "addPage": {
         "button": "Add Page",
         "title": "Manually Add Page",
         "urlLabel": "Page URL",
         "urlPlaceholder": "Enter the page URL to add",
+        "parentPageLabel": "Parent Page",
+        "noParent": "None (Add as root page)",
+        "parentPageHint": "Select a parent page, the new page will be added as its child",
+        "maxDepthLabel": "Crawl Depth",
+        "depthOption0": "This page only (Depth 0)",
+        "depthOption1": "Include direct links (Depth 1)",
+        "depthOption2": "Depth 2",
+        "depthOption3": "Depth 3",
+        "depthOption5": "Depth 5",
+        "depthOption10": "Depth 10 (Maximum)",
         "hint": "Enter a valid URL, the page will be added to the crawl queue",
         "submit": "Add",
         "success": "Page added successfully",
         "skipped": "Page already exists",
         "failed": "Failed to add page"
+      },
+      "deletePage": {
+        "button": "Delete",
+        "success": "Page deleted successfully",
+        "failed": "Failed to delete page"
+      },
+      "recrawlPage": {
+        "button": "Recrawl",
+        "success": "Recrawl started",
+        "skipped": "Page is already being crawled",
+        "failed": "Failed to recrawl page"
       },
       "crawlDeeper": {
         "button": "Crawl Deeper",
@@ -748,6 +809,59 @@
         "successDesc": "Added {{added}} pages, found {{found}} links",
         "noNewPages": "No new pages found",
         "failed": "Deep crawl failed"
+      }
+    },
+    "qa": {
+      "loading": "Loading...",
+      "loadFailed": "Failed to load knowledge base",
+      "loadPairsFailed": "Failed to load QA pairs",
+      "noPairs": "No QA pairs yet",
+      "add": "Add QA Pair",
+      "addTitle": "Add QA Pair",
+      "addSuccess": "QA pair added successfully",
+      "addFailed": "Failed to add QA pair",
+      "editTitle": "Edit QA Pair",
+      "editSuccess": "QA pair updated successfully",
+      "editFailed": "Failed to update QA pair",
+      "deleteSuccess": "QA pair deleted successfully",
+      "deleteFailed": "Failed to delete QA pair",
+      "import": "Import",
+      "importTitle": "Import QA Pairs",
+      "importFormat": "Select Format",
+      "importData": "Paste Data",
+      "importButton": "Start Import",
+      "importSuccess": "Successfully imported {{count}} QA pairs",
+      "importFailed": "Import failed",
+      "importJsonPlaceholder": "Paste JSON array data...",
+      "importCsvPlaceholder": "Paste CSV data...",
+      "importJsonFormat": "JSON format example:",
+      "importCsvFormat": "CSV format example:",
+      "searchPlaceholder": "Search questions or answers...",
+      "allCategories": "All Categories",
+      "allStatuses": "All Statuses",
+      "pagination": "Page {{current}} / {{total}}",
+      "stats": {
+        "total": "Total QA Pairs",
+        "pending": "Pending",
+        "processed": "Processed",
+        "failed": "Failed"
+      },
+      "status": {
+        "pending": "Pending",
+        "processing": "Processing",
+        "processed": "Processed",
+        "failed": "Failed"
+      },
+      "form": {
+        "question": "Question",
+        "questionPlaceholder": "Enter the question...",
+        "answer": "Answer",
+        "answerPlaceholder": "Enter the answer...",
+        "category": "Category",
+        "categoryPlaceholder": "Enter category (optional)",
+        "tags": "Tags",
+        "tagsPlaceholder": "Enter tags, separated by commas",
+        "tagsHint": "Separate multiple tags with commas"
       }
     },
     "icons": {
@@ -851,6 +965,17 @@
         "description": "No embedding model configured. Knowledge base files require an embedding model for vectorization. Please configure a default embedding model in AI Provider Settings first.",
         "goToSettings": "Go to Settings"
       }
+    },
+    "embedding": {
+      "error": "Error",
+      "noProject": "Current project not found",
+      "checkFailed": "Check Failed",
+      "checkFailedDesc": "Unable to verify embedding model configuration. Please ensure an embedding model is configured.",
+      "requiredTitle": "Embedding Model Required",
+      "requiredDesc": "Creating a knowledge base requires a default embedding model to be configured. The embedding model is used to convert document content into vectors for semantic search.",
+      "configPath": "Configuration Path",
+      "configPathDesc": "Settings → Model Providers → Set Default Embedding Model",
+      "goToConfig": "Go to Configuration"
     }
   },
   "channels": {
@@ -1561,7 +1686,18 @@
         "regenerate": "Regenerate",
         "remove": "Remove",
         "upload": "Click to Upload",
-        "testIntegration": "Test Integration"
+        "testIntegration": "Test Integration",
+        "downloadExample": "Download Example"
+      },
+      "download": {
+        "hint": "Download a complete integration example file with pre-configured API Key",
+        "success": "Download Successful",
+        "successDesc": "Example file has been downloaded, open it in a browser to see the result",
+        "demoTitle": "Widget Demo",
+        "welcomeTitle": "Welcome!",
+        "welcomeDesc": "Your TGO chat widget is now integrated! Click the chat button in the bottom-right corner to start a conversation.",
+        "integrationCode": "Integration Code",
+        "securityWarning": "Security Notice: This file contains your API key. Do not share it publicly or commit it to public repositories."
       },
       "form": {
         "name": "Name",
@@ -2078,6 +2214,46 @@
     "collapse": "Collapse",
     "dismiss": "Close",
     "dismissButton": "Don't Show Again",
+    "welcome": {
+      "title": "Welcome to TGO",
+      "subtitle": "Complete the following steps to start your AI customer service journey",
+      "progress": "Progress",
+      "estimatedTime": "~2 min",
+      "skip": "Skip Guide",
+      "later": "Setup Later",
+      "start": "Start Setup"
+    },
+    "panel": {
+      "title": "Quick Start",
+      "progress": "Progress",
+      "skip": "Skip",
+      "viewAll": "View All"
+    },
+    "modal": {
+      "close": "Close"
+    },
+    "steps": {
+      "ai_provider": {
+        "title": "Configure AI Models",
+        "description": "Connect to AI providers like OpenAI, Qwen, etc."
+      },
+      "default_models": {
+        "title": "Set Default Models",
+        "description": "Choose default chat and embedding models"
+      },
+      "rag_collection": {
+        "title": "Create Knowledge Base",
+        "description": "Upload documents or web pages to build your knowledge base"
+      },
+      "agent_with_kb": {
+        "title": "Create Agent",
+        "description": "Create an AI Agent and link it to your knowledge base"
+      },
+      "first_chat": {
+        "title": "Start Chatting",
+        "description": "Send a message and experience AI-powered responses"
+      }
+    },
     "tasks": {
       "platformCreated": "Setup Platform",
       "knowledgeBaseUploaded": "Upload Knowledge Base",

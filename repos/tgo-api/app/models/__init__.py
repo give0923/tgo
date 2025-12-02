@@ -19,6 +19,7 @@ from app.models.visitor_customer_update import VisitorCustomerUpdate
 from app.models.ai_provider import AIProvider
 from app.models.ai_model import AIModel
 from app.models.project_ai_config import ProjectAIConfig
+from app.models.project_onboarding import ProjectOnboardingProgress
 
 __all__ = [
     # Models
@@ -41,6 +42,7 @@ __all__ = [
     "AIProvider",
     "AIModel",
     "ProjectAIConfig",
+    "ProjectOnboardingProgress",
     "SystemSetup",
     # Enums
     "PlatformType",

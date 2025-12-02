@@ -48,9 +48,89 @@ from .document_processing_types import (
     ProcessingResult
 )
 from ..database import get_db_session
-from ..models import File, FileDocument
+from ..models import File, FileDocument, WebsitePage
 
 logger = logging.getLogger(__name__)
+
+
+async def _update_website_page_status(
+    file_uuid: UUID,
+    status: str,
+    error_message: Optional[str] = None
+) -> None:
+    """
+    Update WebsitePage status if the file was created from website crawling.
+
+    This function checks if the file has an associated page_id in storage_metadata
+    and updates the corresponding WebsitePage status.
+
+    Args:
+        file_uuid: UUID of the file
+        status: New status for the WebsitePage ('processed' or 'failed')
+        error_message: Optional error message if status is 'failed'
+    """
+    try:
+        async with get_db_session() as db:
+            # Load file to get storage_metadata
+            result = await db.execute(
+                select(File).where(File.id == file_uuid)
+            )
+            file_record = result.scalar_one_or_none()
+
+            if not file_record:
+                return
+
+            # Check if this file came from website crawling
+            storage_metadata = file_record.storage_metadata or {}
+            page_id_str = storage_metadata.get("page_id")
+
+            if not page_id_str:
+                return  # Not a website crawl file
+
+            try:
+                page_uuid = UUID(page_id_str)
+            except (ValueError, TypeError):
+                logger.warning(f"Invalid page_id in storage_metadata: {page_id_str}")
+                return
+
+            # Update WebsitePage status
+            page_result = await db.execute(
+                select(WebsitePage).where(WebsitePage.id == page_uuid)
+            )
+            page = page_result.scalar_one_or_none()
+
+            if page:
+                page.status = status
+                if error_message:
+                    page.error_message = error_message
+                await db.commit()
+                logger.info(f"Updated WebsitePage {page_uuid} status to '{status}'")
+
+    except SQLAlchemyError as e:
+        logger.error(f"Failed to update WebsitePage status for file {file_uuid}: {e}")
+
+
+async def update_website_page_status_by_file_id(
+    file_id: str,
+    status: str,
+    error_message: Optional[str] = None
+) -> None:
+    """
+    Update WebsitePage status using file_id string.
+
+    This is a convenience wrapper for _update_website_page_status that handles
+    UUID conversion and is safe to call when the file_id might be invalid.
+
+    Args:
+        file_id: String UUID of the file
+        status: New status for the WebsitePage ('processed' or 'failed')
+        error_message: Optional error message if status is 'failed'
+    """
+    try:
+        file_uuid = UUID(file_id)
+        await _update_website_page_status(file_uuid, status, error_message)
+    except (ValueError, TypeError) as e:
+        logger.warning(f"Invalid file_id for page status update: {file_id} - {e}")
 
 
 async def process_file_async(
@@ -116,10 +196,13 @@ async def process_file_async(
         
         # Update final status and metrics
         await _update_file_completion(file_uuid, document_count, total_tokens)
-        
+
+        # Update associated WebsitePage status if this file came from crawling
+        await _update_website_page_status(file_uuid, "processed")
+
         # Log success
         log_processing_success(file_id, processing_time, document_count, total_tokens)
-        
+
         return ProcessingResult(
             status=ProcessingStatus.COMPLETED.value,
             file_id=file_id,
@@ -128,16 +211,19 @@ async def process_file_async(
             processing_time=processing_time,
             error=None
         )
-        
+
     except Exception as e:
         processing_time = time.time() - start_time
-        
+
         # Handle the error
         if isinstance(e, DocumentProcessingError):
             await _handle_processing_error(file_uuid, file_id, e, e.step)
         else:
             await _handle_processing_error(file_uuid, file_id, e, ProcessingStep.LOADING_FILE)
-        
+
+        # Update associated WebsitePage status if this file came from crawling
+        await _update_website_page_status(file_uuid, "failed", str(e))
+
         return ProcessingResult(
             status=ProcessingStatus.FAILED.value,
             file_id=file_id,

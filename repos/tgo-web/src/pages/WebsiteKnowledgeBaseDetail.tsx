@@ -1,19 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
-  ArrowLeft, RefreshCw, Globe, Clock, ExternalLink,
-  Plus, XCircle, Loader2, CheckCircle, AlertCircle,
-  FileText, ArrowDownRight, X
+  ArrowLeft, RefreshCw, Globe, ExternalLink, Plus, Loader2, CheckCircle, AlertCircle,
+  ChevronRight, ChevronDown, Trash2, RotateCw, ArrowDownRight, X
 } from 'lucide-react';
-import { KnowledgeBaseApiService, type WebsiteCrawlJobResponse, type WebsitePageResponse } from '@/services/knowledgeBaseApi';
+import { KnowledgeBaseApiService, type WebsitePageResponse, type CrawlProgressSchema } from '@/services/knowledgeBaseApi';
 import { transformCollectionToKnowledgeBase } from '@/utils/knowledgeBaseTransforms';
 import { useToast } from '@/hooks/useToast';
 import type { KnowledgeBase } from '@/types';
 import { useTranslation } from 'react-i18next';
 
+// Tree node interface for hierarchical page display
+interface PageTreeNode extends WebsitePageResponse {
+  children: PageTreeNode[];
+  isExpanded: boolean;
+  isLoading: boolean;
+  hasChildren: boolean;
+}
+
 /**
  * Website Knowledge Base Detail Page Component
- * Displays crawled pages and crawl job status for website-type knowledge bases
+ * Displays crawled pages in a tree structure with crawl progress
  */
 const WebsiteKnowledgeBaseDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -23,25 +30,55 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
 
   // State
   const [knowledgeBase, setKnowledgeBase] = useState<KnowledgeBase | null>(null);
-  const [currentJob, setCurrentJob] = useState<WebsiteCrawlJobResponse | null>(null);
-  const [pages, setPages] = useState<WebsitePageResponse[]>([]);
+  const [crawlProgress, setCrawlProgress] = useState<CrawlProgressSchema | null>(null);
+  const [rootPages, setRootPages] = useState<PageTreeNode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingPages, setIsLoadingPages] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isCancellingJob, setIsCancellingJob] = useState(false);
 
   // Add page dialog state
   const [isAddPageDialogOpen, setIsAddPageDialogOpen] = useState(false);
   const [newPageUrl, setNewPageUrl] = useState('');
+  const [newPageMaxDepth, setNewPageMaxDepth] = useState(0);
+  const [newPageParentId, setNewPageParentId] = useState<string | null>(null);
   const [isAddingPage, setIsAddingPage] = useState(false);
 
-  // Crawl deeper state
+  // Page operations state
+  const [deletingPages, setDeletingPages] = useState<Set<string>>(new Set());
+  const [recrawlingPages, setRecrawlingPages] = useState<Set<string>>(new Set());
   const [crawlingDeeperPages, setCrawlingDeeperPages] = useState<Set<string>>(new Set());
 
-  // Pagination state
-  const [pagesPagination, setPagesPagination] = useState({ total: 0, limit: 20, offset: 0 });
+  // Convert API response to tree node (recursive to handle children)
+  const pageToTreeNode = (page: WebsitePageResponse, defaultExpanded: boolean = false): PageTreeNode => {
+    // Recursively convert children if present
+    const childNodes: PageTreeNode[] = page.children
+      ? page.children.map(child => pageToTreeNode(child, false)) // Children are not expanded by default
+      : [];
 
-  // Load knowledge base data and current job
+    return {
+      ...page,
+      children: childNodes,
+      isExpanded: defaultExpanded && childNodes.length > 0, // Only expand if has loaded children
+      isLoading: false,
+      // Use API's has_children field, fallback to checking children array length
+      hasChildren: page.has_children ?? childNodes.length > 0,
+    };
+  };
+
+  // Flatten tree to list for parent page selector
+  const flattenTree = useCallback((nodes: PageTreeNode[], prefix: string = ''): Array<{ id: string; label: string; depth: number }> => {
+    const result: Array<{ id: string; label: string; depth: number }> = [];
+    for (const node of nodes) {
+      const label = prefix + (node.title || new URL(node.url).pathname || node.url);
+      result.push({ id: node.id, label, depth: node.depth });
+      if (node.children.length > 0) {
+        result.push(...flattenTree(node.children, '  '.repeat(node.depth + 1)));
+      }
+    }
+    return result;
+  }, []);
+
+  // Load knowledge base data
   const loadKnowledgeBase = useCallback(async () => {
     if (!id) return;
 
@@ -55,50 +92,151 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
         navigate(`/knowledge/${id}`, { replace: true });
         return;
       }
-
-      // Load the current/latest crawl job
-      const jobsResponse = await KnowledgeBaseApiService.getCollectionCrawlJobs(id, { limit: 1 });
-      if (jobsResponse.data.length > 0) {
-        setCurrentJob(jobsResponse.data[0]);
-      }
     } catch (err) {
       console.error('Failed to load knowledge base:', err);
       setError(err instanceof Error ? err.message : t('knowledge.website.loadFailed'));
     }
   }, [id, navigate, t]);
 
-  // Reload current job status
-  const reloadJobStatus = useCallback(async () => {
+  // Load crawl progress
+  const loadCrawlProgress = useCallback(async () => {
     if (!id) return;
     try {
-      const jobsResponse = await KnowledgeBaseApiService.getCollectionCrawlJobs(id, { limit: 1 });
-      if (jobsResponse.data.length > 0) {
-        setCurrentJob(jobsResponse.data[0]);
-      }
+      const progress = await KnowledgeBaseApiService.getWebsiteCrawlProgress(id);
+      setCrawlProgress(progress);
     } catch (err) {
-      console.error('Failed to reload job status:', err);
+      console.error('Failed to load crawl progress:', err);
     }
   }, [id]);
 
-  // Load pages
-  const loadPages = useCallback(async () => {
+  // Load children of a page (for lazy loading deeper levels)
+  const loadChildPages = useCallback(async (parentId: string): Promise<PageTreeNode[]> => {
+    if (!id) return [];
+
+    try {
+      const response = await KnowledgeBaseApiService.getWebsitePages(id, {
+        parent_page_id: parentId,
+        limit: 100,
+      });
+      return response.data.map(page => pageToTreeNode(page, false));
+    } catch (err) {
+      console.error('Failed to load child pages:', err);
+      return [];
+    }
+  }, [id]);
+
+  // Load root pages with default expansion to level 2
+  const loadRootPages = useCallback(async () => {
     if (!id) return;
-    
+
     setIsLoadingPages(true);
     try {
-      const response = await KnowledgeBaseApiService.getCollectionPages(id, {
-        limit: pagesPagination.limit,
-        offset: pagesPagination.offset,
+      // Get root pages (depth=0) with their direct children (tree_depth=1)
+      // This allows default expansion to show 2 levels
+      const response = await KnowledgeBaseApiService.getWebsitePages(id, {
+        depth: 0,
+        tree_depth: 2, // Include direct children in response
+        limit: 100,
       });
-      setPages(response.data);
-      setPagesPagination(prev => ({ ...prev, total: response.pagination.total }));
+
+      // Convert root pages to tree nodes with isExpanded=true
+      // pageToTreeNode will recursively convert children if present
+      const rootNodes = response.data.map(page => pageToTreeNode(page, true));
+
+      setRootPages(rootNodes);
     } catch (err) {
       console.error('Failed to load pages:', err);
       showToast('error', t('knowledge.website.loadPagesFailed'));
     } finally {
       setIsLoadingPages(false);
     }
-  }, [id, pagesPagination.limit, pagesPagination.offset, showToast, t]);
+  }, [id, showToast, t]);
+
+  // Toggle expand/collapse of a tree node
+  const toggleNodeExpand = useCallback(async (nodeId: string) => {
+    // Find the node first to check its current state
+    const findNode = (nodes: PageTreeNode[]): PageTreeNode | null => {
+      for (const node of nodes) {
+        if (node.id === nodeId) return node;
+        const found = findNode(node.children);
+        if (found) return found;
+      }
+      return null;
+    };
+
+    const node = findNode(rootPages);
+    if (!node) return;
+
+    // If already expanded, just collapse
+    if (node.isExpanded) {
+      const updateNodes = (nodes: PageTreeNode[]): PageTreeNode[] => {
+        return nodes.map(n => {
+          if (n.id === nodeId) {
+            return { ...n, isExpanded: false };
+          }
+          if (n.children.length > 0) {
+            return { ...n, children: updateNodes(n.children) };
+          }
+          return n;
+        });
+      };
+      setRootPages(prev => updateNodes(prev));
+      return;
+    }
+
+    // If not expanded and has no loaded children but hasChildren=true, need to load
+    if (node.children.length === 0 && node.hasChildren) {
+      // Set loading state
+      const setLoading = (nodes: PageTreeNode[]): PageTreeNode[] => {
+        return nodes.map(n => {
+          if (n.id === nodeId) {
+            return { ...n, isLoading: true };
+          }
+          if (n.children.length > 0) {
+            return { ...n, children: setLoading(n.children) };
+          }
+          return n;
+        });
+      };
+      setRootPages(prev => setLoading(prev));
+
+      // Load children
+      const children = await loadChildPages(nodeId);
+
+      const updateWithChildren = (nodes: PageTreeNode[]): PageTreeNode[] => {
+        return nodes.map(n => {
+          if (n.id === nodeId) {
+            return {
+              ...n,
+              children,
+              isExpanded: children.length > 0,
+              isLoading: false,
+              hasChildren: children.length > 0
+            };
+          }
+          if (n.children.length > 0) {
+            return { ...n, children: updateWithChildren(n.children) };
+          }
+          return n;
+        });
+      };
+      setRootPages(prev => updateWithChildren(prev));
+    } else if (node.children.length > 0) {
+      // Has loaded children, just expand
+      const updateNodes = (nodes: PageTreeNode[]): PageTreeNode[] => {
+        return nodes.map(n => {
+          if (n.id === nodeId) {
+            return { ...n, isExpanded: true };
+          }
+          if (n.children.length > 0) {
+            return { ...n, children: updateNodes(n.children) };
+          }
+          return n;
+        });
+      };
+      setRootPages(prev => updateNodes(prev));
+    }
+  }, [rootPages, loadChildPages]);
 
   // Initial load
   useEffect(() => {
@@ -110,16 +248,17 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
     initialize();
   }, [loadKnowledgeBase]);
 
-  // Load pages when knowledge base is loaded
+  // Load pages and progress when knowledge base is loaded
   useEffect(() => {
     if (knowledgeBase) {
-      loadPages();
+      loadRootPages();
+      loadCrawlProgress();
     }
-  }, [knowledgeBase, loadPages]);
+  }, [knowledgeBase, loadRootPages, loadCrawlProgress]);
 
   // Handle refresh
   const handleRefresh = async () => {
-    await Promise.all([loadPages(), reloadJobStatus()]);
+    await Promise.all([loadRootPages(), loadCrawlProgress()]);
   };
 
   // Handle back navigation
@@ -127,26 +266,17 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
     navigate('/knowledge');
   };
 
-  // Cancel current crawl job
-  const handleCancelJob = async () => {
-    if (!currentJob) return;
-
-    setIsCancellingJob(true);
-    try {
-      await KnowledgeBaseApiService.cancelCrawlJob(currentJob.id);
-      showToast('success', t('knowledge.crawl.cancelled'));
-      await reloadJobStatus();
-    } catch (err) {
-      console.error('Failed to cancel job:', err);
-      showToast('error', t('knowledge.crawl.cancelFailed'), err instanceof Error ? err.message : undefined);
-    } finally {
-      setIsCancellingJob(false);
-    }
+  // Reset add page dialog state
+  const resetAddPageDialog = () => {
+    setNewPageUrl('');
+    setNewPageMaxDepth(0);
+    setNewPageParentId(null);
+    setIsAddPageDialogOpen(false);
   };
 
-  // Add page to crawl queue
+  // Add page to collection
   const handleAddPage = async () => {
-    if (!currentJob || !newPageUrl.trim()) return;
+    if (!id || !newPageUrl.trim()) return;
 
     // Validate URL
     try {
@@ -158,12 +288,15 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
 
     setIsAddingPage(true);
     try {
-      const response = await KnowledgeBaseApiService.addPageToCrawlJob(currentJob.id, { url: newPageUrl.trim() });
+      const response = await KnowledgeBaseApiService.addWebsitePage(id, {
+        url: newPageUrl.trim(),
+        parent_page_id: newPageParentId,
+        max_depth: newPageMaxDepth,
+      });
       if (response.success) {
         showToast('success', t('knowledge.website.addPage.success'), response.message);
-        setNewPageUrl('');
-        setIsAddPageDialogOpen(false);
-        await Promise.all([loadPages(), reloadJobStatus()]);
+        resetAddPageDialog();
+        await Promise.all([loadRootPages(), loadCrawlProgress()]);
       } else {
         showToast('warning', t('knowledge.website.addPage.skipped'), response.message);
       }
@@ -174,6 +307,99 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
       setIsAddingPage(false);
     }
   };
+
+  // Delete a page
+  const handleDeletePage = async (pageId: string) => {
+    setDeletingPages(prev => new Set(prev).add(pageId));
+    try {
+      await KnowledgeBaseApiService.deleteWebsitePage(pageId);
+      showToast('success', t('knowledge.website.deletePage.success'));
+      await Promise.all([loadRootPages(), loadCrawlProgress()]);
+    } catch (err) {
+      console.error('Failed to delete page:', err);
+      showToast('error', t('knowledge.website.deletePage.failed'), err instanceof Error ? err.message : undefined);
+    } finally {
+      setDeletingPages(prev => {
+        const next = new Set(prev);
+        next.delete(pageId);
+        return next;
+      });
+    }
+  };
+
+  // Update a single node's status while preserving tree state
+  const updateNodeStatus = useCallback((nodeId: string, newStatus: PageTreeNode['status']) => {
+    const updateNode = (nodes: PageTreeNode[]): PageTreeNode[] => {
+      return nodes.map(node => {
+        if (node.id === nodeId) {
+          return { ...node, status: newStatus };
+        }
+        if (node.children.length > 0) {
+          return { ...node, children: updateNode(node.children) };
+        }
+        return node;
+      });
+    };
+    setRootPages(prev => updateNode(prev));
+  }, []);
+
+  // Recrawl a page
+  const handleRecrawlPage = async (pageId: string) => {
+    setRecrawlingPages(prev => new Set(prev).add(pageId));
+    try {
+      const response = await KnowledgeBaseApiService.recrawlWebsitePage(pageId);
+      if (response.success) {
+        showToast('success', t('knowledge.website.recrawlPage.success'));
+        // Update the node status to 'pending' and refresh crawl progress
+        updateNodeStatus(pageId, 'pending');
+        await loadCrawlProgress();
+      } else {
+        showToast('warning', t('knowledge.website.recrawlPage.skipped'), response.message);
+      }
+    } catch (err) {
+      console.error('Failed to recrawl page:', err);
+      showToast('error', t('knowledge.website.recrawlPage.failed'), err instanceof Error ? err.message : undefined);
+    } finally {
+      setRecrawlingPages(prev => {
+        const next = new Set(prev);
+        next.delete(pageId);
+        return next;
+      });
+    }
+  };
+
+  // Refresh a specific node's children while preserving tree state
+  const refreshNodeChildren = useCallback(async (nodeId: string) => {
+    if (!id) return;
+
+    try {
+      // Load children for the specific node
+      const children = await loadChildPages(nodeId);
+
+      // Update the tree, keeping all other nodes' expand state
+      const updateNodeChildren = (nodes: PageTreeNode[]): PageTreeNode[] => {
+        return nodes.map(node => {
+          if (node.id === nodeId) {
+            return {
+              ...node,
+              children,
+              hasChildren: children.length > 0,
+              isExpanded: true, // Auto-expand to show new children
+              isLoading: false,
+            };
+          }
+          if (node.children.length > 0) {
+            return { ...node, children: updateNodeChildren(node.children) };
+          }
+          return node;
+        });
+      };
+
+      setRootPages(prev => updateNodeChildren(prev));
+    } catch (err) {
+      console.error('Failed to refresh node children:', err);
+    }
+  }, [id, loadChildPages]);
 
   // Crawl deeper from a page
   const handleCrawlDeeper = async (pageId: string) => {
@@ -187,7 +413,8 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
             found: response.links_found
           })
         );
-        await Promise.all([loadPages(), reloadJobStatus()]);
+        // Refresh only the affected node's children instead of reloading entire tree
+        await Promise.all([refreshNodeChildren(pageId), loadCrawlProgress()]);
       } else {
         showToast('warning', t('knowledge.website.crawlDeeper.noNewPages'), response.message);
       }
@@ -203,34 +430,17 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
     }
   };
 
-  // Get status badge for crawl job
-  const getJobStatusBadge = (status: string) => {
-    const statusConfig: Record<string, { color: string; icon: React.ReactNode; label: string }> = {
-      pending: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', icon: <Clock className="w-3 h-3" />, label: t('knowledge.crawl.status.pending') },
-      crawling: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', icon: <Loader2 className="w-3 h-3 animate-spin" />, label: t('knowledge.crawl.status.crawling') },
-      processing: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', icon: <Loader2 className="w-3 h-3 animate-spin" />, label: t('knowledge.crawl.status.processing') },
-      completed: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', icon: <CheckCircle className="w-3 h-3" />, label: t('knowledge.crawl.status.completed') },
-      failed: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', icon: <AlertCircle className="w-3 h-3" />, label: t('knowledge.crawl.status.failed') },
-      cancelled: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400', icon: <XCircle className="w-3 h-3" />, label: t('knowledge.crawl.status.cancelled') },
-    };
-
-    const config = statusConfig[status] || statusConfig.pending;
-    return (
-      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        {config.icon}
-        {config.label}
-      </span>
-    );
-  };
-
   // Get status badge for page
   const getPageStatusBadge = (status: string) => {
     const statusConfig: Record<string, { color: string; label: string }> = {
       pending: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400', label: t('knowledge.website.pageStatus.pending') },
-      fetched: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', label: t('knowledge.website.pageStatus.fetched') },
-      extracted: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', label: t('knowledge.website.pageStatus.extracted') },
+      crawling: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400', label: t('knowledge.website.pageStatus.crawling') },
+      fetched: { color: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-400', label: t('knowledge.website.pageStatus.fetched') },
+      extracted: { color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400', label: t('knowledge.website.pageStatus.extracted') },
+      processing: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400', label: t('knowledge.website.pageStatus.processing') },
       processed: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400', label: t('knowledge.website.pageStatus.processed') },
       failed: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400', label: t('knowledge.website.pageStatus.failed') },
+      skipped: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-400', label: t('knowledge.website.pageStatus.skipped') },
     };
 
     const config = statusConfig[status] || statusConfig.pending;
@@ -241,10 +451,99 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
     );
   };
 
-  // Format date
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleString();
+  // Render a tree node recursively
+  const renderTreeNode = (node: PageTreeNode, level: number = 0): React.ReactNode => {
+    const isDeleting = deletingPages.has(node.id);
+    const isRecrawling = recrawlingPages.has(node.id);
+    const isCrawlingDeeper = crawlingDeeperPages.has(node.id);
+    const canCrawlDeeper = node.status === 'processed';
+    const canRecrawl = ['processed', 'failed', 'skipped'].includes(node.status);
+
+    return (
+      <div key={node.id}>
+        <div
+          className={`flex items-center gap-2 py-2 px-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 border-b border-gray-100 dark:border-gray-700/50 ${level > 0 ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}`}
+          style={{ paddingLeft: `${level * 24 + 12}px` }}
+        >
+          {/* Expand/Collapse button */}
+          <button
+            onClick={() => toggleNodeExpand(node.id)}
+            className={`p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors ${!node.hasChildren ? 'invisible' : ''}`}
+            disabled={node.isLoading}
+          >
+            {node.isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+            ) : node.isExpanded ? (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            )}
+          </button>
+
+          {/* URL */}
+          <a
+            href={node.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-1 flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm truncate min-w-0"
+            title={node.url}
+          >
+            <span className="truncate">{node.title || node.url}</span>
+            <ExternalLink className="w-3 h-3 flex-shrink-0" />
+          </a>
+
+          {/* Status */}
+          <div className="flex-shrink-0">
+            {getPageStatusBadge(node.status)}
+          </div>
+
+          {/* Depth */}
+          <span className="flex-shrink-0 text-xs text-gray-500 dark:text-gray-400 w-8 text-center">
+            D{node.depth}
+          </span>
+
+          {/* Actions */}
+          <div className="flex-shrink-0 flex items-center gap-1">
+            {/* Recrawl */}
+            <button
+              onClick={() => handleRecrawlPage(node.id)}
+              disabled={isRecrawling || !canRecrawl}
+              className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('knowledge.website.recrawlPage.button')}
+            >
+              {isRecrawling ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCw className="w-4 h-4" />}
+            </button>
+
+            {/* Crawl Deeper */}
+            <button
+              onClick={() => handleCrawlDeeper(node.id)}
+              disabled={isCrawlingDeeper || !canCrawlDeeper}
+              className="p-1 text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={canCrawlDeeper ? t('knowledge.website.crawlDeeper.button') : t('knowledge.website.crawlDeeper.notReady')}
+            >
+              {isCrawlingDeeper ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowDownRight className="w-4 h-4" />}
+            </button>
+
+            {/* Delete */}
+            <button
+              onClick={() => handleDeletePage(node.id)}
+              disabled={isDeleting}
+              className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={t('knowledge.website.deletePage.button')}
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Render children if expanded */}
+        {node.isExpanded && node.children.length > 0 && (
+          <div>
+            {node.children.map(child => renderTreeNode(child, level + 1))}
+          </div>
+        )}
+      </div>
+    );
   };
 
   // Render loading state
@@ -280,7 +579,7 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
     );
   }
 
-  const isJobActive = currentJob && ['pending', 'crawling', 'processing'].includes(currentJob.status);
+  const hasActiveProgress = crawlProgress && (crawlProgress.pages_pending > 0 || crawlProgress.pages_processing > 0 || crawlProgress.progress_percent < 100);
 
   return (
     <div className="flex h-full w-full bg-gray-100 dark:bg-gray-900">
@@ -317,8 +616,7 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
               </button>
               <button
                 onClick={() => setIsAddPageDialogOpen(true)}
-                disabled={!currentJob}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 <Plus className="w-4 h-4" />
                 {t('knowledge.website.addPage.button')}
@@ -327,157 +625,99 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Job Status Card */}
-        {currentJob && (
+        {/* Crawl Progress Card */}
+        {crawlProgress && (
           <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-6">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('knowledge.website.jobStatus.status')}:</span>
-                  {getJobStatusBadge(currentJob.status)}
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{t('knowledge.website.progress.title')}:</span>
+                  {hasActiveProgress ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                      {t('knowledge.website.progress.crawling')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      <CheckCircle className="w-3 h-3" />
+                      {t('knowledge.website.progress.completed')}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-4 text-sm">
                   <span className="text-gray-500 dark:text-gray-400">
-                    {t('knowledge.website.jobDetails.discovered')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{currentJob.progress.pages_discovered}</span>
+                    {t('knowledge.website.progress.total')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{crawlProgress.total_pages}</span>
                   </span>
                   <span className="text-gray-500 dark:text-gray-400">
-                    {t('knowledge.website.jobDetails.crawled')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{currentJob.progress.pages_crawled}</span>
+                    {t('knowledge.website.progress.pending')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{crawlProgress.pages_pending}</span>
                   </span>
                   <span className="text-gray-500 dark:text-gray-400">
-                    {t('knowledge.website.jobDetails.processed')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{currentJob.progress.pages_processed}</span>
+                    {t('knowledge.website.progress.crawled')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{crawlProgress.pages_crawled}</span>
                   </span>
-                  {currentJob.progress.pages_failed > 0 && (
+                  {crawlProgress.pages_processing > 0 && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {t('knowledge.website.progress.processing')}: <span className="font-medium">{crawlProgress.pages_processing}</span>
+                    </span>
+                  )}
+                  <span className="text-gray-500 dark:text-gray-400">
+                    {t('knowledge.website.progress.processed')}: <span className="text-gray-700 dark:text-gray-200 font-medium">{crawlProgress.pages_processed}</span>
+                  </span>
+                  {crawlProgress.pages_failed > 0 && (
                     <span className="text-red-500 dark:text-red-400">
-                      {t('knowledge.website.jobDetails.failed')}: <span className="font-medium">{currentJob.progress.pages_failed}</span>
+                      {t('knowledge.website.progress.failed')}: <span className="font-medium">{crawlProgress.pages_failed}</span>
                     </span>
                   )}
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                {isJobActive && (
-                  <>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {t('knowledge.website.progress')}: {currentJob.progress.progress_percent}%
-                    </div>
-                    <button
-                      onClick={handleCancelJob}
-                      disabled={isCancellingJob}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors text-sm"
-                    >
-                      {isCancellingJob ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
-                      {t('knowledge.crawl.cancel')}
-                    </button>
-                  </>
-                )}
-                {currentJob.error_message && (
-                  <span className="text-sm text-red-500 dark:text-red-400 max-w-xs truncate" title={currentJob.error_message}>
-                    {currentJob.error_message}
-                  </span>
-                )}
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  {Math.round(crawlProgress.progress_percent)}%
+                </div>
+                {/* Progress bar */}
+                <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-blue-500 transition-all duration-300"
+                    style={{ width: `${Math.round(crawlProgress.progress_percent)}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Page Title */}
+        {/* Page Tree Header */}
         <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3">
-          <div className="flex items-center gap-2">
-            <FileText className="w-4 h-4 text-gray-400" />
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              {t('knowledge.website.tabs.pages')} ({pagesPagination.total})
-            </span>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-gray-400" />
+              <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                {t('knowledge.website.tabs.pages')} ({crawlProgress?.total_pages || rootPages.length})
+              </span>
+            </div>
+            <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
+              <span>{t('knowledge.website.columns.url')}</span>
+              <span>{t('knowledge.website.columns.status')}</span>
+              <span>{t('knowledge.website.columns.depth')}</span>
+              <span>{t('knowledge.website.columns.actions')}</span>
+            </div>
           </div>
         </div>
 
-        {/* Content - Pages List */}
-        <div className="flex-grow overflow-y-auto p-6">
-          <div className="space-y-4">
-            {isLoadingPages ? (
-              <div className="flex justify-center py-8">
-                <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-              </div>
-            ) : pages.length === 0 ? (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                {t('knowledge.website.noPages')}
-              </div>
-            ) : (
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                  <thead className="bg-gray-50 dark:bg-gray-700">
-                    <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.url')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.title')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.status')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.depth')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.crawledAt')}
-                      </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                        {t('knowledge.website.columns.actions')}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                    {pages.map((page) => {
-                      const isCrawlingDeeper = crawlingDeeperPages.has(page.id);
-                      const canCrawlDeeper = page.status === 'processed';
-
-                      return (
-                        <tr key={page.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                          <td className="px-4 py-3">
-                            <a
-                              href={page.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 text-sm truncate max-w-xs"
-                            >
-                              {page.url}
-                              <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                            </a>
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-700 dark:text-gray-300 truncate max-w-xs">
-                            {page.title || '-'}
-                          </td>
-                          <td className="px-4 py-3">
-                            {getPageStatusBadge(page.status)}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                            {page.depth}
-                          </td>
-                          <td className="px-4 py-3 text-sm text-gray-500 dark:text-gray-400">
-                            {formatDate(page.created_at)}
-                          </td>
-                          <td className="px-4 py-3">
-                            <button
-                              onClick={() => handleCrawlDeeper(page.id)}
-                              disabled={isCrawlingDeeper || !canCrawlDeeper}
-                              className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                              title={canCrawlDeeper ? t('knowledge.website.crawlDeeper.button') : t('knowledge.website.crawlDeeper.notReady')}
-                            >
-                              {isCrawlingDeeper ? (
-                                <Loader2 className="w-3 h-3 animate-spin" />
-                              ) : (
-                                <ArrowDownRight className="w-3 h-3" />
-                              )}
-                              {t('knowledge.website.crawlDeeper.button')}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+        {/* Content - Pages Tree */}
+        <div className="flex-grow overflow-y-auto">
+          {isLoadingPages ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+            </div>
+          ) : rootPages.length === 0 ? (
+            <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+              {t('knowledge.website.noPages')}
+            </div>
+          ) : (
+            <div className="bg-white dark:bg-gray-800">
+              {rootPages.map(node => renderTreeNode(node, 0))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -490,31 +730,70 @@ const WebsiteKnowledgeBaseDetail: React.FC = () => {
                 {t('knowledge.website.addPage.title')}
               </h3>
               <button
-                onClick={() => { setIsAddPageDialogOpen(false); setNewPageUrl(''); }}
+                onClick={resetAddPageDialog}
                 className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="px-6 py-4">
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                {t('knowledge.website.addPage.urlLabel')}
-              </label>
-              <input
-                type="url"
-                value={newPageUrl}
-                onChange={(e) => setNewPageUrl(e.target.value)}
-                placeholder={t('knowledge.website.addPage.urlPlaceholder')}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                autoFocus
-              />
-              <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                {t('knowledge.website.addPage.hint')}
-              </p>
+            <div className="px-6 py-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('knowledge.website.addPage.urlLabel')}
+                </label>
+                <input
+                  type="url"
+                  value={newPageUrl}
+                  onChange={(e) => setNewPageUrl(e.target.value)}
+                  placeholder={t('knowledge.website.addPage.urlPlaceholder')}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('knowledge.website.addPage.parentPageLabel')}
+                </label>
+                <select
+                  value={newPageParentId || ''}
+                  onChange={(e) => setNewPageParentId(e.target.value || null)}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="">{t('knowledge.website.addPage.noParent')}</option>
+                  {flattenTree(rootPages).map(page => (
+                    <option key={page.id} value={page.id}>
+                      {'─'.repeat(page.depth)} {page.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {t('knowledge.website.addPage.parentPageHint')}
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  {t('knowledge.website.addPage.maxDepthLabel')}
+                </label>
+                <select
+                  value={newPageMaxDepth}
+                  onChange={(e) => setNewPageMaxDepth(Number(e.target.value))}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value={0}>{t('knowledge.website.addPage.depthOption0')}</option>
+                  <option value={1}>{t('knowledge.website.addPage.depthOption1')}</option>
+                  <option value={2}>{t('knowledge.website.addPage.depthOption2')}</option>
+                  <option value={3}>{t('knowledge.website.addPage.depthOption3')}</option>
+                  <option value={5}>{t('knowledge.website.addPage.depthOption5')}</option>
+                  <option value={10}>{t('knowledge.website.addPage.depthOption10')}</option>
+                </select>
+                <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
+                  {t('knowledge.website.addPage.hint')}
+                </p>
+              </div>
             </div>
             <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
               <button
-                onClick={() => { setIsAddPageDialogOpen(false); setNewPageUrl(''); }}
+                onClick={resetAddPageDialog}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors"
               >
                 {t('common.cancel')}

@@ -48,9 +48,24 @@ celery_app.conf.task_routes = {
     "src.rag_service.tasks.embedding.*": {"queue": "embedding"},
     "src.rag_service.tasks.website_crawling.*": {"queue": "website_crawling"},
     "src.rag_service.tasks.qa_processing.*": {"queue": "qa_processing"},
-    "crawl_website_task": {"queue": "celery"},  # Default queue for named task
+    "crawl_page_task": {"queue": "celery"},  # Single page crawl task
     "process_qa_pair_task": {"queue": "celery"},  # Default queue for QA tasks
     "process_qa_pairs_batch_task": {"queue": "celery"},
+}
+
+# Task rate limits
+# This controls how many tasks of each type can be executed per time unit
+# Format: "n/s" (per second), "n/m" (per minute), "n/h" (per hour)
+celery_app.conf.task_annotations = {
+    # Limit crawl tasks to prevent overwhelming target sites and system resources
+    # 60 pages per minute = ~1 page every 1 seconds
+    "crawl_page_task": {
+        "rate_limit": "60/m",
+    },
+    # Document processing can be more aggressive since it's internal processing
+    "process_file_task": {
+        "rate_limit": "60/m",
+    },
 }
 
 # Beat schedule for periodic tasks

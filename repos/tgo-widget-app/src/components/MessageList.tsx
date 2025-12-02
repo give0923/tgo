@@ -158,7 +158,7 @@ export default function MessageList({ messages }: { messages: ChatMessage[] }){
               )}
             </Row>
             {m.role==='agent' && (
-              <Meta>{(m.fromUid && staffCache[m.fromUid]?.name) || ''} - {formatMessageTime(m.time)}</Meta>
+              <Meta>{formatMessageTime(m.time)}</Meta>
             )}
             {m.role==='user' && (
               <Meta style={{ textAlign: 'right' }}>{formatMessageTime(m.time)}</Meta>

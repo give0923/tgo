@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Settings as SettingsIcon } from 'lucide-react';
 import { FiSettings, FiCpu, FiInfo, FiLogOut } from 'react-icons/fi';
 import { useAuthStore } from '@/stores/authStore';
+import OnboardingSidebarPanel from '@/components/onboarding/OnboardingSidebarPanel';
 
 interface SettingsSidebarProps {
   className?: string;
@@ -76,6 +77,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ className = '' }) => 
           </button>
         )}
       </div>
+
+      {/* Onboarding Panel */}
+      <OnboardingSidebarPanel />
     </aside>
   );
 };

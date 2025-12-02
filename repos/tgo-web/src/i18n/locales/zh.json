@@ -48,7 +48,21 @@
     "copied": "已复制",
     "copyFailed": "复制失败",
     "enable": "启用",
-    "more": "更多"
+    "more": "更多",
+    "optional": "可选"
+  },
+  "tagInput": {
+    "placeholder": "输入标签并按回车键添加",
+    "removeTag": "删除标签",
+    "count": "{{current}}/{{max}} 个标签",
+    "currentInput": "当前输入: {{current}}/{{max}} 字符",
+    "hint": "回车或逗号添加标签",
+    "errors": {
+      "empty": "标签名称不能为空",
+      "tooLong": "标签名称不能超过{{max}}个字符",
+      "duplicate": "该标签已存在",
+      "maxReached": "最多只能添加{{max}}个标签"
+    }
   },
   "settings": {
     "title": "设置",
@@ -123,7 +137,10 @@
               "models": ["text-embedding-v4"]
             }
           }
-        }
+        },
+        "noModels": "暂无可用模型",
+        "noEmbeddingModels": "暂无可用嵌入模型",
+        "addProvider": "添加供应商"
       },
       "toast": {
         "saved": "默认模型已保存",
@@ -164,28 +181,33 @@
 	        "baseUrl": "API Base URL",
 	        "models": "可用模型列表",
 	        "defaultModel": "默认模型",
+	        "modelType": "模型类型",
+	        "embeddingModel": "嵌入模型",
 	        "azure": {
 	          "deployment": "部署名称",
 	          "resource": "资源名",
 	          "apiVersion": "API 版本"
 	        }
 	      },
+	      "modelType": {
+	        "chat": "聊天模型",
+	        "embedding": "嵌入模型"
+	      },
 	      "help": {
 	        "azure": {
 	          "deployment": "Azure 中的部署名称，区别于模型 ID",
 	          "resource": "Azure 资源名称，例如 OpenAI 服务资源名",
 	          "apiVersion": "Azure OpenAI API 版本号，如 2024-02-15-preview"
-	        }
-        ,
-        "modelsCustom": "如果列表为空或未找到所需模型，您可以手动输入自定义模型名称"
+	        },
+	        "modelsCustom": "如果列表为空或未找到所需模型，您可以手动输入自定义模型名称",
+	        "embeddingModel": "输入嵌入模型的名称，如 text-embedding-3-small、text-embedding-ada-002"
 	      },
-
-
 	      "placeholders": {
 	        "apiKeyMasked": "已配置：{{mask}}，留空则不更新",
 	        "apiKey": "粘贴密钥",
 	        "modelsSearch": "搜索或输入模型ID...",
-	        "baseUrl": { "custom": "自定义 Base URL" }
+	        "baseUrl": { "custom": "自定义 Base URL" },
+	        "embeddingModel": "例如：text-embedding-3-small"
 	      },
 	      "fetchModels": {
 	        "failed": "获取模型失败",
@@ -582,7 +604,9 @@
     "title": "知识库",
     "subtitle": "管理可供智能体使用的知识来源。",
     "create": "创建知识库",
+    "createDesc": "选择知识库类型并填写基本信息",
     "edit": "编辑知识库",
+    "editDesc": "修改知识库的基本信息",
     "delete": "删除知识库",
     "name": "名称",
     "description": "描述",
@@ -590,6 +614,7 @@
     "uploadButton": "上传文件",
     "namePlaceholder": "请输入知识库名称",
     "descriptionPlaceholder": "请描述知识库的内容和用途",
+    "descriptionHelper": "描述越准确，AI 越容易正确使用该知识库",
     "icon": "知识库图标",
     "iconHelper": "选择一个图标来标识您的知识库",
     "tags": "知识库标签",
@@ -597,6 +622,19 @@
     "tagsHelper": "添加标签可以帮助您更好地组织和查找知识库",
     "filesCount": "{{count}} 文件",
     "manage": "管理知识库",
+    "basicInfo": "基本信息",
+    "selectType": "选择类型",
+    "typeFileShort": "文件",
+    "typeWebsiteShort": "网站",
+    "typeQAShort": "问答",
+    "typeTmall": "天猫",
+    "typeTmallShort": "天猫商品",
+    "typeTaobao": "淘宝",
+    "typeTaobaoShort": "淘宝商品",
+    "typeJD": "京东",
+    "typeJDShort": "京东商品",
+    "comingSoon": "即将推出",
+    "comingSoonBadge": "即将推出",
     "selectModal": {
       "title": "选择知识库",
       "searchPlaceholder": "搜索知识库...",
@@ -620,8 +658,10 @@
     "type": "知识库类型",
     "typeFile": "文件",
     "typeWebsite": "网站",
+    "typeQA": "问答对",
     "typeFileDesc": "上传文档文件来构建知识库",
     "typeWebsiteDesc": "爬取网站内容来构建知识库",
+    "typeQADesc": "创建问答对来构建知识库",
     "typeReadonly": "知识库类型创建后不可更改",
     "advancedSettings": "高级设置",
     "metadata": {
@@ -635,6 +675,7 @@
     "crawl": {
       "title": "爬取配置",
       "info": "爬取配置",
+      "urlSection": "网站地址",
       "startUrl": "网站URL",
       "startUrlPlaceholder": "https://example.com",
       "maxPages": "最大页面数",
@@ -678,13 +719,10 @@
     "website": {
       "loading": "加载中...",
       "loadFailed": "加载知识库失败",
-      "loadJobsFailed": "加载爬取任务失败",
       "loadPagesFailed": "加载页面列表失败",
       "noPages": "暂无爬取的页面",
-      "noJobs": "暂无爬取任务",
       "tabs": {
-        "pages": "页面列表",
-        "jobs": "爬取任务"
+        "pages": "页面列表"
       },
       "columns": {
         "url": "URL",
@@ -696,35 +734,56 @@
       },
       "pageStatus": {
         "pending": "等待中",
+        "crawling": "爬取中",
         "fetched": "已获取",
         "extracted": "已提取",
-        "processed": "已处理",
-        "failed": "失败"
-      },
-      "jobCreated": "创建时间",
-      "progress": "进度",
-      "jobStatus": {
-        "status": "爬取状态"
-      },
-      "jobDetails": {
-        "discovered": "已发现",
-        "crawled": "已爬取",
+        "processing": "处理中",
         "processed": "已处理",
         "failed": "失败",
-        "maxDepth": "最大深度",
-        "maxPages": "最大页面数",
-        "error": "错误信息"
+        "skipped": "已跳过"
+      },
+      "progress": {
+        "title": "爬取进度",
+        "crawling": "爬取中",
+        "completed": "已完成",
+        "total": "总页面",
+        "pending": "等待中",
+        "crawled": "已爬取",
+        "processing": "处理中",
+        "processed": "已处理",
+        "failed": "失败"
       },
       "addPage": {
         "button": "添加页面",
         "title": "手动添加页面",
         "urlLabel": "页面 URL",
         "urlPlaceholder": "请输入要添加的页面 URL",
+        "parentPageLabel": "父页面",
+        "noParent": "无 (作为根页面添加)",
+        "parentPageHint": "选择一个父页面，新页面将作为其子页面添加",
+        "maxDepthLabel": "爬取深度",
+        "depthOption0": "仅此页面 (深度 0)",
+        "depthOption1": "包含直接链接 (深度 1)",
+        "depthOption2": "深度 2",
+        "depthOption3": "深度 3",
+        "depthOption5": "深度 5",
+        "depthOption10": "深度 10 (最大)",
         "hint": "输入一个有效的 URL，该页面将被添加到爬取队列中",
         "submit": "添加",
         "success": "页面添加成功",
         "skipped": "页面已存在",
         "failed": "添加页面失败"
+      },
+      "deletePage": {
+        "button": "删除",
+        "success": "页面删除成功",
+        "failed": "删除页面失败"
+      },
+      "recrawlPage": {
+        "button": "重新爬取",
+        "success": "重新爬取已启动",
+        "skipped": "页面正在爬取中",
+        "failed": "重新爬取失败"
       },
       "crawlDeeper": {
         "button": "深度爬取",
@@ -733,6 +792,59 @@
         "successDesc": "已添加 {{added}} 个页面，共发现 {{found}} 个链接",
         "noNewPages": "未发现新页面",
         "failed": "深度爬取失败"
+      }
+    },
+    "qa": {
+      "loading": "加载中...",
+      "loadFailed": "加载知识库失败",
+      "loadPairsFailed": "加载问答对列表失败",
+      "noPairs": "暂无问答对",
+      "add": "添加问答对",
+      "addTitle": "添加问答对",
+      "addSuccess": "问答对添加成功",
+      "addFailed": "问答对添加失败",
+      "editTitle": "编辑问答对",
+      "editSuccess": "问答对更新成功",
+      "editFailed": "问答对更新失败",
+      "deleteSuccess": "问答对删除成功",
+      "deleteFailed": "问答对删除失败",
+      "import": "批量导入",
+      "importTitle": "导入问答对",
+      "importFormat": "选择格式",
+      "importData": "粘贴数据",
+      "importButton": "开始导入",
+      "importSuccess": "成功导入 {{count}} 条问答对",
+      "importFailed": "导入失败",
+      "importJsonPlaceholder": "粘贴 JSON 数组数据...",
+      "importCsvPlaceholder": "粘贴 CSV 数据...",
+      "importJsonFormat": "JSON 格式示例：",
+      "importCsvFormat": "CSV 格式示例：",
+      "searchPlaceholder": "搜索问题或答案...",
+      "allCategories": "所有分类",
+      "allStatuses": "所有状态",
+      "pagination": "第 {{current}} / {{total}} 页",
+      "stats": {
+        "total": "总问答对",
+        "pending": "等待处理",
+        "processed": "已处理",
+        "failed": "处理失败"
+      },
+      "status": {
+        "pending": "等待中",
+        "processing": "处理中",
+        "processed": "已处理",
+        "failed": "失败"
+      },
+      "form": {
+        "question": "问题",
+        "questionPlaceholder": "请输入问题...",
+        "answer": "答案",
+        "answerPlaceholder": "请输入答案...",
+        "category": "分类",
+        "categoryPlaceholder": "输入分类（可选）",
+        "tags": "标签",
+        "tagsPlaceholder": "输入标签，用逗号分隔",
+        "tagsHint": "多个标签请用逗号分隔"
       }
     },
     "icons": {
@@ -836,6 +948,17 @@
         "description": "系统尚未配置嵌入模型。知识库文件需要嵌入模型进行向量化处理，请先前往 AI 模型提供商设置页面配置默认嵌入模型。",
         "goToSettings": "前往配置"
       }
+    },
+    "embedding": {
+      "error": "错误",
+      "noProject": "未找到当前项目",
+      "checkFailed": "检查失败",
+      "checkFailedDesc": "无法验证嵌入模型配置，请确保已配置嵌入模型",
+      "requiredTitle": "需要配置嵌入模型",
+      "requiredDesc": "创建知识库需要先配置默认的嵌入模型（Embedding Model）。嵌入模型用于将文档内容转换为向量，以便进行语义搜索。",
+      "configPath": "配置路径",
+      "configPathDesc": "设置 → 模型供应商 → 设置默认嵌入模型",
+      "goToConfig": "前往配置"
     }
   },
   "channels": {
@@ -1463,7 +1586,18 @@
         "regenerate": "重新生成",
         "remove": "移除",
         "upload": "点击上传",
-        "testIntegration": "测试集成"
+        "testIntegration": "测试集成",
+        "downloadExample": "下载示例"
+      },
+      "download": {
+        "hint": "下载完整的集成示例文件，包含预配置的 API Key",
+        "success": "下载成功",
+        "successDesc": "示例文件已下载，请在浏览器中打开查看效果",
+        "demoTitle": "Widget 演示",
+        "welcomeTitle": "欢迎！",
+        "welcomeDesc": "您的 TGO 聊天小部件已成功集成！点击右下角的聊天按钮开始对话。",
+        "integrationCode": "集成代码",
+        "securityWarning": "安全提示：此文件包含您的 API Key，请勿公开分享或提交到公共代码仓库。"
       },
       "form": {
         "name": "名称",
@@ -1980,6 +2114,46 @@
     "collapse": "收起",
     "dismiss": "关闭",
     "dismissButton": "不再显示",
+    "welcome": {
+      "title": "欢迎使用 TGO",
+      "subtitle": "完成以下步骤，开启智能客服之旅",
+      "progress": "完成进度",
+      "estimatedTime": "约 2 分钟",
+      "skip": "跳过引导",
+      "later": "稍后设置",
+      "start": "开始配置"
+    },
+    "panel": {
+      "title": "快速开始",
+      "progress": "完成进度",
+      "skip": "跳过",
+      "viewAll": "查看全部"
+    },
+    "modal": {
+      "close": "关闭"
+    },
+    "steps": {
+      "ai_provider": {
+        "title": "配置 AI 模型",
+        "description": "接入 OpenAI、通义千问等 AI 模型供应商"
+      },
+      "default_models": {
+        "title": "设置默认模型",
+        "description": "选择默认的聊天模型和嵌入模型"
+      },
+      "rag_collection": {
+        "title": "创建知识库",
+        "description": "上传文档或网页，构建您的专属知识库"
+      },
+      "agent_with_kb": {
+        "title": "创建智能体",
+        "description": "创建 AI Agent 并关联知识库"
+      },
+      "first_chat": {
+        "title": "开始对话",
+        "description": "发送消息，体验 AI 智能回复"
+      }
+    },
     "tasks": {
       "platformCreated": "设置平台",
       "knowledgeBaseUploaded": "上传知识库",

@@ -830,8 +830,8 @@ export interface KnowledgeBaseTag {
   color: string;
 }
 
-// Knowledge Base Type - file (default) or website
-export type KnowledgeBaseType = 'file' | 'website';
+// Knowledge Base Type - file (default), website, or qa
+export type KnowledgeBaseType = 'file' | 'website' | 'qa';
 
 // Crawl job status
 export type CrawlJobStatus = 'pending' | 'crawling' | 'processing' | 'completed' | 'failed' | 'cancelled';

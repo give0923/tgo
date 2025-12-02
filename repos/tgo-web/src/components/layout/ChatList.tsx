@@ -4,6 +4,7 @@ import { useChatStore, chatSelectors } from '@/stores';
 import { ChatListHeader } from '@/components/chat/ChatListHeader';
 import { ChatListEmpty } from '@/components/chat/ChatListEmpty';
 import { ChatListItem } from '@/components/chat/ChatListItem';
+import OnboardingSidebarPanel from '@/components/onboarding/OnboardingSidebarPanel';
 
 // ============================================================================
 // Sub-Components (extracted into separate files)
@@ -95,6 +96,9 @@ const ChatListComponent: React.FC<ChatListProps> = ({ activeChat, onChatSelect }
           ))
         )}
       </div>
+
+      {/* Onboarding Panel */}
+      <OnboardingSidebarPanel />
     </div>
   );
 };

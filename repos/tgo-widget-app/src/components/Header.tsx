@@ -33,7 +33,10 @@ export default function Header({ title, onClose }: { title: string; onClose(): v
   const { isDark, toggleMode } = useTheme()
 
   const requestClose = () => {
-    try { (window.parent as any)?.TGOWidget?.hide?.(); } catch {}
+    // Use postMessage to communicate with SDK in parent window (works cross-origin)
+    try {
+      window.parent?.postMessage({ type: 'tgo:hide' }, '*');
+    } catch {}
     onClose && onClose();
   };
   return (

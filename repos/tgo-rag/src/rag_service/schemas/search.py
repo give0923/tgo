@@ -11,14 +11,14 @@ from pydantic import BaseModel, Field
 
 class SearchResult(BaseModel):
     """Schema for individual search results."""
-    
+
     document_id: UUID = Field(
         ...,
         description="Document unique identifier"
     )
-    file_id: UUID = Field(
-        ...,
-        description="Associated file ID"
+    file_id: Optional[UUID] = Field(
+        None,
+        description="Associated file ID (None for QA pairs)"
     )
     collection_id: Optional[UUID] = Field(
         None,

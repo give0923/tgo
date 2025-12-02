@@ -1,160 +1,28 @@
 """
 Website crawling models for RAG processing.
 
-This module provides database models for managing website crawl jobs
-and individual web pages for RAG document generation.
+This module provides database models for managing website pages
+for RAG document generation.
+
+Design: Hierarchical page structure with parent-child relationships
+- Each page tracks its parent_page_id for tree traversal
+- Supports incremental crawling from any page
+- Depth is tracked explicitly for efficient querying
+- Crawl configuration is stored in Collection.crawl_config
 """
 
-from typing import List, Optional
+from typing import TYPE_CHECKING, List, Optional
 from uuid import UUID as PyUUID
 
-from sqlalchemy import ARRAY, BigInteger, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from .base import Base, SoftDeleteMixin, TimestampMixin, UUIDMixin
+from .base import Base, TimestampMixin, UUIDMixin
 
-
-class WebsiteCrawlJob(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
-    """
-    Website crawl job model for tracking website crawling tasks.
-    
-    This model manages the configuration and status of website crawling
-    operations, tracking progress and storing crawl parameters.
-    """
-
-    __tablename__ = "rag_website_crawl_jobs"
-
-    # Foreign keys
-    project_id: Mapped[PyUUID] = mapped_column(
-        UUID(as_uuid=True),
-        nullable=False,
-        doc="Associated project ID",
-    )
-
-    collection_id: Mapped[PyUUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("rag_collections.id", ondelete="CASCADE"),
-        nullable=False,
-        doc="Target collection ID for storing crawled content",
-    )
-
-    # Crawl configuration
-    start_url: Mapped[str] = mapped_column(
-        String(2048),
-        nullable=False,
-        doc="Starting URL for the crawl",
-    )
-
-    max_pages: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=100,
-        doc="Maximum number of pages to crawl",
-    )
-
-    max_depth: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=3,
-        doc="Maximum crawl depth from start URL",
-    )
-
-    # URL patterns
-    include_patterns: Mapped[Optional[List[str]]] = mapped_column(
-        ARRAY(String),
-        nullable=True,
-        doc="URL patterns to include (glob patterns)",
-    )
-
-    exclude_patterns: Mapped[Optional[List[str]]] = mapped_column(
-        ARRAY(String),
-        nullable=True,
-        doc="URL patterns to exclude (glob patterns)",
-    )
-
-    # Status tracking
-    status: Mapped[str] = mapped_column(
-        String(64),
-        nullable=False,
-        default="pending",
-        doc="Job status: pending, crawling, processing, completed, failed, cancelled",
-    )
-
-    # Progress metrics
-    pages_discovered: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        doc="Number of pages discovered",
-    )
-
-    pages_crawled: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        doc="Number of pages successfully crawled",
-    )
-
-    pages_processed: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        doc="Number of pages processed into documents",
-    )
-
-    pages_failed: Mapped[int] = mapped_column(
-        Integer,
-        nullable=False,
-        default=0,
-        doc="Number of pages that failed to process",
-    )
-
-    # Crawl options (JSONB for flexibility)
-    crawl_options: Mapped[Optional[dict]] = mapped_column(
-        JSONB,
-        nullable=True,
-        doc="Additional crawl options (js_render, delay, user_agent, etc.)",
-    )
-
-    # Error information
-    error_message: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        doc="Error message if job failed",
-    )
-
-    # Celery task tracking
-    celery_task_id: Mapped[Optional[str]] = mapped_column(
-        String(255),
-        nullable=True,
-        doc="Celery task ID for tracking",
-    )
-
-    # Relationships
-    collection: Mapped["Collection"] = relationship(
-        "Collection",
-        doc="Target collection",
-    )
-
-    pages: Mapped[List["WebsitePage"]] = relationship(
-        "WebsitePage",
-        back_populates="crawl_job",
-        cascade="all, delete-orphan",
-        doc="Crawled pages",
-    )
-
-    # Indexes
-    __table_args__ = (
-        Index("idx_website_crawl_jobs_project_id", "project_id"),
-        Index("idx_website_crawl_jobs_collection_id", "collection_id"),
-        Index("idx_website_crawl_jobs_status", "status"),
-        Index("idx_website_crawl_jobs_created_at", "created_at"),
-        Index("idx_website_crawl_jobs_deleted_at", "deleted_at"),
-    )
-
-    def __repr__(self) -> str:
-        return f"<WebsiteCrawlJob(id={self.id}, url='{self.start_url}', status='{self.status}')>"
+if TYPE_CHECKING:
+    from .collections import Collection
+    from .files import File
 
 
 class WebsitePage(Base, UUIDMixin, TimestampMixin):
@@ -163,18 +31,16 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
 
     This model stores individual web pages crawled from a website,
     including their content and metadata for RAG processing.
+
+    Supports hierarchical structure via parent_page_id for:
+    - Tree traversal (find children, ancestors)
+    - Incremental deep crawling from any page
+    - Tracking link discovery source
     """
 
     __tablename__ = "rag_website_pages"
 
     # Foreign keys
-    crawl_job_id: Mapped[PyUUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("rag_website_crawl_jobs.id", ondelete="CASCADE"),
-        nullable=False,
-        doc="Associated crawl job ID",
-    )
-
     collection_id: Mapped[PyUUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("rag_collections.id", ondelete="CASCADE"),
@@ -193,6 +59,14 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
         ForeignKey("rag_files.id", ondelete="SET NULL"),
         nullable=True,
         doc="Associated file ID (created after processing)",
+    )
+
+    # Parent page relationship (self-referential)
+    parent_page_id: Mapped[Optional[PyUUID]] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("rag_website_pages.id", ondelete="SET NULL"),
+        nullable=True,
+        doc="Parent page ID (NULL for root pages)",
     )
 
     # Page information
@@ -218,7 +92,15 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
         Integer,
         nullable=False,
         default=0,
-        doc="Crawl depth from start URL",
+        doc="Crawl depth from root page",
+    )
+
+    # Crawl source tracking
+    crawl_source: Mapped[str] = mapped_column(
+        String(64),
+        nullable=False,
+        default="discovered",
+        doc="How this page was added: 'initial', 'discovered', 'manual', 'deep_crawl'",
     )
 
     # Content
@@ -241,6 +123,20 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
         doc="SHA-256 hash of content for deduplication",
     )
 
+    # Discovered links (stored for future deep crawling)
+    discovered_links: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+        doc="Links found on this page: [{url, text, created}]",
+    )
+
+    # Per-page crawl configuration (overrides Collection.crawl_config)
+    crawl_config: Mapped[Optional[dict]] = mapped_column(
+        JSONB,
+        nullable=True,
+        doc="Page-specific crawl configuration that overrides collection defaults",
+    )
+
     # Metadata
     meta_description: Mapped[Optional[str]] = mapped_column(
         Text,
@@ -251,7 +147,7 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
     page_metadata: Mapped[Optional[dict]] = mapped_column(
         JSONB,
         nullable=True,
-        doc="Additional page metadata (headers, links, images, etc.)",
+        doc="Additional page metadata (headers, images, etc.)",
     )
 
     # Status
@@ -259,7 +155,7 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
         String(64),
         nullable=False,
         default="pending",
-        doc="Page status: pending, fetched, extracted, processed, failed",
+        doc="Page status: pending, crawling, fetched, extracted, processing, processed, failed, skipped",
     )
 
     error_message: Mapped[Optional[str]] = mapped_column(
@@ -276,12 +172,6 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
     )
 
     # Relationships
-    crawl_job: Mapped["WebsiteCrawlJob"] = relationship(
-        "WebsiteCrawlJob",
-        back_populates="pages",
-        doc="Parent crawl job",
-    )
-
     collection: Mapped["Collection"] = relationship(
         "Collection",
         doc="Associated collection",
@@ -292,20 +182,35 @@ class WebsitePage(Base, UUIDMixin, TimestampMixin):
         doc="Associated file record",
     )
 
+    # Self-referential relationship for parent-child pages
+    parent_page: Mapped[Optional["WebsitePage"]] = relationship(
+        "WebsitePage",
+        back_populates="children",
+        remote_side="WebsitePage.id",
+        doc="Parent page",
+    )
+
+    children: Mapped[List["WebsitePage"]] = relationship(
+        "WebsitePage",
+        back_populates="parent_page",
+        doc="Child pages",
+    )
+
     # Indexes
     __table_args__ = (
-        Index("idx_website_pages_crawl_job_id", "crawl_job_id"),
         Index("idx_website_pages_collection_id", "collection_id"),
         Index("idx_website_pages_project_id", "project_id"),
         Index("idx_website_pages_file_id", "file_id"),
+        Index("idx_website_pages_parent_page_id", "parent_page_id"),
         Index("idx_website_pages_url_hash", "url_hash"),
         Index("idx_website_pages_status", "status"),
         Index("idx_website_pages_depth", "depth"),
+        Index("idx_website_pages_crawl_source", "crawl_source"),
         Index("idx_website_pages_created_at", "created_at"),
-        # Unique constraint on URL within a crawl job
-        Index("idx_website_pages_job_url", "crawl_job_id", "url_hash", unique=True),
+        # Unique constraint on URL within a collection
+        Index("idx_website_pages_collection_url", "collection_id", "url_hash", unique=True),
     )
 
     def __repr__(self) -> str:
-        return f"<WebsitePage(id={self.id}, url='{self.url[:50]}...', status='{self.status}')>"
+        return f"<WebsitePage(id={self.id}, url='{self.url[:50]}...', depth={self.depth}, status='{self.status}')>"
 

@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, Plus, Search, ArrowUpDown, FolderOpen, Clock, Eye, Pencil, Trash2, FileText, Globe, Play, XCircle, Loader2 } from 'lucide-react';
+import { RefreshCw, Plus, Search, ArrowUpDown, FolderOpen, Clock, Eye, Pencil, Trash2, FileText, Globe, MessageSquare, Loader2, AlertCircle, Settings } from 'lucide-react';
 import { useKnowledgeStore, knowledgeSelectors } from '@/stores';
 import { useToast } from '@/hooks/useToast';
 import { showKnowledgeBaseSuccess, showKnowledgeBaseError } from '@/utils/toastHelpers';
@@ -9,9 +9,10 @@ import { EditKnowledgeBaseModal } from '@/components/knowledge/EditKnowledgeBase
 import { formatKnowledgeBaseUpdatedTime } from '@/utils/timeFormatting';
 import { getIconComponent, getIconColor } from '@/components/knowledge/IconPicker';
 import { getTagClasses } from '@/utils/tagColors';
-import type { KnowledgeBaseItem, CrawlJobStatus } from '@/types';
+import type { KnowledgeBaseItem } from '@/types';
 import { useTranslation } from 'react-i18next';
-import KnowledgeBaseApiService from '@/services/knowledgeBaseApi';
+import ProjectConfigApiService from '@/services/projectConfigApi';
+import { useAuthStore } from '@/stores/authStore';
 
 
 
@@ -25,7 +26,11 @@ const KnowledgeBase: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingKnowledgeBase, setEditingKnowledgeBase] = useState<KnowledgeBaseItem | null>(null);
-  const [crawlingKbs, setCrawlingKbs] = useState<Set<string>>(new Set()); // Track which KBs are being crawled
+  const [isCheckingEmbedding, setIsCheckingEmbedding] = useState(false);
+  const [showEmbeddingWarning, setShowEmbeddingWarning] = useState(false);
+
+  // Get current project ID from auth store (via user object)
+  const currentProjectId = useAuthStore(state => state.user?.project_id);
 
   const knowledgeBases = useKnowledgeStore(knowledgeSelectors.knowledgeBases);
   const searchQuery = useKnowledgeStore(knowledgeSelectors.searchQuery);
@@ -103,7 +108,7 @@ const KnowledgeBase: React.FC = () => {
 
   const handleCreateKnowledgeBase = async (data: CreateKnowledgeBaseData): Promise<void> => {
     try {
-      const newKb = await createKnowledgeBase({
+      await createKnowledgeBase({
         title: data.name,
         content: data.description,
         category: 'general',
@@ -114,23 +119,13 @@ const KnowledgeBase: React.FC = () => {
       });
       showKnowledgeBaseSuccess(showToast, 'create', data.name);
 
-      // If it's a website type, automatically start crawling
-      if (data.type === 'website' && data.crawlConfig && newKb?.id) {
-        try {
-          await KnowledgeBaseApiService.createCrawlJob(newKb.id, data.crawlConfig);
-          showToast(
-            'success',
-            t('knowledge.crawl.started', '爬取已开始'),
-            t('knowledge.crawl.startedDesc', '网站爬取任务已启动')
-          );
-        } catch (crawlError) {
-          console.error('Failed to start crawl job:', crawlError);
-          showToast(
-            'warning',
-            t('knowledge.crawl.startFailed', '爬取启动失败'),
-            t('knowledge.crawl.startFailedDesc', '知识库已创建，但爬取任务启动失败，请手动开始爬取')
-          );
-        }
+      // For website type, the backend will automatically start crawling based on crawl_config
+      if (data.type === 'website' && data.crawlConfig) {
+        showToast(
+          'info',
+          t('knowledge.crawl.started', '爬取已开始'),
+          t('knowledge.crawl.startedDesc', '网站爬取任务已启动')
+        );
       }
     } catch (error) {
       console.error('Failed to create knowledge base:', error);
@@ -139,89 +134,54 @@ const KnowledgeBase: React.FC = () => {
     }
   };
 
-  // Start crawl job for a website knowledge base
-  const handleStartCrawl = useCallback(async (kb: KnowledgeBaseItem) => {
-    if (!kb.crawlConfig) {
-      showToast(
-        'error',
-        t('knowledge.crawl.noConfig', '无爬取配置'),
-        t('knowledge.crawl.noConfigDesc', '该知识库没有爬取配置')
-      );
+  // Check if embedding model is configured before opening create modal
+  const handleOpenCreateModal = useCallback(async (): Promise<void> => {
+    if (!currentProjectId) {
+      showToast('error', t('knowledge.embedding.error', '错误'), t('knowledge.embedding.noProject', '未找到当前项目'));
       return;
     }
 
-    setCrawlingKbs(prev => new Set(prev).add(kb.id));
+    setIsCheckingEmbedding(true);
+
     try {
-      await KnowledgeBaseApiService.createCrawlJob(kb.id, kb.crawlConfig);
-      showToast(
-        'success',
-        t('knowledge.crawl.started', '爬取已开始'),
-        t('knowledge.crawl.startedDesc', '网站爬取任务已启动')
-      );
-      // Refresh to get updated status
-      await refreshKnowledgeBases();
+      const projectConfigService = new ProjectConfigApiService();
+      const aiConfig = await projectConfigService.getAIConfig(currentProjectId);
+
+      // Check if embedding model is configured
+      if (!aiConfig.default_embedding_provider_id || !aiConfig.default_embedding_model) {
+        setShowEmbeddingWarning(true);
+        return;
+      }
+
+      // Embedding model is configured, open the create modal
+      setIsCreateModalOpen(true);
     } catch (error) {
-      console.error('Failed to start crawl job:', error);
+      console.error('Failed to check AI config:', error);
+      // If API call fails, show error toast but still allow creating (fail-open)
       showToast(
-        'error',
-        t('knowledge.crawl.startFailed', '爬取启动失败'),
-        error instanceof Error ? error.message : t('knowledge.crawl.startFailedDesc', '启动爬取任务时发生错误')
+        'warning',
+        t('knowledge.embedding.checkFailed', '检查失败'),
+        t('knowledge.embedding.checkFailedDesc', '无法验证嵌入模型配置，请确保已配置嵌入模型')
       );
+      setIsCreateModalOpen(true);
     } finally {
-      setCrawlingKbs(prev => {
-        const next = new Set(prev);
-        next.delete(kb.id);
-        return next;
-      });
+      setIsCheckingEmbedding(false);
     }
-  }, [showToast, t, refreshKnowledgeBases]);
-
-  // Cancel crawl job
-  const handleCancelCrawl = useCallback(async (kb: KnowledgeBaseItem) => {
-    if (!kb.crawlJob?.id) return;
-
-    try {
-      await KnowledgeBaseApiService.cancelCrawlJob(kb.crawlJob.id);
-      showToast(
-        'success',
-        t('knowledge.crawl.cancelled', '爬取已取消'),
-        t('knowledge.crawl.cancelledDesc', '网站爬取任务已取消')
-      );
-      await refreshKnowledgeBases();
-    } catch (error) {
-      console.error('Failed to cancel crawl job:', error);
-      showToast(
-        'error',
-        t('knowledge.crawl.cancelFailed', '取消失败'),
-        error instanceof Error ? error.message : t('knowledge.crawl.cancelFailedDesc', '取消爬取任务时发生错误')
-      );
-    }
-  }, [showToast, t, refreshKnowledgeBases]);
-
-  // Get crawl status badge
-  const getCrawlStatusBadge = (status: CrawlJobStatus) => {
-    const statusConfig: Record<CrawlJobStatus, { color: string; text: string }> = {
-      pending: { color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300', text: t('knowledge.crawl.status.pending', '等待中') },
-      crawling: { color: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300', text: t('knowledge.crawl.status.crawling', '爬取中') },
-      processing: { color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300', text: t('knowledge.crawl.status.processing', '处理中') },
-      completed: { color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300', text: t('knowledge.crawl.status.completed', '已完成') },
-      failed: { color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300', text: t('knowledge.crawl.status.failed', '失败') },
-      cancelled: { color: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300', text: t('knowledge.crawl.status.cancelled', '已取消') }
-    };
-    const config = statusConfig[status];
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${config.color}`}>
-        {config.text}
-      </span>
-    );
-  };
-
-  const handleOpenCreateModal = (): void => {
-    setIsCreateModalOpen(true);
-  };
+  }, [currentProjectId, showToast, t]);
 
   const handleCloseCreateModal = (): void => {
     setIsCreateModalOpen(false);
+  };
+
+  // Close embedding warning modal
+  const handleCloseEmbeddingWarning = (): void => {
+    setShowEmbeddingWarning(false);
+  };
+
+  // Navigate to AI configuration page
+  const handleGoToAIConfig = (): void => {
+    setShowEmbeddingWarning(false);
+    navigate('/settings/providers');
   };
 
   const handleEditKnowledgeBase = async (id: string, data: { name: string; description: string; icon: string; tags: string[] }): Promise<void> => {
@@ -291,6 +251,8 @@ const KnowledgeBase: React.FC = () => {
   const handleKnowledgeBaseClick = (knowledgeBase: KnowledgeBaseItem): void => {
     if (knowledgeBase.type === 'website') {
       navigate(`/knowledge/website/${knowledgeBase.id}`);
+    } else if (knowledgeBase.type === 'qa') {
+      navigate(`/knowledge/qa/${knowledgeBase.id}`);
     } else {
       navigate(`/knowledge/${knowledgeBase.id}`);
     }
@@ -314,10 +276,15 @@ const KnowledgeBase: React.FC = () => {
               <RefreshCw className="w-5 h-5" />
             </button>
             <button
-              className="flex items-center px-3 py-1.5 bg-blue-500 dark:bg-blue-600 text-white text-sm rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors duration-200"
+              className="flex items-center px-3 py-1.5 bg-blue-500 dark:bg-blue-600 text-white text-sm rounded-md hover:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handleOpenCreateModal}
+              disabled={isCheckingEmbedding}
             >
-              <Plus className="w-4 h-4 mr-1" />
+              {isCheckingEmbedding ? (
+                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+              ) : (
+                <Plus className="w-4 h-4 mr-1" />
+              )}
               <span>{t('knowledge.create', '创建知识库')}</span>
             </button>
           </div>
@@ -404,18 +371,21 @@ const KnowledgeBase: React.FC = () => {
                 <p className="text-gray-500 dark:text-gray-400 mb-4">{t('knowledge.empty.description', '创建您的第一个知识库开始使用')}</p>
                 <button
                   onClick={handleOpenCreateModal}
-                  className="inline-flex items-center px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors"
+                  disabled={isCheckingEmbedding}
+                  className="inline-flex items-center px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-lg hover:bg-blue-600 dark:hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  {isCheckingEmbedding ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Plus className="w-4 h-4 mr-2" />
+                  )}
                   {t('knowledge.create', '创建知识库')}
                 </button>
               </div>
             ) : (
               filteredKnowledgeBases.map((kb: KnowledgeBaseItem, index: number) => {
                 const isWebsite = kb.type === 'website';
-                const isCrawling = crawlingKbs.has(kb.id);
-                const crawlStatus = kb.crawlJob?.status;
-                const isActiveCrawl = crawlStatus === 'pending' || crawlStatus === 'crawling' || crawlStatus === 'processing';
+                const isQA = kb.type === 'qa';
 
                 return (
                   <div
@@ -470,6 +440,11 @@ const KnowledgeBase: React.FC = () => {
                             <Globe className="w-3.5 h-3.5 text-blue-500" />
                             <span className="text-xs text-gray-600 dark:text-gray-300">{t('knowledge.typeWebsite', '网站')}</span>
                           </>
+                        ) : isQA ? (
+                          <>
+                            <MessageSquare className="w-3.5 h-3.5 text-purple-500" />
+                            <span className="text-xs text-gray-600 dark:text-gray-300">{t('knowledge.typeQA', '问答对')}</span>
+                          </>
                         ) : (
                           <>
                             <FileText className="w-3.5 h-3.5 text-green-500" />
@@ -477,7 +452,6 @@ const KnowledgeBase: React.FC = () => {
                           </>
                         )}
                       </div>
-                      {isWebsite && crawlStatus && getCrawlStatusBadge(crawlStatus)}
                     </div>
 
                     <div className="text-sm text-gray-600 dark:text-gray-300">{t('knowledge.filesCount', { count: kb.fileCount, defaultValue: `${kb.fileCount} 文件` })}</div>
@@ -487,38 +461,10 @@ const KnowledgeBase: React.FC = () => {
                     </div>
 
                     <div className="flex justify-end space-x-2">
-                      {/* Crawl actions for website type */}
-                      {isWebsite && (
-                        <>
-                          {isActiveCrawl ? (
-                            <button
-                              className="text-gray-400 dark:text-gray-500 hover:text-orange-600 dark:hover:text-orange-400 transition-colors"
-                              title={t('knowledge.crawl.cancel', '取消爬取')}
-                              onClick={() => handleCancelCrawl(kb)}
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </button>
-                          ) : (
-                            <button
-                              className="text-gray-400 dark:text-gray-500 hover:text-green-600 dark:hover:text-green-400 transition-colors disabled:opacity-50"
-                              title={t('knowledge.crawl.start', '开始爬取')}
-                              onClick={() => handleStartCrawl(kb)}
-                              disabled={isCrawling}
-                            >
-                              {isCrawling ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Play className="w-4 h-4" />
-                              )}
-                            </button>
-                          )}
-                        </>
-                      )}
-
                       <button
                         className="text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         title={t('common.details', '详情')}
-                        onClick={() => navigate(`/knowledge/${kb.id}`)}
+                        onClick={() => handleKnowledgeBaseClick(kb)}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
@@ -565,6 +511,71 @@ const KnowledgeBase: React.FC = () => {
         knowledgeBase={editingKnowledgeBase}
         isLoading={isLoading}
       />
+
+      {/* Embedding Model Warning Modal */}
+      {showEmbeddingWarning && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Backdrop */}
+          <div
+            className="absolute inset-0 bg-black/50 dark:bg-black/70"
+            onClick={handleCloseEmbeddingWarning}
+          />
+
+          {/* Modal */}
+          <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full mx-4 overflow-hidden">
+            {/* Header */}
+            <div className="px-6 py-5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-b border-amber-100 dark:border-amber-800/30">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-amber-100 dark:bg-amber-800/50 rounded-lg">
+                  <AlertCircle className="w-6 h-6 text-amber-600 dark:text-amber-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    {t('knowledge.embedding.requiredTitle', '需要配置嵌入模型')}
+                  </h3>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="px-6 py-5">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
+                {t('knowledge.embedding.requiredDesc', '创建知识库需要先配置默认的嵌入模型（Embedding Model）。嵌入模型用于将文档内容转换为向量，以便进行语义搜索。')}
+              </p>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                <div className="flex items-start gap-3">
+                  <Settings className="w-5 h-5 text-gray-500 dark:text-gray-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                      {t('knowledge.embedding.configPath', '配置路径')}
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                      {t('knowledge.embedding.configPathDesc', '设置 → 模型供应商 → 选择嵌入模型')}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="px-6 py-4 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={handleCloseEmbeddingWarning}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+              >
+                {t('common.cancel', '取消')}
+              </button>
+              <button
+                onClick={handleGoToAIConfig}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 rounded-lg transition-colors flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                {t('knowledge.embedding.goToConfig', '前往配置')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

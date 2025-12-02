@@ -232,35 +232,6 @@ class RAGServiceClient:
         )
         return await self._handle_response(response)
 
-    async def list_collection_crawl_jobs(
-        self,
-        project_id: str,
-        collection_id: str,
-        status: Optional[str] = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> Dict[str, Any]:
-        """List crawl jobs for a website collection."""
-        params: Dict[str, Any] = {
-            "project_id": project_id,
-            "limit": limit,
-            "offset": offset,
-        }
-        if status:
-            params["status"] = status
-
-        response = await self._make_request(
-            "GET", f"/v1/collections/{collection_id}/crawl-jobs", params=params
-        )
-        result = await self._handle_response(response)
-
-        # Transform pagination field name for consistency
-        if isinstance(result, dict) and "pagination" in result:
-            pagination = result["pagination"]
-            if "has_previous" in pagination:
-                pagination["has_prev"] = pagination.pop("has_previous")
-
-        return result
 
     async def list_collection_pages(
         self,
@@ -471,129 +442,91 @@ class RAGServiceClient:
         )
         return await self._handle_response(response)
 
-    # Website Crawl endpoints
-    async def list_crawl_jobs(
-        self,
-        project_id: str,
-        collection_id: Optional[str] = None,
-        status: Optional[str] = None,
-        limit: int = 20,
-        offset: int = 0,
-    ) -> Dict[str, Any]:
-        """List website crawl jobs from RAG service."""
-        params: Dict[str, Any] = {
-            "project_id": project_id,
-            "limit": limit,
-            "offset": offset,
-        }
-        if collection_id:
-            params["collection_id"] = collection_id
-        if status:
-            params["status"] = status
-
-        response = await self._make_request("GET", "/v1/websites/crawl", params=params)
-        result = await self._handle_response(response)
-
-        # Transform pagination field name for consistency
-        if isinstance(result, dict) and "pagination" in result:
-            pagination = result["pagination"]
-            if "has_previous" in pagination:
-                pagination["has_prev"] = pagination.pop("has_previous")
-
-        return result
-
-    async def create_crawl_job(
+    # Website Pages endpoints (New API)
+    async def list_website_pages(
         self,
         project_id: str,
         collection_id: str,
-        crawl_data: Dict[str, Any],
-    ) -> Dict[str, Any]:
-        """Create a new website crawl job."""
-        params = {"project_id": project_id, "collection_id": collection_id}
-        response = await self._make_request(
-            "POST", "/v1/websites/crawl", json_data=crawl_data, params=params
-        )
-        return await self._handle_response(response)
-
-    async def get_crawl_job(
-        self,
-        project_id: str,
-        job_id: str,
-    ) -> Dict[str, Any]:
-        """Get a specific crawl job."""
-        params = {"project_id": project_id}
-        response = await self._make_request(
-            "GET", f"/v1/websites/crawl/{job_id}", params=params
-        )
-        return await self._handle_response(response)
-
-    async def delete_crawl_job(
-        self,
-        project_id: str,
-        job_id: str,
-    ) -> None:
-        """Delete a crawl job and all associated pages."""
-        params = {"project_id": project_id}
-        response = await self._make_request(
-            "DELETE", f"/v1/websites/crawl/{job_id}", params=params
-        )
-        await self._handle_response(response)
-
-    async def cancel_crawl_job(
-        self,
-        project_id: str,
-        job_id: str,
-    ) -> Dict[str, Any]:
-        """Cancel a running crawl job."""
-        params = {"project_id": project_id}
-        response = await self._make_request(
-            "POST", f"/v1/websites/crawl/{job_id}/cancel", params=params
-        )
-        return await self._handle_response(response)
-
-    async def list_crawl_pages(
-        self,
-        project_id: str,
-        job_id: str,
         status: Optional[str] = None,
+        depth: Optional[int] = None,
+        parent_page_id: Optional[str] = None,
+        tree_depth: Optional[int] = None,
         limit: int = 20,
         offset: int = 0,
     ) -> Dict[str, Any]:
-        """List pages crawled for a specific job."""
+        """List all pages in a collection.
+
+        Args:
+            tree_depth: Number of child levels to include.
+                - 0 or None: Flat list (no children)
+                - 1: Include direct children only
+                - 2: Include children and grandchildren
+                - -1: Include all descendants (unlimited depth)
+        """
         params: Dict[str, Any] = {
             "project_id": project_id,
+            "collection_id": collection_id,
             "limit": limit,
             "offset": offset,
         }
         if status:
             params["status"] = status
+        if depth is not None:
+            params["depth"] = depth
+        if parent_page_id:
+            params["parent_page_id"] = parent_page_id
+        if tree_depth is not None:
+            params["tree_depth"] = tree_depth
 
-        response = await self._make_request(
-            "GET", f"/v1/websites/crawl/{job_id}/pages", params=params
-        )
-        result = await self._handle_response(response)
+        response = await self._make_request("GET", "/v1/websites/pages", params=params)
+        return await self._handle_response(response)
 
-        # Transform pagination field name for consistency
-        if isinstance(result, dict) and "pagination" in result:
-            pagination = result["pagination"]
-            if "has_previous" in pagination:
-                pagination["has_prev"] = pagination.pop("has_previous")
-
-        return result
-
-    async def add_page_to_crawl_job(
+    async def get_website_page(
         self,
         project_id: str,
-        job_id: str,
-        url: str,
+        page_id: str,
     ) -> Dict[str, Any]:
-        """Add a single page URL to an existing crawl job."""
+        """Get details of a specific page."""
         params = {"project_id": project_id}
-        json_data = {"url": url}
         response = await self._make_request(
-            "POST", f"/v1/websites/crawl/{job_id}/pages",
-            params=params,
-            json_data=json_data
+            "GET", f"/v1/websites/pages/{page_id}", params=params
+        )
+        return await self._handle_response(response)
+
+    async def add_website_page(
+        self,
+        project_id: str,
+        collection_id: str,
+        page_data: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Add a page to crawl in a collection."""
+        params = {"project_id": project_id, "collection_id": collection_id}
+        response = await self._make_request(
+            "POST", "/v1/websites/pages", params=params, json_data=page_data
+        )
+        return await self._handle_response(response)
+
+    async def delete_website_page(
+        self,
+        project_id: str,
+        page_id: str,
+    ) -> None:
+        """Delete a page from the collection."""
+        params = {"project_id": project_id}
+        response = await self._make_request(
+            "DELETE", f"/v1/websites/pages/{page_id}", params=params
+        )
+        await self._handle_response(response)
+
+    async def recrawl_website_page(
+        self,
+        project_id: str,
+        page_id: str,
+    ) -> Dict[str, Any]:
+        """Trigger re-crawling of an existing page."""
+        params = {"project_id": project_id}
+        response = await self._make_request(
+            "POST", f"/v1/websites/pages/{page_id}/recrawl", params=params
         )
         return await self._handle_response(response)
 
@@ -612,6 +545,17 @@ class RAGServiceClient:
         )
         return await self._handle_response(response)
 
+    async def get_crawl_progress(
+        self,
+        project_id: str,
+        collection_id: str,
+    ) -> Dict[str, Any]:
+        """Get crawl progress for a collection."""
+        params = {"project_id": project_id, "collection_id": collection_id}
+        response = await self._make_request(
+            "GET", "/v1/websites/progress", params=params
+        )
+        return await self._handle_response(response)
     # QA Pairs endpoints
     async def create_qa_pair(
         self,

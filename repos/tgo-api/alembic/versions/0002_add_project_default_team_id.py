@@ -44,4 +44,3 @@ def upgrade() -> None:
 def downgrade() -> None:
     """Remove default_team_id column from api_projects table."""
     op.drop_column("api_projects", "default_team_id")
-

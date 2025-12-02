@@ -115,7 +115,7 @@ class AgnoTeamBuilder:
             "members": members,
             "name": context.team.name or "Supervisor Coordination Team",
             "role": "Coordinator",
-            "description": "自动化协调团队，负责分析、执行与汇总用户请求。",
+            "description": context.team.instruction,
             "instructions": TEAM_INSTRUCTIONS,
             "user_id": context.user_id,
             "session_id": context.session_id,

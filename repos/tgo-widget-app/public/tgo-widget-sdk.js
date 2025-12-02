@@ -41,21 +41,6 @@
   }
 
   // ------- Iframe lifecycle -------
-  function writeHTML(doc, html, lang){
-    try {
-      // Ensures a clean document (helps Firefox)
-      const w = doc.open();
-      w.write('<!DOCTYPE html>');
-      w.close();
-    } catch (err) {
-      console.error('[TGO SDK] Failed to write HTML', err);
-    }
-    doc.documentElement.innerHTML = html;
-    if(lang) doc.documentElement.setAttribute('lang', lang);
-  }
-
-  const UI_SHELL_HTML = '<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>TGO UI Shell</title><style>html,body{height:100%}body{margin:0;font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;background:#fff}#tgo-root{height:100%}</style></head><body><div id="tgo-root" aria-label="TGO Widget UI Root"></div></body></html>';
-
   function createUIFrame(baseUrl){
     // Outer container controls layout and animations (Intercom-like)
     const container = document.createElement('div');
@@ -83,7 +68,7 @@
       transition: 'width 320ms, height 320ms, max-height 320ms, left 240ms, right 240ms, top 240ms, bottom 240ms, transform 300ms cubic-bezier(0, 1.2, 1, 1), opacity 120ms ease-out'
     });
 
-    // UI iframe fills the container; no own transitions/transform
+    // UI iframe fills the container; load from same origin as SDK to avoid cross-origin issues
     const ui = createIframe({
       name: UI_IFRAME_NAME,
       title: 'TGO Widget',
@@ -91,9 +76,20 @@
         position: 'absolute', inset: '0', width: '100%', height: '100%',
         border: '0', display: 'block'
       },
-      allow: 'clipboard-read; clipboard-write',
+      // Note: clipboard permissions may not work in all contexts (e.g., file:// protocol)
+      // but we still request them for proper functionality when available
+      allow: 'clipboard-read *; clipboard-write *',
       loading: 'eager'
     });
+
+    // Set UI iframe src to a shell page from the same origin as the SDK
+    // This ensures Controller iframe can access UI iframe's document
+    try {
+      const uiUrl = new URL('./ui-shell.html', baseUrl);
+      ui.src = uiUrl.toString();
+    } catch (e) {
+      console.error('[TGO SDK] Failed to set UI iframe src', e);
+    }
 
     container.appendChild(ui);
     return { container, iframe: ui };
@@ -143,6 +139,9 @@
     window.addEventListener('mouseup', ()=>{ if(pressed){ pressed=false; applyTransform(); } });
     window.addEventListener('touchend', ()=>{ if(pressed){ pressed=false; applyTransform(); } });
 
+    // Track dark mode state for proper styling
+    let isDarkMode = false;
+
     // expose a small API to update visual state (do not set transform here)
     btn.setOpenVisual = (open)=>{
       if(open){
@@ -152,16 +151,16 @@
         btn.textContent = '✕';
         btn.style.background = 'var(--primary, #2f80ed)';
         btn.style.color = '#fff';
-        btn.style.boxShadow = '0 8px 20px rgba(0,0,0,.2)';
+        btn.style.boxShadow = isDarkMode ? '0 8px 20px rgba(0,0,0,.4)' : '0 8px 20px rgba(0,0,0,.2)';
         btn.style.opacity = '1';
       } else {
         btn.setAttribute('aria-label', 'Open chat');
         btn.textContent = '';
         // ensure logo is attached on closed state
         try { if (logoImg.parentNode !== btn) btn.appendChild(logoImg); } catch {}
-        btn.style.background = '#fff';
-        btn.style.color = '#111827';
-        btn.style.boxShadow = '0 8px 20px rgba(0,0,0,.2)';
+        btn.style.background = isDarkMode ? '#2d2d2d' : '#fff';
+        btn.style.color = isDarkMode ? '#f3f4f6' : '#111827';
+        btn.style.boxShadow = isDarkMode ? '0 8px 20px rgba(0,0,0,.4)' : '0 8px 20px rgba(0,0,0,.2)';
         btn.style.opacity = '1';
       }
       applyTransform();
@@ -178,6 +177,17 @@
           case 'bottom-right': default: btn.style.bottom = '16px'; btn.style.right = '16px'; break;
         }
       } catch(_){}
+    };
+
+    // Dark mode support for launcher
+    btn.setDarkMode = (dark)=>{
+      isDarkMode = !!dark;
+      // Only update if launcher is in closed state (showing logo)
+      const isClosed = logoImg.parentNode === btn;
+      if (isClosed) {
+        btn.style.background = isDarkMode ? '#2d2d2d' : '#fff';
+        btn.style.boxShadow = isDarkMode ? '0 8px 20px rgba(0,0,0,.4)' : '0 8px 20px rgba(0,0,0,.2)';
+      }
     };
     btn.setThemeColor = (color)=>{
       try {
@@ -207,11 +217,17 @@
       const ctrlUrl = new URL('./index.html', baseUrl);
       if (opts && opts.apiKey) ctrlUrl.searchParams.set('apiKey', String(opts.apiKey));
       ctrl.src = ctrlUrl.toString();
-    } catch (_) { /* keep about:blank if URL resolution fails */ }
+    } catch (e) {
+      console.error('[TGO SDK] Failed to create controller iframe', e);
+    }
 
     // Notify UI-ready once when the controller finishes its first load
     ctrl.addEventListener('load', ()=>{
-      try { window.frames[CTRL_IFRAME_NAME]?.postMessage({ type:'tgo:ui-ready', name:UI_IFRAME_NAME }, '*'); } catch(e) {}
+      try { 
+        window.frames[CTRL_IFRAME_NAME]?.postMessage({ type:'tgo:ui-ready', name:UI_IFRAME_NAME }, '*'); 
+      } catch(e) {
+        console.error('[TGO SDK] Failed to notify controller iframe', e);
+      }
     }, { once: true });
 
     return ctrl;
@@ -280,8 +296,8 @@
       state.uiIframe = iframe;
       document.body.appendChild(container);
 
-      // Write UI shell immediately (no reliance on load event)
-      try { writeHTML(iframe.contentDocument, UI_SHELL_HTML, 'en'); } catch(e) { console.error('[TGO SDK] Failed to write UI frame', e); }
+      // UI iframe now loads ui-shell.html from the same origin as the SDK
+      // This ensures Controller iframe can access UI iframe's document (same-origin)
 
       // Launcher
       const launcher = createLauncher();
@@ -289,17 +305,6 @@
       launcher.addEventListener('click', ()=>{ state.isOpen ? apiHide() : apiShow(); });
       document.body.appendChild(launcher);
       // ensure launcher reflects current state
-      // Set UI iframe URL with apiKey via history.replaceState (no navigation)
-      try {
-        if(opts && opts.apiKey && iframe && iframe.contentWindow){
-          let uiUrl;
-          try { uiUrl = new URL(iframe.contentWindow.location.href); } catch { uiUrl = new URL('./ui-shell.html', baseUrl); }
-          if(uiUrl.protocol === 'about:') { uiUrl = new URL('./ui-shell.html', baseUrl); }
-          uiUrl.searchParams.set('apiKey', String(opts.apiKey));
-          iframe.contentWindow.history.replaceState({}, '', uiUrl.toString());
-        }
-      } catch (_err) { /* ignore */ }
-
       try { launcher.setOpenVisual && launcher.setOpenVisual(state.isOpen); } catch {}
 
       // Start controller immediately after UI is prepared
@@ -362,6 +367,10 @@
         const d = e.data || {};
         if(d && d.type === 'tgo:hide') apiHide();
         if(d && d.type === 'tgo:show') apiShow();
+        if(d && d.type === 'tgo:theme-change'){
+          // Update launcher dark mode styling
+          try { state.launcher && state.launcher.setDarkMode && state.launcher.setDarkMode(d.isDark); } catch(_){}
+        }
         if(d && d.type === 'TGO_WIDGET_CONFIG' && d.payload){
           if (typeof d.payload.position === 'string') applyPosition(d.payload.position);
           if (typeof d.payload.theme_color === 'string') {
@@ -393,6 +402,7 @@
     if (__tgo_lastInstance) return __tgo_lastInstance;
     const script = getCurrentScript();
     const base = dirnameFromScript(script);
+    console.log('[TGO SDK] init', base);
     __tgo_lastInstance = inject(base, opts||{});
     return __tgo_lastInstance;
   }

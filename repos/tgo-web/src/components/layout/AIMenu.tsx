@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { LuBot, LuWrench } from 'react-icons/lu';
 import { AI_MENU_ITEMS } from '@/utils/constants';
 import type { NavigationItem } from '@/types';
+import OnboardingSidebarPanel from '@/components/onboarding/OnboardingSidebarPanel';
 
 interface AIMenuItemProps {
   item: NavigationItem;
@@ -60,6 +61,9 @@ const AIMenu: React.FC = () => {
           />
         ))}
       </nav>
+
+      {/* Onboarding Panel */}
+      <OnboardingSidebarPanel />
     </aside>
   );
 };

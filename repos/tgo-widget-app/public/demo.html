@@ -59,7 +59,7 @@
           var p = new URLSearchParams(window.location.search);
           var k = p.get('api_key') || p.get('apiKey') || p.get('platform_api_key');
           var s = document.createElement('script');
-          s.src = './tgo-widget-sdk.js' + (k ? ('?api_key=' + encodeURIComponent(k)) : '');
+          s.src = ' http://localhost:5174/tgo-widget-sdk.js' + (k ? ('?api_key=' + encodeURIComponent(k)) : '');
           s.async = true; document.head.appendChild(s);
         } catch(_) { /* ignore */ }
       })();

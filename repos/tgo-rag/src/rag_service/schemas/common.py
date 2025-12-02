@@ -65,7 +65,7 @@ class PaginationMetadata(BaseModel):
         ...,
         description="Whether there are more items available"
     )
-    has_previous: bool = Field(
+    has_prev: bool = Field(
         ...,
         description="Whether there are previous items available"
     )

@@ -93,12 +93,6 @@ class QAPair(Base, UUIDMixin, TimestampMixin, SoftDeleteMixin):
         doc="Source type: manual, import, ai_generated",
     )
 
-    source_reference: Mapped[Optional[str]] = mapped_column(
-        Text,
-        nullable=True,
-        doc="Reference to the source (file path, URL, etc.)",
-    )
-
     # Status tracking
     status: Mapped[str] = mapped_column(
         String(64),

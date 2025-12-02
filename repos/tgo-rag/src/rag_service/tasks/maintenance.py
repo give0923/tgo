@@ -59,8 +59,10 @@ def cleanup_failed_tasks() -> Dict[str, Any]:
             result = loop.run_until_complete(_cleanup_failed_tasks_async())
             return result
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
-            
+
     except Exception as e:
         logger.error(f"Maintenance task failed: {e}")
         return {
@@ -235,8 +237,10 @@ def health_check() -> Dict[str, Any]:
             result = loop.run_until_complete(_health_check_async())
             return result
         finally:
+            # Clean up database connections before closing the loop
+            reset_db_state()
             loop.close()
-            
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return {

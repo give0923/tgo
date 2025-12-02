@@ -17,10 +17,6 @@ from .search import SearchResponse, SearchResult, SearchMetadata
 from .websites import (
     CrawlOptionsSchema,
     CrawlProgressSchema,
-    WebsiteCrawlCreateResponse,
-    WebsiteCrawlJobListResponse,
-    WebsiteCrawlJobResponse,
-    WebsiteCrawlRequest,
     WebsitePageListResponse,
     WebsitePageResponse,
 )
@@ -61,8 +57,6 @@ __all__ = [
     "CrawlOptionsSchema",
     "CrawlProgressSchema",
     "WebsiteCrawlCreateResponse",
-    "WebsiteCrawlJobListResponse",
-    "WebsiteCrawlJobResponse",
     "WebsiteCrawlRequest",
     "WebsitePageListResponse",
     "WebsitePageResponse",

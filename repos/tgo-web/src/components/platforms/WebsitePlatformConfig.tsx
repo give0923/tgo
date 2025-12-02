@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Download } from 'lucide-react';
 import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import type { Platform, PlatformConfig } from '@/types';
 import { usePlatformStore } from '@/stores/platformStore';
@@ -195,6 +196,132 @@ const WebsitePlatformConfig: React.FC<WebsitePlatformConfigProps> = ({ platform 
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [platform.id]);
+
+  // Generate and download example HTML file with embedded API key
+  const handleDownloadExample = useCallback(() => {
+    const scriptUrl = getWidgetScriptBase();
+    const platformDisplayName = platform.display_name || platform.name || 'TGO Widget';
+
+    const htmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${platformDisplayName} - ${t('platforms.website.download.demoTitle', 'Widget Demo')}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #fff;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        .info-box {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 2rem;
+            text-align: left;
+        }
+        .info-box h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+        .info-box code {
+            display: block;
+            background: rgba(0,0,0,0.2);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            word-break: break-all;
+            margin-top: 0.5rem;
+        }
+        .warning {
+            background: rgba(255,193,7,0.2);
+            border-left: 4px solid #ffc107;
+            padding: 12px 16px;
+            margin-top: 1.5rem;
+            border-radius: 0 8px 8px 0;
+            font-size: 0.9rem;
+        }
+        .arrow {
+            position: fixed;
+            bottom: 100px;
+            right: 100px;
+            font-size: 3rem;
+            animation: bounce 1s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎉 ${t('platforms.website.download.welcomeTitle', 'Welcome!')}</h1>
+        <p>${t('platforms.website.download.welcomeDesc', 'Your TGO chat widget is now integrated! Click the chat button in the bottom-right corner to start a conversation.')}</p>
+
+        <div class="info-box">
+            <h3>📋 ${t('platforms.website.download.integrationCode', 'Integration Code')}</h3>
+            <code>&lt;script src="${scriptUrl}?api_key=${apiKey}" async&gt;&lt;/script&gt;</code>
+
+            <div class="warning">
+                ⚠️ ${t('platforms.website.download.securityWarning', 'Security Notice: This file contains your API key. Do not share it publicly or commit it to public repositories.')}
+            </div>
+        </div>
+    </div>
+
+    <div class="arrow">👇</div>
+
+    <!-- TGO Widget SDK - Your API Key is pre-configured -->
+    <script src="${scriptUrl}?api_key=${apiKey}" async></script>
+</body>
+</html>`;
+
+    // Create and trigger download
+    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `tgo-widget-demo-${platform.id.slice(0, 8)}.html`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showSuccess(
+      showToast,
+      t('platforms.website.download.success', '下载成功'),
+      t('platforms.website.download.successDesc', '示例文件已下载，请在浏览器中打开查看效果')
+    );
+  }, [apiKey, platform.id, platform.display_name, platform.name, showToast, t]);
 
   const handleChange = (patch: Partial<WebsiteWidgetConfig>) => {
     setFormValues(v => ({ ...v, ...patch }));
@@ -504,20 +631,10 @@ const WebsitePlatformConfig: React.FC<WebsitePlatformConfigProps> = ({ platform 
               <p className="text-xs text-gray-500 dark:text-gray-400" dangerouslySetInnerHTML={{ __html: t('platforms.website.embed.instruction', '将以下代码复制并粘贴到您网站的 <code>&lt;head&gt;</code> 或 <code>&lt;body&gt;</code> 中：') }} />
               {(() => {
                 const snippet = `<script src="${getWidgetScriptBase()}?api_key=${apiKey}" async></script>`;
-                // const demoUrl = `${getWidgetDemoUrl()}${apiKey ? `?api_key=${encodeURIComponent(apiKey)}` : ''}`;
                 return (
                   <div className="relative">
                     <pre className="text-xs bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-md p-3 overflow-x-auto whitespace-pre-wrap dark:text-gray-300">{snippet}</pre>
                     <div className="absolute top-2 right-2 flex gap-2">
-                      {/* <a
-                        href={demoUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={(e) => { if (!apiKey) { e.preventDefault(); } }}
-                        className={`px-2 py-1 text-xs rounded ${apiKey ? 'bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'}`}
-                      >
-                        {t('platforms.website.buttons.testIntegration', '测试集成')}
-                      </a> */}
                       <button
                         type="button"
                         className="px-2 py-1 text-xs rounded bg-blue-600 dark:bg-blue-500 text-white hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50"
@@ -531,8 +648,23 @@ const WebsitePlatformConfig: React.FC<WebsitePlatformConfigProps> = ({ platform 
                     </div>
                   </div>
                 );
-
               })()}
+
+              {/* Download Example Button */}
+              <div className="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                <div className="text-xs text-gray-500 dark:text-gray-400">
+                  {t('platforms.website.download.hint', '下载完整的集成示例文件，包含预配置的 API Key')}
+                </div>
+                <button
+                  type="button"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-md bg-green-600 dark:bg-green-500 text-white hover:bg-green-700 dark:hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  onClick={handleDownloadExample}
+                  disabled={!apiKey}
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  {t('platforms.website.buttons.downloadExample', '下载示例')}
+                </button>
+              </div>
             </div>
           )}
         </div>

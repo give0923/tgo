@@ -390,21 +390,50 @@ class CollectionSearchRequest(BaseSchema):
 
 
 class SearchResult(BaseSchema):
-    """Schema for individual search result."""
-    
-    id: str = Field(..., description="Document unique identifier")
-    content: str = Field(..., description="Document content")
-    score: float = Field(..., description="Relevance score (0-1)")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Document metadata")
+    """Schema for individual search results."""
+
+    document_id: UUID = Field(..., description="Document unique identifier")
+    file_id: Optional[UUID] = Field(None, description="Associated file ID")
+    collection_id: Optional[UUID] = Field(None, description="Associated collection ID")
+    relevance_score: float = Field(
+        ..., ge=0, le=1, description="Relevance score (0-1, higher is more relevant)"
+    )
+    content_preview: str = Field(..., description="Preview of the document content")
+    document_title: Optional[str] = Field(None, description="Document title or heading")
+    content_type: str = Field(
+        ...,
+        description="Type of content",
+        examples=["paragraph", "heading", "table", "list", "code", "image", "metadata"]
+    )
+    chunk_index: Optional[int] = Field(None, description="Index of this chunk within the document")
+    page_number: Optional[int] = Field(None, description="Page number in original document")
+    section_title: Optional[str] = Field(None, description="Section or chapter title")
+    tags: Optional[Dict[str, Any]] = Field(None, description="Document tags and metadata")
+    created_at: datetime = Field(..., description="Document creation timestamp")
+
+
+class SearchMetadata(BaseSchema):
+    """Schema for search metadata."""
+
+    query: str = Field(..., description="Original search query")
+    total_results: int = Field(..., ge=0, description="Total number of results found")
+    returned_results: int = Field(..., ge=0, description="Number of results returned in this response")
+    search_time_ms: int = Field(..., ge=0, description="Search execution time in milliseconds")
+    filters_applied: Optional[Dict[str, Any]] = Field(
+        None, description="Filters that were applied to the search"
+    )
+    search_type: str = Field(
+        default="semantic",
+        description="Type of search performed",
+        examples=["semantic", "keyword", "hybrid"]
+    )
 
 
 class SearchResponse(BaseSchema):
-    """Schema for search response."""
-    
-    results: List[SearchResult] = Field(..., description="Search results")
-    total: int = Field(..., description="Total number of matching documents")
-    query: str = Field(..., description="Original search query")
-    took: float = Field(..., description="Search execution time in seconds")
+    """Schema for search responses."""
+
+    results: List[SearchResult] = Field(..., description="List of search results")
+    search_metadata: SearchMetadata = Field(..., description="Search execution metadata")
 
 
 # File Schemas  
@@ -548,98 +577,45 @@ class CrawlOptionsSchema(BaseSchema):
     )
 
 
-class WebsiteCrawlRequest(BaseSchema):
-    """Schema for creating a new website crawl job."""
-
-    start_url: str = Field(
-        ...,
-        min_length=1,
-        max_length=2083,
-        description="Starting URL for the crawl",
-        examples=["https://docs.python.org/3/"]
-    )
-    max_pages: Optional[int] = Field(
-        100, ge=1, le=10000, description="Maximum number of pages to crawl"
-    )
-    max_depth: Optional[int] = Field(
-        3, ge=1, le=10, description="Maximum crawl depth from start URL"
-    )
-    include_patterns: Optional[List[str]] = Field(
-        None, description="URL patterns to include (glob patterns)"
-    )
-    exclude_patterns: Optional[List[str]] = Field(
-        None, description="URL patterns to exclude (glob patterns)"
-    )
-    options: Optional[CrawlOptionsSchema] = Field(
-        None, description="Additional crawl options"
-    )
-
-
-class CrawlProgressSchema(BaseSchema):
-    """Schema for crawl job progress information."""
-
-    pages_discovered: int = Field(..., ge=0, description="Number of pages discovered")
-    pages_crawled: int = Field(..., ge=0, description="Number of pages crawled")
-    pages_processed: int = Field(..., ge=0, description="Number of pages processed")
-    pages_failed: int = Field(..., ge=0, description="Number of pages that failed")
-    progress_percent: float = Field(
-        ..., ge=0, le=100, description="Overall progress percentage"
-    )
-
-
-class WebsiteCrawlJobResponse(BaseSchema):
-    """Schema for website crawl job API responses."""
-
-    id: UUID = Field(..., description="Crawl job unique identifier")
-    collection_id: UUID = Field(..., description="Target collection ID")
-    start_url: str = Field(..., description="Starting URL for the crawl")
-    max_pages: int = Field(..., description="Maximum number of pages to crawl")
-    max_depth: int = Field(..., description="Maximum crawl depth")
-    include_patterns: Optional[List[str]] = Field(None, description="URL patterns to include")
-    exclude_patterns: Optional[List[str]] = Field(None, description="URL patterns to exclude")
-    status: str = Field(
-        ..., description="Job status: pending, crawling, processing, completed, failed, cancelled"
-    )
-    progress: CrawlProgressSchema = Field(..., description="Crawl progress information")
-    crawl_options: Optional[Dict[str, Any]] = Field(None, description="Crawl configuration options")
-    error_message: Optional[str] = Field(None, description="Error message if job failed")
-    created_at: datetime = Field(..., description="Job creation timestamp")
-    updated_at: datetime = Field(..., description="Job last update timestamp")
-
-
-class WebsiteCrawlCreateResponse(BaseSchema):
-    """Schema for crawl job creation response."""
-
-    job_id: UUID = Field(..., description="Created crawl job ID")
-    status: str = Field(..., description="Initial job status")
-    start_url: str = Field(..., description="Starting URL")
-    collection_id: UUID = Field(..., description="Target collection ID")
-    created_at: datetime = Field(..., description="Job creation timestamp")
-    message: str = Field(..., description="Status message")
-
-
-class WebsiteCrawlJobListResponse(BaseSchema):
-    """Schema for paginated crawl job list responses."""
-
-    data: List[WebsiteCrawlJobResponse] = Field(..., description="List of crawl jobs")
-    pagination: PaginationMetadata = Field(..., description="Pagination metadata")
-
+# =============================================================================
+# Website Pages Schemas (New API)
+# =============================================================================
 
 class WebsitePageResponse(BaseSchema):
     """Schema for website page API responses."""
 
     id: UUID = Field(..., description="Page unique identifier")
-    crawl_job_id: UUID = Field(..., description="Associated crawl job ID")
+    collection_id: UUID = Field(..., description="Associated collection ID")
+    parent_page_id: Optional[UUID] = Field(
+        None, description="Parent page ID (for hierarchical structure)"
+    )
     url: str = Field(..., description="Page URL")
     title: Optional[str] = Field(None, description="Page title")
-    depth: int = Field(..., description="Crawl depth from start URL")
+    depth: int = Field(..., description="Crawl depth from root page")
     content_length: int = Field(..., description="Content length in characters")
+    meta_description: Optional[str] = Field(None, description="Page meta description")
     status: str = Field(
-        ..., description="Page status: pending, fetched, extracted, processed, failed"
+        ...,
+        description="Page status: pending, crawling, fetched, extracted, processing, processed, failed, skipped"
+    )
+    crawl_source: Optional[str] = Field(
+        None, description="How this page was added: initial, discovered, manual, deep_crawl"
     )
     http_status_code: Optional[int] = Field(None, description="HTTP response status code")
     file_id: Optional[UUID] = Field(None, description="Associated file ID (after processing)")
+    discovered_links: Optional[List[Dict[str, Any]]] = Field(
+        None, description="Links discovered on this page"
+    )
     error_message: Optional[str] = Field(None, description="Error message if processing failed")
+    tree_completed: bool = Field(
+        False, description="Whether this page and all its descendant pages have been processed or skipped"
+    )
+    has_children: bool = Field(
+        False, description="Whether this page has any child pages"
+    )
+    children: Optional[List["WebsitePageResponse"]] = Field(
+        None, description="Child pages (populated when tree_depth > 0)"
+    )
     created_at: datetime = Field(..., description="Page creation timestamp")
     updated_at: datetime = Field(..., description="Page last update timestamp")
 
@@ -651,15 +627,34 @@ class WebsitePageListResponse(BaseSchema):
     pagination: PaginationMetadata = Field(..., description="Pagination metadata")
 
 
-# Add page to crawl job schemas
 class AddPageRequest(BaseSchema):
-    """Schema for adding a single page to crawl queue."""
+    """Schema for adding a page to crawl."""
 
     url: str = Field(
         ...,
         min_length=1,
         max_length=2083,
-        description="URL of the page to add"
+        description="URL of the page to add",
+        examples=["https://docs.python.org/3/"]
+    )
+    parent_page_id: Optional[UUID] = Field(
+        None,
+        description="Parent page ID. If provided, the new page will be a child of this page with depth = parent.depth + 1"
+    )
+    max_depth: int = Field(
+        0,
+        ge=0,
+        le=10,
+        description="Maximum crawl depth from this page (0 = only this page)"
+    )
+    include_patterns: Optional[List[str]] = Field(
+        None, description="URL patterns to include (glob patterns)"
+    )
+    exclude_patterns: Optional[List[str]] = Field(
+        None, description="URL patterns to exclude (glob patterns)"
+    )
+    options: Optional[CrawlOptionsSchema] = Field(
+        None, description="Crawl options (overrides collection defaults)"
     )
 
 
@@ -667,15 +662,15 @@ class AddPageResponse(BaseSchema):
     """Schema for add page response."""
 
     success: bool = Field(..., description="Whether the page was added successfully")
-    page_id: Optional[UUID] = Field(None, description="ID of the newly created page (if added)")
+    page_id: Optional[UUID] = Field(
+        None, description="ID of the newly created page (if added)"
+    )
     message: str = Field(..., description="Status message")
     status: str = Field(
-        ...,
-        description="Result status: 'added', 'exists', or 'crawling'"
+        ..., description="Result status: 'added', 'exists', 'crawling'"
     )
 
 
-# Crawl deeper schemas
 class CrawlDeeperRequest(BaseSchema):
     """Schema for deep crawl request from an existing page."""
 
@@ -686,12 +681,10 @@ class CrawlDeeperRequest(BaseSchema):
         description="Maximum crawl depth from this page"
     )
     include_patterns: Optional[List[str]] = Field(
-        None,
-        description="URL patterns to include (fnmatch style)"
+        None, description="URL patterns to include (fnmatch style)"
     )
     exclude_patterns: Optional[List[str]] = Field(
-        None,
-        description="URL patterns to exclude (fnmatch style)"
+        None, description="URL patterns to exclude (fnmatch style)"
     )
 
 
@@ -702,14 +695,26 @@ class CrawlDeeperResponse(BaseSchema):
     source_page_id: UUID = Field(..., description="ID of the source page")
     pages_added: int = Field(..., description="Number of new pages added to crawl queue")
     pages_skipped: int = Field(
-        ...,
-        description="Number of pages skipped (already exists or crawling)"
+        ..., description="Number of pages skipped (already exists or crawling)"
     )
     links_found: int = Field(..., description="Total number of links found in the page")
     message: str = Field(..., description="Status message")
     added_urls: Optional[List[str]] = Field(
-        None,
-        description="URLs that were added to crawl queue"
+        None, description="URLs that were added to crawl queue"
+    )
+
+
+class CrawlProgressSchema(BaseSchema):
+    """Schema for collection crawl progress (computed from pages)."""
+
+    total_pages: int = Field(..., ge=0, description="Total number of pages in collection")
+    pages_pending: int = Field(..., ge=0, description="Number of pages pending crawl")
+    pages_crawled: int = Field(..., ge=0, description="Number of pages successfully crawled")
+    pages_processing: int = Field(..., ge=0, description="Number of pages being processed")
+    pages_processed: int = Field(..., ge=0, description="Number of pages processed into documents")
+    pages_failed: int = Field(..., ge=0, description="Number of pages that failed to process")
+    progress_percent: float = Field(
+        ..., ge=0, le=100, description="Overall progress percentage"
     )
 
 

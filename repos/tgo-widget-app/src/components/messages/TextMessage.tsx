@@ -1,4 +1,4 @@
-import { renderMarkdown } from '../../utils/markdown'
+import MarkdownContent from '../MarkdownContent'
 
 export interface TextMessageProps {
   content: string
@@ -6,6 +6,6 @@ export interface TextMessageProps {
 
 export default function TextMessage({ content }: TextMessageProps){
   if (!content) return null
-  return <div dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+  return <MarkdownContent content={content} />
 }
 

@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     diagnostics,
     docs,
     email,
+    onboarding,
     platforms,
     projects,
     wukongim,
@@ -46,6 +47,13 @@ api_router.include_router(
     projects.router,
     prefix="/projects",
     tags=["Projects"]
+)
+
+# Onboarding endpoints (JWT auth, project_id from current_user)
+api_router.include_router(
+    onboarding.router,
+    prefix="/onboarding",
+    tags=["Onboarding"]
 )
 
 api_router.include_router(

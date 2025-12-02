@@ -194,6 +194,7 @@ async def get_project_ai_config(
     """Get default AI model configuration for a project.
 
     If a record does not exist yet, create an empty configuration and return it (HTTP 200).
+    Validates that referenced provider IDs exist and are active; if not, returns None for those fields.
     """
     # Only allow accessing own project's config
     if current_user.project_id != project_id:
@@ -203,7 +204,7 @@ async def get_project_ai_config(
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    from app.models import ProjectAIConfig  # local import to avoid circular
+    from app.models import ProjectAIConfig, AIProvider  # local import to avoid circular
 
     cfg = (
         db.query(ProjectAIConfig)
@@ -217,7 +218,69 @@ async def get_project_ai_config(
         db.commit()
         db.refresh(cfg)
 
-    return ProjectAIConfigResponse.model_validate(cfg)
+    # Build response from config
+    response_data = {
+        "id": cfg.id,
+        "project_id": cfg.project_id,
+        "default_chat_provider_id": cfg.default_chat_provider_id,
+        "default_chat_model": cfg.default_chat_model,
+        "default_embedding_provider_id": cfg.default_embedding_provider_id,
+        "default_embedding_model": cfg.default_embedding_model,
+        "created_at": cfg.created_at,
+        "updated_at": cfg.updated_at,
+        "deleted_at": cfg.deleted_at,
+        "last_synced_at": cfg.last_synced_at,
+        "sync_status": cfg.sync_status,
+        "sync_error": cfg.sync_error,
+    }
+
+    # Collect provider IDs to validate in a single query
+    provider_ids_to_check = []
+    if cfg.default_chat_provider_id:
+        provider_ids_to_check.append(cfg.default_chat_provider_id)
+    if cfg.default_embedding_provider_id:
+        provider_ids_to_check.append(cfg.default_embedding_provider_id)
+
+    # Query all referenced providers at once (avoid N+1)
+    valid_provider_ids = set()
+    if provider_ids_to_check:
+        valid_providers = (
+            db.query(AIProvider.id)
+            .filter(
+                AIProvider.id.in_(provider_ids_to_check),
+                AIProvider.project_id == project_id,
+                AIProvider.is_active == True,  # noqa: E712
+                AIProvider.deleted_at.is_(None),
+            )
+            .all()
+        )
+        valid_provider_ids = {p.id for p in valid_providers}
+
+    # Validate chat provider
+    if cfg.default_chat_provider_id and cfg.default_chat_provider_id not in valid_provider_ids:
+        logger.warning(
+            "Invalid or inactive default_chat_provider_id detected",
+            extra={
+                "project_id": str(project_id),
+                "default_chat_provider_id": str(cfg.default_chat_provider_id),
+            }
+        )
+        response_data["default_chat_provider_id"] = None
+        response_data["default_chat_model"] = None
+
+    # Validate embedding provider
+    if cfg.default_embedding_provider_id and cfg.default_embedding_provider_id not in valid_provider_ids:
+        logger.warning(
+            "Invalid or inactive default_embedding_provider_id detected",
+            extra={
+                "project_id": str(project_id),
+                "default_embedding_provider_id": str(cfg.default_embedding_provider_id),
+            }
+        )
+        response_data["default_embedding_provider_id"] = None
+        response_data["default_embedding_model"] = None
+
+    return ProjectAIConfigResponse.model_validate(response_data)
 
 
 @router.put("/{project_id}/ai-config", response_model=ProjectAIConfigResponse)

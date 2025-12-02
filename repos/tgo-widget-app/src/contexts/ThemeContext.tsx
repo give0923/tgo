@@ -1,6 +1,20 @@
 import React, { createContext, useContext, useMemo, useState, useCallback, useEffect } from 'react'
 import type { ThemeMode } from '../utils/url'
 
+// Get the target document (UI iframe's document when running in controller iframe)
+function getTargetDocument(): Document {
+  try {
+    const isController = window.name === 'tgo-controller-frame'
+    if (isController && window.parent && 'frames' in window.parent) {
+      const uiFrame = (window.parent as any).frames['tgo-ui-frame'] as Window | undefined
+      if (uiFrame && uiFrame.document) return uiFrame.document
+    }
+  } catch (e) {
+    // cross-origin: fall back to current document
+  }
+  return document
+}
+
 // Dark mode color palette
 export const darkTheme = {
   // Backgrounds
@@ -11,6 +25,8 @@ export const darkTheme = {
   bgBubbleAgent: '#3d3d3d',
   bgBubbleUser: 'var(--primary)',
   bgHover: '#404040',
+  bgCode: '#2d2d2d',
+  bgCodeInline: 'rgba(255,255,255,0.1)',
 
   // Text colors
   textPrimary: '#f3f4f6',
@@ -37,6 +53,8 @@ export const lightTheme = {
   bgBubbleAgent: '#f5f6f7',
   bgBubbleUser: 'var(--primary)',
   bgHover: '#f3f4f6',
+  bgCode: '#f6f8fa',
+  bgCodeInline: 'rgba(0,0,0,0.05)',
 
   // Text colors
   textPrimary: '#111827',
@@ -71,7 +89,8 @@ const ThemeContext = createContext<ThemeContextValue>({
 
 // Helper to apply CSS variables to document root
 function applyThemeToRoot(theme: Theme) {
-  const root = document.documentElement
+  const targetDoc = getTargetDocument()
+  const root = targetDoc.documentElement
   if (!root) return
   try {
     root.style.setProperty('--bg-primary', theme.bgPrimary)
@@ -80,6 +99,8 @@ function applyThemeToRoot(theme: Theme) {
     root.style.setProperty('--bg-input', theme.bgInput)
     root.style.setProperty('--bg-bubble-agent', theme.bgBubbleAgent)
     root.style.setProperty('--bg-hover', theme.bgHover)
+    root.style.setProperty('--bg-code', theme.bgCode)
+    root.style.setProperty('--bg-code-inline', theme.bgCodeInline)
     root.style.setProperty('--text-primary', theme.textPrimary)
     root.style.setProperty('--text-secondary', theme.textSecondary)
     root.style.setProperty('--text-muted', theme.textMuted)
@@ -87,6 +108,8 @@ function applyThemeToRoot(theme: Theme) {
     root.style.setProperty('--border-secondary', theme.borderSecondary)
     root.style.setProperty('--link-color', theme.linkColor)
     root.style.setProperty('--error-color', theme.errorColor)
+    // Also update body background
+    targetDoc.body.style.background = theme.bgPrimary
   } catch {}
 }
 
@@ -103,7 +126,11 @@ export function ThemeProvider({ initialMode, children }: { initialMode: ThemeMod
   // Apply CSS variables whenever mode changes
   useEffect(() => {
     applyThemeToRoot(theme)
-  }, [theme])
+    // Notify SDK (parent window) about theme change for launcher styling
+    try {
+      window.parent?.postMessage({ type: 'tgo:theme-change', isDark: mode === 'dark' }, '*')
+    } catch {}
+  }, [theme, mode])
 
   const value = useMemo(() => ({
     mode,

@@ -68,7 +68,7 @@ export const transformCollectionToKnowledgeBaseItem = (collection: CollectionRes
     views: 0, // Default views count
     fileCount: collection.file_count, // Default file count
     icon: collection.collection_metadata?.icon || undefined, // Extract icon from metadata
-    type: collection.collection_type === 'website' ? 'website' : 'file', // Map collection_type to type
+    type: collection.collection_type, // Map collection_type directly to type
     crawlConfig, // Website crawl configuration
   };
 };
