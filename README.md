@@ -189,3 +189,32 @@ Docker 会自动选择与您系统架构匹配的镜像，无需额外配置。�
 | 总部署时间 | ~15-45 分钟 | ~3-6 分钟 | **5-7x** |
 
 注意：如果你将 bootstrap.sh 或 bootstrap_cn.sh 托管到自有域名，请把上述 URL 替换为你的地址即可。
+
+# 配置域名和 SSL（https） 证书
+
+```
+# 配置域名
+
+# 配置web域名
+./tgo.sh config web_domain www.example.com
+# 配置widget域名
+./tgo.sh config widget_domain widget.example.com
+# 配置api域名
+./tgo.sh config api_domain api.example.com
+# 配置websocket域名
+./tgo.sh config ws_domain ws.example.com
+
+# 配置SSL证书
+./tgo.sh config ssl_mode auto
+# 配置Let's Encrypt邮箱
+./tgo.sh config ssl_email admin@example.com
+# 应用配置
+./tgo.sh config apply
+
+# 自动申请证书
+sudo ./tgo.sh config setup_letsencrypt
+
+# 重启服务
+./tgo.sh up
+
+```
