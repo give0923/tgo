@@ -122,9 +122,16 @@ export class WuKongIMService {
       if (!res.ok) throw new Error(`route HTTP ${res.status}`)
       let data: any
       try { data = await res.json() } catch { throw new Error('invalid JSON') }
+
+      // Priority 1: Use wss_addr if present and non-empty (highest priority)
+      if (data?.wss_addr && typeof data.wss_addr === 'string' && data.wss_addr.trim()) {
+        return data.wss_addr.trim()
+      }
+
+      // Priority 2: Fallback to existing logic
       const isHttps = typeof window !== 'undefined' && window.location?.protocol === 'https:'
       let addr: any = data?.ws_addr ?? data?.ws ?? data?.ws_url ?? data?.wsAddr ?? data?.websocket
-      if (!addr && isHttps) addr = data?.wss_addr ?? data?.wss ?? data?.ws_addr_tls
+      if (!addr && isHttps) addr = data?.wss ?? data?.ws_addr_tls
       if (!addr || typeof addr !== 'string') throw new Error('missing ws address')
       let wsAddr = String(addr)
       if (/^http(s)?:/i.test(wsAddr)) wsAddr = wsAddr.replace(/^http/i, 'ws')
