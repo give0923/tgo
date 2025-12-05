@@ -39,6 +39,11 @@ Run the following command on your server to check requirements, clone the reposi
 REF=latest curl -fsSL https://raw.githubusercontent.com/tgoai/tgo/main/bootstrap.sh | bash
 ```
 
+> **For users in China** (using Gitee and Aliyun mirrors):
+> ```bash
+> REF=latest curl -fsSL https://gitee.com/tgoai/tgo/raw/main/bootstrap_cn.sh | bash
+> ```
+
 ---
 
 For more details, please visit the [Documentation](https://docs.tgo.ai).
