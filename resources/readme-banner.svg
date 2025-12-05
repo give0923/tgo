@@ -5,24 +5,42 @@
       <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
     </linearGradient>
   </defs>
+  
+  <style>
+    @keyframes floatUp {
+      0% { transform: translateY(100px); opacity: 0; }
+      100% { transform: translateY(0); opacity: 1; }
+    }
+    @keyframes slideLeft {
+      0% { transform: translateX(100px); opacity: 0; }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+    .stem { 
+      animation: floatUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; 
+    }
+    .crossbar { 
+      opacity: 0;
+      animation: slideLeft 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 0.4s forwards; 
+    }
+  </style>
 
   <!-- Background -->
   <rect width="800" height="200" rx="16" fill="url(#bg)" />
 
   <!-- Content Group: Centered horizontally approx -->
-  <!-- Logo original 512x512. Scale to ~80px. Scale ~ 0.156 -->
-  <!-- Logo Position: x=140, y=60 (vertically centered: (200-80)/2 = 60) -->
+  <!-- Logo Position: x=140, y=60 -->
   
   <g transform="translate(140, 60)">
      <g transform="scale(0.156)">
-       <path fill="#1877F2" fill-rule="evenodd" clip-rule="evenodd" d="M160 60V180H100V270H160V330C160 407.32 222.68 470 300 470H350V380H300C272.386 380 250 357.614 250 330V270H350V180H250V60H160Z"/>
+       <!-- Stem (Vertical part + Curve) -->
+       <path class="stem" fill="#1877F2" fill-rule="evenodd" clip-rule="evenodd" d="M160 60 V330 C160 407.32 222.68 470 300 470 H350 V380 H300 C272.386 380 250 357.614 250 330 V60 H160 Z"/>
+       <!-- Crossbar (Horizontal line) -->
+       <path class="crossbar" fill="#1877F2" fill-rule="evenodd" clip-rule="evenodd" d="M100 180 H350 V270 H100 Z"/>
      </g>
   </g>
 
   <!-- Text -->
-  <!-- Position: x=240 (Logo 140+80 + gap 20), y=110 (baseline) -->
   <text x="240" y="110" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-weight="bold" font-size="36" fill="#1e293b" letter-spacing="0.05em">
     组建智能体团队为客户服务
   </text>
 </svg>
-
