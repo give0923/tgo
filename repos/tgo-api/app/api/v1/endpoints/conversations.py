@@ -157,7 +157,7 @@ async def _build_channels_for_conversations(
         
         channel_info = ChannelInfo(
             name=name,
-            avatar=visitor.avatar_url or "",
+            avatar=visitor_payload.avatar_url or "",
             channel_id=channel_id,
             channel_type=channel_type,
             entity_type="visitor",
