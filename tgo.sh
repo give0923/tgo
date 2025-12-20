@@ -1023,7 +1023,7 @@ show_install_complete_message() {
   echo "  • Restart:        ./tgo.sh up"
   echo "  • Upgrade:        ./tgo.sh upgrade"
   echo ""
-  echo "Documentation: https://docs.tgo.ai"
+  echo "Documentation: https://tgo.ai"
   echo ""
 
   # Real client IP notice (for visitor registration / analytics)

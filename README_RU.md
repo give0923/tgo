@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://tgo.ai">Веб-сайт</a> | <a href="https://docs.tgo.ai">Документация</a>
+  <a href="https://tgo.ai">Веб-сайт</a> | <a href="https://tgo.ai">Документация</a>
 </p>
 
 ## Введение в TGO
@@ -81,4 +81,4 @@ REF=latest curl -fsSL https://raw.githubusercontent.com/tgoai/tgo/main/bootstrap
 
 ---
 
-Для получения дополнительной информации посетите [Документацию](https://docs.tgo.ai).
+Для получения дополнительной информации посетите [Документацию](https://tgo.ai).

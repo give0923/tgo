@@ -288,14 +288,15 @@ const renderMarkdownToHtml = (markdown: string, allowWidgetPlaceholders = false)
 
   const parsed = marked.parse(processedMarkdown) as string;
   
-  // Configure DOMPurify to allow data-ui-widget attribute when needed
-  const sanitizeConfig: { USE_PROFILES: { html: boolean }; ADD_ATTR?: string[] } = { 
+  // Configure DOMPurify
+  const sanitizeConfig: any = { 
     USE_PROFILES: { html: true },
+    ADD_ATTR: ['target', 'rel'],
   };
   
   if (allowWidgetPlaceholders) {
     // Allow data-ui-widget attribute for widget placeholders
-    sanitizeConfig.ADD_ATTR = ['data-ui-widget'];
+    sanitizeConfig.ADD_ATTR.push('data-ui-widget');
   }
   
   const sanitized = typeof window !== 'undefined'

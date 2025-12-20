@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <a href="https://tgo.ai">官网</a> | <a href="https://docs.tgo.ai">文档</a>
+  <a href="https://tgo.ai">官网</a> | <a href="https://tgo.ai">文档</a>
 </p>
 
 ## TGO 介绍
@@ -86,4 +86,4 @@ REF=latest curl -fsSL https://raw.githubusercontent.com/tgoai/tgo/main/bootstrap
 
 ---
 
-更多详细信息请参阅 [文档](https://docs.tgo.ai)。
+更多详细信息请参阅 [文档](https://tgo.ai)。
