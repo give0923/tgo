@@ -27,6 +27,13 @@ const config: Config = {
 
   onBrokenLinks: 'throw',
 
+  scripts: [
+    {
+      src: 'https://widget.tgo-ai.com/tgo-widget-sdk.js?api_key=ak_live_qIMhQRx5klxuRHZkDke9HqZC3wi9sB43',
+      async: true,
+    },
+  ],
+
   // 多语言支持
   i18n: {
     defaultLocale: 'zh-Hans',
