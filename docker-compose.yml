@@ -46,7 +46,7 @@ services:
       WK_EXTERNAL_TCPADDR: ${WK_EXTERNAL_TCPADDR:-}
       WK_EXTERNAL_WSADDR: ${WK_EXTERNAL_WSADDR:-}
       WK_EXTERNAL_WSSADDR: ${WK_EXTERNAL_WSSADDR:-}
-      WK_TOKENAUTHON: ${WK_TOKENAUTHON:-true}
+      WK_TOKENAUTHON: ${WK_TOKENAUTHON:-false}
     volumes:
       - ./data/wukongim:/root/wukongim
     ports:

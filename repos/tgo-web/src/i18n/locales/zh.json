@@ -843,7 +843,13 @@
       "chatTooltip": "与AI员工对话",
       "editTooltip": "编辑AI员工",
       "deleteTooltip": "删除AI员工",
-      "llmLabel": "LLM"
+      "llmLabel": "LLM",
+      "status": {
+        "active": "激活",
+        "inactive": "未激活",
+        "error": "错误",
+        "unknown": "未知"
+      }
     },
     "copy": {
       "suffix": " (副本)",
@@ -906,7 +912,26 @@
       }
     },
     "detail": {
-      "basicInfo": "基本信息"
+      "basicInfo": "基本信息",
+      "performanceStats": "性能统计",
+      "mcpTools": "关联 MCP 工具",
+      "knowledgeBases": "关联知识库",
+      "tags": "标签",
+      "fields": {
+        "description": "描述",
+        "agentId": "AI 员工 ID",
+        "llmModel": "LLM 模型",
+        "endpoint": "端点",
+        "lastActive": "最近活跃"
+      },
+      "metrics": {
+        "conversationCount": "对话数",
+        "successRate": "成功率",
+        "avgResponseTime": "平均响应时间"
+      },
+      "noKnowledgeBases": "未关联知识库",
+      "knowledgeBasePrefix": "知识库 {{id}}",
+      "closeButton": "关闭"
     },
     "toolsSection": {
       "selectedTitle": "已选择工具",
@@ -924,6 +949,81 @@
     },
     "toolsList": {
       "label": "关联工具"
+    },
+    "apiTest": {
+      "title": "测试 {{name}}",
+      "authMethod": "认证方式",
+      "autoDetected": "自动检测",
+      "autoDetectedTitle": "从 OpenAPI 自动检测 ({{level}})",
+      "autoLevel": {
+        "operation": "操作级别",
+        "global": "全局级别"
+      },
+      "authDisplay": {
+        "none": "无",
+        "header": "请求头 (Header)",
+        "headerWithPrefix": "请求头 ({{prefix}})",
+        "query": "查询参数 (Query)",
+        "autoDetected": "自动检测: {{type}}"
+      },
+      "paramsAndValues": "参数与值",
+      "param": "参数",
+      "value": "值",
+      "type": "类型",
+      "format": "格式",
+      "min": "最小值",
+      "max": "最大值",
+      "minLength": "最小长度",
+      "maxLength": "最大长度",
+      "pattern": "模式 (Pattern)",
+      "selectPlaceholder": "请选择",
+      "inputPlaceholder": "请输入",
+      "examplePrefix": "示例: {{value}}",
+      "defaultPrefix": "默认: {{value}}",
+      "noParams": "此端点没有参数",
+      "button": {
+        "testing": "测试中...",
+        "test": "测试"
+      },
+      "results": "测试结果",
+      "corsHint": "CORS 提示",
+      "corsNote": "注意：由于浏览器 CORS 限制，某些 API 可能无法直接测试",
+      "errorLabel": "错误:",
+      "responseHeaders": "响应头:",
+      "responseData": "响应数据:",
+      "resultsPlaceholder": "测试结果将显示在这里",
+      "requestFailed": "请求失败",
+      "networkFailed": "网络连接失败。请检查 URL 或可能的 CORS 问题"
+    },
+    "authMethod": {
+      "title": "认证方式",
+      "type": "认证类型",
+      "types": {
+        "none": "无",
+        "header": "请求头 (Header)",
+        "query": "查询参数 (Query)"
+      },
+      "headerPrefix": "认证头前缀",
+      "headerPrefixes": {
+        "basic": "Basic",
+        "bearer": "Bearer",
+        "custom": "自定义"
+      },
+      "keyLabel": "键 (Key)",
+      "valueLabel": "值 (Value)",
+      "keyPlaceholder": {
+        "header": "Authorization",
+        "query": "api_key"
+      },
+      "valuePlaceholder": {
+        "header": {
+          "basic": "Basic <credentials>",
+          "bearer": "Bearer <token>"
+        },
+        "default": "输入 API Key"
+      },
+      "cancel": "取消",
+      "save": "保存"
     }
   },
   "team": {
@@ -1252,6 +1352,69 @@
         "smtpPasswordSame": "使用 IMAP 密码",
         "smtpUseSsl": "使用 SSL（端口 465）",
         "smtpUseTls": "使用 TLS/STARTTLS（端口 587，推荐）"
+      },
+      "guide": {
+        "title": "邮件平台配置指南 (IMAP 接收 + SMTP 发送)",
+        "tipTitle": "提示",
+        "tipMessage": "IMAP 用于接收邮件，SMTP 用于发送邮件。常见端口：<span class=\"font-mono\">IMAP SSL=993</span>, <span class=\"font-mono\">SMTP SSL=465</span>, <span class=\"font-mono\">SMTP TLS=587</span>。",
+        "section1Title": "1. 获取邮件凭据 (常规步骤)",
+        "section1Step1": "登录您的邮件服务商账户 (Gmail / Outlook / QQ 邮箱等)。",
+        "section1Step2": "进入「账户设置」或「安全」页面，启用 IMAP/SMTP 服务（如果需要）。",
+        "section1Step3": "如果服务商要求（如 Gmail/QQ），请开启两步验证并创建「应用专用密码」。",
+        "section1Step4": "在左侧表单中填写 IMAP 和 SMTP 配置。如果使用相同凭据，请勾选「SMTP 使用相同凭据」。",
+        "section1Step5": "点击右上角「保存」，然后测试发送和接收邮件。",
+        "section2Title": "2. 常见邮件服务器与端口",
+        "tableProvider": "提供商",
+        "tableImapServer": "IMAP 服务器",
+        "tableImapPort": "IMAP 端口",
+        "tableSmtpServer": "SMTP 服务器",
+        "tableSmtpPort": "SMTP 端口",
+        "tableQQMail": "QQ 邮箱",
+        "section3Title": "3. 详细提供商配置",
+        "gmailTitle": "Gmail (应用专用密码)",
+        "gmailStep1": "访问 Google 账户安全中心 → 两步验证 → 应用专用密码；确认已开启 IMAP/SMTP。",
+        "gmailStep2": "IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">imap.gmail.com</code>，端口：993 (SSL)。",
+        "gmailStep3": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.gmail.com</code>，端口：465 (SSL) 或 587 (TLS)。",
+        "gmailStep4": "用户名是您的 Gmail 地址；密码使用应用专用密码（IMAP 和 SMTP 相同）。",
+        "gmailPasswordPlaceholder": "应用专用密码",
+        "gmailDocs": "Gmail 官方指南",
+        "outlookTitle": "Outlook (Office 365)",
+        "outlookStep1": "IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">outlook.office365.com</code>，端口：993 (SSL)。",
+        "outlookStep2": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.office365.com</code>，端口：587 (TLS)。",
+        "outlookStep3": "用户名通常为邮件地址；IMAP 和 SMTP 使用相同凭据。",
+        "outlookDocs": "微软官方文档",
+        "qqTitle": "QQ 邮箱 (需开启 IMAP/SMTP)",
+        "qqStep1": "进入 QQ 邮箱设置 → 账户 → 开启「IMAP/SMTP 服务」。",
+        "qqStep2": "获取授权码作为密码；IMAP 服务器：<code class=\"px-1 bg-gray-100 rounded\">imap.qq.com</code>，端口：993。",
+        "qqStep3": "SMTP 服务器：<code class=\"px-1 bg-gray-100 rounded\">smtp.qq.com</code>，端口：465 (SSL) 或 587 (TLS)。",
+        "qqStep4": "IMAP 和 SMTP 使用相同的授权码。",
+        "qqPasswordPlaceholder": "授权码",
+        "qqDocs": "QQ 邮箱帮助",
+        "troubleshootTitle": "故障排查指南",
+        "troubleshootItem1": "确认服务商已开启 IMAP/SMTP 服务；Gmail/QQ 需在设置中开启并使用应用专用密码/授权码。",
+        "troubleshootItem2": "IMAP：优先使用 SSL (端口 993)；SMTP：推荐使用 TLS (端口 587) 或 SSL (端口 465)。",
+        "troubleshootItem3": "核对邮件地址（用户名）和密码是否正确，注意大小写和空格。",
+        "troubleshootItem4": "如果勾选了「使用相同凭据」，请确保 IMAP 和 SMTP 的用户名密码一致。",
+        "troubleshootItem5": "如果仍然失败，请检查是否需要在服务商后台允许「第三方客户端」访问。",
+        "moreInfo": "更多信息：请参考各邮件服务商的官方文档和支持页面。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "邮件平台配置已保存",
+        "enabled": "平台已启用",
+        "disabled": "平台已禁用",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除",
+        "testSuccess": "连接测试成功",
+        "testSuccessMessage": "IMAP 和 SMTP 连接均正常",
+        "testFailed": "连接测试失败",
+        "testValidationError": "请填写所有必填的邮件配置字段"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
       }
     },
     "sms": {
@@ -1317,6 +1480,43 @@
         "authScope": "授权范围 (Authorization Scope)",
         "authScopePlaceholder": "例如：user_info,video.list",
         "authScopeHint": "多个权限用英文逗号分隔，例如：user_info,video.list。"
+      },
+      "guide": {
+        "title": "抖音开放平台配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下四个步骤：① 注册开放平台账号 → ② 创建应用并获取凭据 → ③ 配置回调地址 → ④ 保存并测试。",
+        "step1Title": "1️⃣ 注册抖音开放平台账号",
+        "step1Item1": "访问 <a class=\"text-blue-600 hover:underline\" href=\"https://developer.open-douyin.com/\" target=\"_blank\" rel=\"noreferrer\">抖音开放平台</a> 并完成账号注册和主体认证（如果需要）。",
+        "step1Item2": "登录控制台，完善开发者信息。",
+        "step2Title": "2️⃣ 创建应用并获取凭据",
+        "step2Item1": "在控制台创建新应用，记录下 App ID 和 App Secret。",
+        "step2Item2": "在应用设置中获取 Client Key 和 Client Secret。",
+        "step2Item3": "根据业务需要选择并启用所需的权限范围 (Scope)。",
+        "step3Title": "3️⃣ 配置回调地址",
+        "step3Item1": "在开放平台「回调设置」中配置回调 URL：使用上方只读的回调 URL。",
+        "step3Item2": "确保服务器可以从公网访问，并正确处理验证请求。",
+        "step4Title": "4️⃣ 常见问题与排查",
+        "step4Item1": "回调验证失败：检查回调 URL 是否可访问，以及 TLS 证书是否有效。",
+        "step4Item2": "权限不足：确认已在开放平台启用并授权所需的 Scope。",
+        "step4Item3": "凭据错误：核对 App ID/Secret 和 Client Key/Secret 是否输入正确。",
+        "bestPracticesTitle": "最佳实践",
+        "bestPracticesItem1": "将密钥存储在安全的密钥管理服务（如 KMS/Vault）中，避免出现在代码库中。",
+        "bestPracticesItem2": "为不同环境（开发/测试/生产）使用不同的回调和凭据，按需进行最小化授权。",
+        "bestPracticesItem3": "定期轮换密钥并最小化权限范围 (Scope)。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "抖音平台配置已保存",
+        "platformDisabled": "平台已禁用",
+        "platformEnabled": "平台已启用",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
       }
     },
     "tiktok": {
@@ -1329,9 +1529,62 @@
       "configSection": "配置信息",
       "platformName": "平台名称",
       "platformNamePlaceholder": "请输入平台名称",
+      "nameSaved": "平台名称保存成功",
+      "chatUrl": "聊天 API 端点",
+      "chatUrlHint": "第三方程序通过调用此地址来发送对话消息。",
+      "apiKeyHint": "在请求头中使用 X-Platform-API-Key 进行身份验证。",
       "apiKey": "API 密钥",
       "callbackUrl": "回调地址",
-      "callbackUrlHint": "当客服回复消息时，系统会将消息推送到此地址"
+      "callbackUrlHint": "当客服回复消息时，系统会将消息推送到此地址",
+      "callbackUrlPlaceholder": "https://your-domain.com/webhook/callback",
+      "callbackSaved": "回调 URL 保存成功",
+      "callbackSaveFailed": "保存回调 URL 失败",
+      "invalidUrl": "URL 格式无效",
+      "invalidUrlHint": "请输入有效的 HTTP/HTTPS 地址",
+      "notAvailable": "不可用",
+      "copied": "{{label}} 已复制到剪贴板",
+      "copyFailed": "复制失败",
+      "disabled": "平台已禁用",
+      "enabled": "平台已启用",
+      "toggleFailed": "切换状态失败",
+      "confirmRegenerate": "确定要重新生成 API 密钥吗？旧密钥将立即失效。",
+      "regenerated": "API 密钥重新生成成功",
+      "regenerateFailed": "重新生成 API 密钥失败",
+      "regenerate": "重新生成",
+      "deleted": "平台已删除",
+      "deleteFailed": "删除平台失败",
+      "deleteTitle": "删除平台",
+      "deleteMessage": "确定要删除平台 \"{{name}}\" 吗？此操作不可撤销。",
+      "code": "代码",
+      "saveSuccess": "保存成功",
+      "integration": {
+        "title": "API 集成信息",
+        "guide": "集成指南",
+        "chatApi": "聊天 API (向 TGO 发送消息)",
+        "endpoint": "API 端点",
+        "authentication": "认证方式",
+        "authDesc": "在请求头中添加平台 API 密钥：",
+        "requiredParams": "必填参数",
+        "messagesDesc": "对话消息数组，兼容 OpenAI ChatGPT API 格式",
+        "userDesc": "第三方平台用户的唯一标识 (必填)",
+        "optionalFeatures": "可选功能",
+        "visitorRegisterDesc": "如果您需要传递详细的用户信息（名称、头像等），可以先调用访客注册 API：",
+        "simpleExample": "简单示例",
+        "responseHandling": "响应处理",
+        "responseHandlingDesc": "调用聊天 API 后，TGO 系统将返回 AI 助手的回复。第三方平台需要将返回的回复内容发送给对应的第三方用户。响应格式兼容 OpenAI ChatGPT API，支持流式和非流式响应。",
+        "callbackApi": "回调 API (接收人工客服回复)",
+        "callbackConfig": "配置回调 URL",
+        "callbackConfigDesc": "在左侧「回调地址」字段中配置您的回调 URL。当人工客服回复消息时，系统会向该地址发送 POST 请求。",
+        "requestFormat": "请求格式",
+        "fieldDescriptions": "字段说明",
+        "messageIdDesc": "消息唯一标识",
+        "callbackUserDesc": "第三方用户标识 (对应聊天 API 中的 user 字段)",
+        "contentDesc": "人工客服回复的消息内容",
+        "timestampDesc": "消息时间戳 (ISO 8601 格式)",
+        "responseRequirement": "响应要求",
+        "responseRequirementDesc": "请确保回调 URL 可以从公网访问，并返回 HTTP 200 状态码以表示接收成功。",
+        "codeExamples": "代码示例"
+      }
     },
     "wecom": {
       "label": "企业微信",
@@ -1373,6 +1626,54 @@
         "callbackUrl": "回调 URL",
         "callbackUrlPlaceholder": "平台创建后会生成回调URL",
         "callbackUrlHint": "将此 URL 配置到企业微信「服务器配置」中的回调地址。"
+      },
+      "guide": {
+        "title": "企业微信配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下四个步骤：① 找到企业 ID → ② 获取应用 ID/Secret → ③ 配置服务器回调 (URL/Token/EncodingAESKey) → ④ 保存并测试。",
+        "step1Title": "1️⃣ 找到企业 ID",
+        "step1Item1": "登录 <a class=\"text-blue-600 hover:underline\" href=\"https://work.weixin.qq.com/wework_admin/frame\" target=\"_blank\" rel=\"noreferrer\">企业微信管理后台</a>。",
+        "step1Item2": "进入「我的企业」→「企业信息」页面。",
+        "step1Item3": "复制「企业 ID」并粘贴到左侧表单中的「企业 ID」。",
+        "step1Example": "示例：ww1234567890abcdef",
+        "step2Title": "2️⃣ 获取应用 ID 和应用 Secret",
+        "step2Item1": "在控制台左侧选择「应用管理」，打开您的自建应用。",
+        "step2Item2": "您可以在应用详情页看到「AgentId」。",
+        "step2Item3": "点击「Secret」进行显示或重置，复制并填写到左侧表单的「应用 Secret」。",
+        "step2SecurityTitle": "安全提示",
+        "step2SecurityText": "请妥善保管 Secret，切勿泄露；生产环境应使用最小权限并定期更换。",
+        "step3Title": "3️⃣ 配置服务器回调 (URL / Token / EncodingAESKey)",
+        "step3Item1": "在「应用管理」→ 您的应用 →「接收消息」中，点击「设置」进入「API 接收消息」。",
+        "step3Item2": "URL：从左侧表单复制回调 URL（只读）并粘贴到控制台；",
+        "step3Item3": "Token：自定义任意字符串，并确保与左侧表单一致；",
+        "step3Item4": "EncodingAESKey：点击生成一个 43 位密钥并复制到左侧表单；",
+        "step3Item5": "消息加解密方式：建议选择「兼容模式」或「安全模式」。",
+        "step3ExampleTitle": "示例占位符（仅供参考）",
+        "step3Note": "保存后，企业微信将进行 URL 验证，请确保服务器正确返回验证响应。",
+        "step4Title": "4️⃣ 常见问题与排查",
+        "step4Item1": "URL 验证失败：检查您的回调服务是否可以从公网访问，以及 TLS 证书是否有效。",
+        "step4Item2": "消息解密失败：确认 EncodingAESKey 正确且不包含多余空格。",
+        "step4Item3": "403/权限问题：确认应用已启用且已授予所需权限；必要时重新生成 Secret。",
+        "docsLink": "企业微信消息回调开发文档",
+        "bestPracticesTitle": "最佳实践",
+        "bestPracticesItem1": "将 Secret 存储在密钥管理服务（如 Vault、KMS）中，避免以明文形式出现在代码库中。",
+        "bestPracticesItem2": "为不同环境（开发/测试/生产）使用不同的 Token/AESKey。",
+        "bestPracticesItem3": "定期轮换 Secret，并在过期前完成服务端配置更新。"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "企业微信平台配置已更新",
+        "platformDisabled": "平台已禁用",
+        "platformEnabled": "平台已启用",
+        "callbackUrlCopied": "回调 URL 已复制",
+        "deleteSuccess": "平台已删除",
+        "deleteSuccessMessage": "平台已删除"
+      },
+      "confirm": {
+        "deleteTitle": "删除平台",
+        "deleteMessage": "确定要删除此平台吗？",
+        "confirmText": "删除",
+        "cancelText": "取消"
       }
     },
     "unknown": {
@@ -2191,6 +2492,199 @@
         "number": "请输入有效的数字"
       },
       "save": "保存配置"
+    }
+  },
+  "setup": {
+    "title": "系统设置向导",
+    "subtitle": "欢迎使用 Tgo CS，让我们开始配置您的系统",
+    "steps": {
+      "admin": "管理员账户",
+      "staff": "人工坐席",
+      "llm": "LLM 配置",
+      "verify": "安装验证"
+    },
+    "stepIndicator": "第 {{current}} / {{total}} 步",
+    "admin": {
+      "title": "设置管理员账户",
+      "description": "创建一个系统管理员账户，用于登录和管理",
+      "username": "用户名",
+      "usernamePlaceholder": "请输入用户名 (3-20 个字符)",
+      "usernameFixed": "默认管理员用户名，不可修改",
+      "password": "密码",
+      "passwordPlaceholder": "请输入密码 (至少 8 位)",
+      "confirmPassword": "确认密码",
+      "confirmPasswordPlaceholder": "请再次输入密码",
+      "validation": {
+        "usernameRequired": "用户名不能为空",
+        "usernameLength": "用户名长度需在 3-20 个字符之间",
+        "usernameFormat": "用户名只能包含字母、数字和下划线",
+        "passwordRequired": "密码不能为空",
+        "passwordLength": "密码长度至少需要 8 位",
+        "passwordStrength": "密码需包含大小写字母和数字",
+        "confirmPasswordRequired": "请确认密码",
+        "passwordMismatch": "两次输入的密码不一致"
+      }
+    },
+    "staff": {
+      "title": "配置人工坐席",
+      "description": "添加人工坐席账户，负责处理客户咨询",
+      "infoText": "当 AI 助手无法解决用户问题时，系统会自动将对话分配给人工坐席。人工坐席可以接管对话并提供更专业的帮助。",
+      "staffItem": "坐席 {{index}}",
+      "username": "用户名",
+      "usernamePlaceholder": "输入用户名 (至少 4 位，仅限字母/数字)",
+      "name": "姓名",
+      "namePlaceholder": "输入坐席姓名",
+      "password": "密码",
+      "passwordPlaceholder": "请输入密码 (至少 8 位)",
+      "confirmPassword": "确认密码",
+      "confirmPasswordPlaceholder": "请再次输入密码",
+      "addStaff": "添加坐席",
+      "emptyHint": "点击上方按钮添加人工坐席账户",
+      "requiredHint": "* 至少需要创建一个人工坐席",
+      "validation": {
+        "usernameRequired": "用户名不能为空",
+        "usernameLength": "用户名长度需在 4-50 个字符之间",
+        "usernameFormat": "用户名只能包含英文字母和数字（不能有空格/特殊字符）",
+        "nameRequired": "姓名不能为空",
+        "passwordRequired": "密码不能为空",
+        "passwordLength": "密码长度至少需要 8 位",
+        "passwordMismatch": "两次输入的密码不一致",
+        "atLeastOne": "请至少添加一个人工坐席"
+      }
+    },
+    "llm": {
+      "title": "配置 AI 大语言模型",
+      "description": "选择您的 LLM 提供商，您也可以稍后在系统设置中进行配置",
+      "optional": "(可选)",
+      "provider": "提供商",
+      "providerPlaceholder": "选择 LLM 提供商",
+      "providers": {
+        "none": "暂时跳过",
+        "openai": "OpenAI",
+        "azure": "Azure OpenAI",
+        "anthropic": "Anthropic",
+        "local": "本地模型",
+        "other": "其他"
+      },
+      "name": "显示名称",
+      "namePlaceholder": "例如：我的 OpenAI 提供商",
+      "apiKey": "API Key",
+      "apiKeyPlaceholder": "输入 API Key (例如：sk-...)",
+      "apiEndpoint": "API 端点",
+      "apiEndpointPlaceholder": "输入 API 端点 (可选)",
+      "model": "模型名称",
+      "modelPlaceholder": "例如：gpt-4, claude-3-opus",
+      "testConnection": "测试连接",
+      "testSuccess": "连接测试成功",
+      "testFailed": "连接测试失败",
+      "validation": {
+        "providerRequired": "请选择提供商",
+        "nameRequired": "显示名称不能为空",
+        "apiKeyRequired": "API Key 不能为空"
+      }
+    },
+    "verify": {
+      "title": "安装完成",
+      "description": "正在验证系统配置...",
+      "summary": "安装摘要",
+      "adminCreated": "管理员账户已创建",
+      "staffCreated": "已创建 {{count}} 个人工坐席",
+      "staffNotConfigured": "人工坐席未配置 (可稍后设置)",
+      "llmConfigured": "LLM 已配置",
+      "llmNotConfigured": "LLM 未配置 (可稍后设置)",
+      "checks": {
+        "title": "系统检查",
+        "database": "数据库连接",
+        "admin": "管理员账户",
+        "llm": "LLM 配置",
+        "status": {
+          "success": "成功",
+          "failed": "失败",
+          "skipped": "跳过"
+        }
+      },
+      "verifying": "正在验证...",
+      "verifySuccess": "验证成功",
+      "verifyFailed": "验证失败",
+      "installationComplete": "安装完成！",
+      "redirecting": "正在跳转到登录页面..."
+    },
+    "buttons": {
+      "previous": "上一步",
+      "next": "下一步",
+      "skip": "跳过",
+      "finish": "完成安装",
+      "retry": "重试"
+    },
+    "errors": {
+      "createAdminFailed": "创建管理员账户失败",
+      "createStaffFailed": "创建人工坐席失败",
+      "configureLLMFailed": "配置 LLM 失败",
+      "verifyFailed": "安装验证失败",
+      "alreadyInstalled": "系统已安装"
+    },
+    "success": {
+      "adminCreated": "管理员账户创建成功",
+      "llmConfigured": "LLM 配置成功"
+    },
+    "guard": {
+      "checking": "正在检查系统状态...",
+      "serverError": "无法连接到服务器",
+      "retryButton": "重试"
+    }
+  },
+  "onboarding": {
+    "title": "快速上手",
+    "progress": "{{completed}}/{{total}} 已完成",
+    "expand": "展开",
+    "collapse": "收起",
+    "dismiss": "关闭",
+    "dismissButton": "不再显示",
+    "welcome": {
+      "title": "欢迎使用 TGO",
+      "subtitle": "完成以下步骤，开启您的 AI 客服之旅",
+      "progress": "当前进度",
+      "estimatedTime": "约 2 分钟",
+      "skip": "跳过向导",
+      "later": "稍后设置",
+      "start": "开始设置"
+    },
+    "panel": {
+      "title": "快速上手",
+      "progress": "当前进度",
+      "skip": "跳过",
+      "viewAll": "查看全部"
+    },
+    "modal": {
+      "close": "关闭"
+    },
+    "steps": {
+      "ai_provider": {
+        "title": "配置 AI 模型",
+        "description": "连接到 OpenAI、通义千问等 AI 提供商"
+      },
+      "default_models": {
+        "title": "设置默认模型",
+        "description": "选择用于对话和向量化的默认模型"
+      },
+      "rag_collection": {
+        "title": "创建知识库",
+        "description": "上传文档或网页来构建您的专属知识库"
+      },
+      "agent_with_kb": {
+        "title": "创建 AI 员工",
+        "description": "创建一个 AI 员工并关联您的知识库"
+      },
+      "first_chat": {
+        "title": "开始对话",
+        "description": "发送一条消息，体验 AI 的智能回复"
+      }
+    },
+    "tasks": {
+      "platformCreated": "设置平台",
+      "knowledgeBaseUploaded": "上传知识库",
+      "agentCreated": "创建 AI 员工并关联知识库",
+      "messageReceived": "接收来自平台的消息"
     }
   },
   "ws": {
