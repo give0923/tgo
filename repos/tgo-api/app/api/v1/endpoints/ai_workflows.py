@@ -1,6 +1,6 @@
 """Workflow service proxy endpoints."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from fastapi import APIRouter, Depends, Query
 from fastapi.responses import StreamingResponse
@@ -16,6 +16,7 @@ from app.schemas.ai_workflows import (
     WorkflowExecution,
     WorkflowExecutionCancelResponse,
     WorkflowInDB,
+    WorkflowSyncResponse,
     WorkflowUpdate,
     WorkflowValidationResponse,
     WorkflowValidateRequest,
@@ -208,92 +209,105 @@ async def get_workflow_variables(
 
 @router.post(
     "/{workflow_id}/execute",
-    response_model=WorkflowExecution,
     summary="Execute Workflow",
-)
-async def execute_workflow(
-    workflow_id: str,
-    request: WorkflowExecuteRequest,
-    current_user: Staff = Depends(get_current_active_user),
-) -> WorkflowExecution:
-    """Execute workflow in Workflow service."""
-    data = await workflow_client.execute_workflow(
-        workflow_id, str(current_user.project_id), request.model_dump(by_alias=True)
-    )
-    return WorkflowExecution.model_validate(data)
-
-
-@router.post(
-    "/{workflow_id}/execute/stream",
-    summary="Execute Workflow (Streaming)",
+    response_model=None,
     description="""
-执行工作流并以 Server-Sent Events (SSE) 形式实时推送执行事件。
+Execute a workflow using one of three supported modes:
 
-### 事件流格式
-每个消息以 `data: ` 开头，后跟 JSON 字符串，以 `\n\n` 结束。
+1. **Synchronous Mode (Default, `stream=False`, `async=False`)**:
+   Executes the workflow immediately and returns the final output. Ideal for short-lived tasks.
 
-### 事件类型与数据结构
+2. **Asynchronous Mode (`async=True`)**:
+   Creates an execution record and triggers a background Celery task. Returns the execution record immediately.
 
-#### 1. **workflow_started** (工作流启动)
-- `workflow_run_id`: 本次运行的唯一 ID
-- `data`:
-    - `id`: 运行 ID
-    - `workflow_id`: 工作流 ID
-    - `inputs`: 初始输入参数
-    - `created_at`: 开始时间戳
+3. **Streaming Mode (`stream=True`)**:
+   Returns a Server-Sent Events (SSE) stream, pushing real-time events as the workflow progresses.
 
-#### 2. **node_started** (节点开始)
-- `data`:
-    - `id`: 节点执行记录 ID
-    - `node_id`: 节点在工作流中的 ID
-    - `node_type`: 节点类型 (input, llm, agent, answer, etc.)
-    - `title`: 节点名称
-    - `index`: 执行步骤序号 (从1开始)
+### Streaming Mode Events (SSE):
+When `stream=True`, the response header includes `Content-Type: text/event-stream`.
+Each message starts with `data: ` followed by a JSON string and ends with `\\n\\n`.
 
-#### 3. **node_finished** (节点完成)
-- `data`:
-    - `id`: 节点执行记录 ID
-    - `status`: 执行状态 ("succeeded" | "failed")
-    - `inputs`: 节点接收到的输入
-    - `outputs`: 节点产生的输出
-    - `error`: 错误信息 (仅在失败时存在)
-    - `elapsed_time`: 节点耗时 (秒)
-
-#### 4. **workflow_finished** (工作流结束)
-- `data`:
-    - `status`: 整体执行状态 ("succeeded" | "failed")
-    - `outputs`: 最终输出结果 (通常由 answer 节点提供)
-    - `error`: 全局错误信息
-    - `total_steps`: 执行的总节点数
-    - `elapsed_time`: 整个工作流耗时 (秒)
-
-### 注意事项：
-- 响应头包含 `Content-Type: text/event-stream`。
-- 客户端应使用能够处理流式输出的库（如 EventSource 或 Fetch API）。
-- 即使连接中断，后端也会继续完成数据库中的状态记录。
+- **workflow_started**: Workflow execution initialized.
+- **node_started**: A specific node has started executing.
+- **node_finished**: A specific node has finished (success or failure).
+- **workflow_finished**: Entire workflow has finished.
 """,
     responses={
         200: {
-            "description": "SSE Event Stream",
+            "description": "Successful Response",
             "content": {
+                "application/json": {
+                    "schema": {
+                        "oneOf": [
+                            {"$ref": "#/components/schemas/WorkflowSyncResponse"},
+                            {"$ref": "#/components/schemas/WorkflowExecution"},
+                        ]
+                    },
+                    "examples": {
+                        "sync_mode": {
+                            "summary": "Synchronous Mode (Default)",
+                            "description": "Returns final output and metadata.",
+                            "value": {
+                                "success": True,
+                                "output": {"answer": "Paris is the capital of France."},
+                                "metadata": {
+                                    "duration": 1.234,
+                                    "startTime": "2026-01-03T06:16:44.478Z",
+                                    "endTime": "2026-01-03T06:16:45.712Z",
+                                },
+                            },
+                        },
+                        "async_mode": {
+                            "summary": "Asynchronous Mode (async=true)",
+                            "description": "Returns the execution record with 'pending' status.",
+                            "value": {
+                                 "id": "d73d5f18-3cc0-400f-ab18-c0a5f05625f5",
+                                "project_id": "proj-123",
+                                "workflow_id": "wf-456",
+                                "status": "pending",
+                                "input": {"query": "What is the capital of France?"},
+                                "output": None,
+                                "error": None,
+                                "started_at": "2026-01-03T06:16:44.478Z",
+                                "completed_at": None,
+                                "duration": None,
+                                "node_executions": []
+                            },
+                        },
+                    },
+                },
                 "text/event-stream": {
-                    "example": "data: {\"event\": \"workflow_started\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"inputs\": {}, \"created_at\": 1735790000}}\n\ndata: {\"event\": \"node_started\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"node_id\": \"node-1\", \"node_type\": \"llm\", \"title\": \"AI对话\", \"index\": 1}}\n\ndata: {\"event\": \"node_finished\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"status\": \"succeeded\", \"outputs\": {\"text\": \"Hello\"}, \"elapsed_time\": 0.5}}\n\ndata: {\"event\": \"workflow_finished\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"status\": \"succeeded\", \"outputs\": {\"result\": \"Hello\"}, \"total_steps\": 2}}\n\n"
-                }
+                    "description": "Streaming Mode (stream=true)",
+                    "example": (
+                        "data: {\"event\": \"workflow_started\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"inputs\": {}, \"created_at\": 1735790000}}\n\n"
+                        "data: {\"event\": \"node_started\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"node-exec-1\", \"node_id\": \"node-1\", \"node_type\": \"llm\", \"title\": \"AI Chat\", \"index\": 1, \"created_at\": 1735790001}}\n\n"
+                        "data: {\"event\": \"node_finished\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"node-exec-1\", \"node_id\": \"node-1\", \"node_type\": \"llm\", \"inputs\": {}, \"outputs\": {\"text\": \"Hello\"}, \"status\": \"succeeded\", \"error\": null, \"elapsed_time\": 0.5, \"finished_at\": 1735790002}}\n\n"
+                        "data: {\"event\": \"workflow_finished\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"status\": \"succeeded\", \"outputs\": {\"result\": \"Hello\"}, \"error\": null, \"elapsed_time\": 0.6, \"total_steps\": 1, \"finished_at\": 1735790002}}\n\n"
+                    ),
+                },
             },
         },
         404: {"description": "Workflow not found"},
     },
 )
-async def execute_workflow_stream(
+async def execute_workflow(
     workflow_id: str,
     request: WorkflowExecuteRequest,
     current_user: Staff = Depends(get_current_active_user),
-) -> StreamingResponse:
-    """Execute workflow and proxy SSE stream from Workflow service."""
-    generator = await workflow_client.execute_workflow_stream(
+) -> Union[WorkflowSyncResponse, WorkflowExecution, StreamingResponse]:
+    """Execute workflow in Workflow service."""
+    res = await workflow_client.execute_workflow(
         workflow_id, str(current_user.project_id), request.model_dump(by_alias=True)
     )
-    return StreamingResponse(generator, media_type="text/event-stream")
+
+    if request.stream:
+        return StreamingResponse(res, media_type="text/event-stream")
+
+    # Determine if it's sync or async response
+    if request.async_mode:
+        return WorkflowExecution.model_validate(res)
+    else:
+        return WorkflowSyncResponse.model_validate(res)
 
 
 @router.get(

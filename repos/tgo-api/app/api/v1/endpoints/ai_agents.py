@@ -112,6 +112,7 @@ async def create_agent(
             "model": agent_data.model,
             "team_id": str(agent_data.team_id) if agent_data.team_id else None,
             "is_default": agent_data.is_default,
+            "workflow_count": len(agent_data.workflows) if agent_data.workflows else 0,
         }
     )
 
@@ -164,6 +165,9 @@ async def get_agent(
     include_collections: bool = Query(
         False, description="Include collection bindings in the response"
     ),
+    include_workflows: bool = Query(
+        False, description="Include workflow bindings in the response"
+    ),
     project_and_api_key = Depends(get_authenticated_project),
 ) -> AgentWithDetailsResponse:
     """Get agent from AI service with schema-validated response.
@@ -177,6 +181,7 @@ async def get_agent(
             "agent_id": str(agent_id),
             "include_tools": include_tools,
             "include_collections": include_collections,
+            "include_workflows": include_workflows,
         }
     )
     
@@ -186,6 +191,7 @@ async def get_agent(
         agent_id=str(agent_id),
         include_tools=include_tools,
         include_collections=include_collections,
+        include_workflows=include_workflows,
     )
     # Return raw JSON to avoid strict validation, while keeping docs via response_model
     return JSONResponse(content=result)
@@ -219,6 +225,7 @@ async def update_agent(
             "model": agent_data.model,
             "team_id": str(agent_data.team_id) if agent_data.team_id else None,
             "is_default": agent_data.is_default,
+            "workflow_count": len(agent_data.workflows) if agent_data.workflows else 0,
         }
     )
 
@@ -346,5 +353,42 @@ async def set_agent_collection_enabled(
         project_id=str(project.id),
         agent_id=str(agent_id),
         collection_id=collection_id,
+        enabled=toggle_data.enabled,
+    )
+
+
+@router.patch(
+    "/{agent_id}/workflows/{workflow_id}/enabled",
+    responses=CRUD_RESPONSES,
+    status_code=204,
+    summary="Set Agent Workflow Enabled",
+    description="""
+    Enable or disable a specific workflow binding for an agent.
+
+    This allows you to toggle individual workflow bindings without modifying the entire agent configuration.
+    Agent and workflow binding must belong to the authenticated project.
+    """,
+)
+async def set_agent_workflow_enabled(
+    agent_id: UUID,
+    workflow_id: str,
+    toggle_data: ToggleEnabledRequest,
+    project_and_api_key = Depends(get_authenticated_project),
+) -> None:
+    """Enable or disable a specific workflow binding for an agent."""
+    logger.info(
+        "Setting agent workflow enabled state",
+        extra={
+            "agent_id": str(agent_id),
+            "workflow_id": workflow_id,
+            "enabled": toggle_data.enabled,
+        }
+    )
+
+    project, _ = project_and_api_key
+    await ai_client.set_agent_workflow_enabled(
+        project_id=str(project.id),
+        agent_id=str(agent_id),
+        workflow_id=workflow_id,
         enabled=toggle_data.enabled,
     )

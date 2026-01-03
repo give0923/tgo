@@ -9119,6 +9119,18 @@
               "title": "Include Collections"
             },
             "description": "Include collection bindings in the response"
+          },
+          {
+            "name": "include_workflows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include workflow bindings in the response",
+              "default": false,
+              "title": "Include Workflows"
+            },
+            "description": "Include workflow bindings in the response"
           }
         ],
         "responses": {
@@ -9495,6 +9507,107 @@
             "schema": {
               "type": "string",
               "title": "Collection Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Bad Request - Invalid request data or parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Authentication required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - Access denied to resource",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found - Resource not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ai/agents/{agent_id}/workflows/{workflow_id}/enabled": {
+      "patch": {
+        "tags": [
+          "AI Agents"
+        ],
+        "summary": "Set Agent Workflow Enabled",
+        "description": "Enable or disable a specific workflow binding for an agent.\n\n    This allows you to toggle individual workflow bindings without modifying the entire agent configuration.\n    Agent and workflow binding must belong to the authenticated project.",
+        "operationId": "set_agent_workflow_enabled_v1_ai_agents__agent_id__workflows__workflow_id__enabled_patch",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workflow Id"
             }
           }
         ],
@@ -10855,7 +10968,7 @@
           "AI Workflows"
         ],
         "summary": "Execute Workflow",
-        "description": "Execute workflow in Workflow service.",
+        "description": "Execute a workflow using one of three supported modes:\n\n1. **Synchronous Mode (Default, `stream=False`, `async=False`)**:\n   Executes the workflow immediately and returns the final output. Ideal for short-lived tasks.\n\n2. **Asynchronous Mode (`async=True`)**:\n   Creates an execution record and triggers a background Celery task. Returns the execution record immediately.\n\n3. **Streaming Mode (`stream=True`)**:\n   Returns a Server-Sent Events (SSE) stream, pushing real-time events as the workflow progresses.\n\n### Streaming Mode Events (SSE):\nWhen `stream=True`, the response header includes `Content-Type: text/event-stream`.\nEach message starts with `data: ` followed by a JSON string and ends with `\\n\\n`.\n\n- **workflow_started**: Workflow execution initialized.\n- **node_started**: A specific node has started executing.\n- **node_finished**: A specific node has finished (success or failure).\n- **workflow_finished**: Entire workflow has finished.",
         "operationId": "execute_workflow_v1_ai_workflows__workflow_id__execute_post",
         "security": [
           {
@@ -10889,69 +11002,51 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/WorkflowExecution"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ai/workflows/{workflow_id}/execute/stream": {
-      "post": {
-        "tags": [
-          "AI Workflows"
-        ],
-        "summary": "Execute Workflow (Streaming)",
-        "description": "执行工作流并以 Server-Sent Events (SSE) 形式实时推送执行事件。\n\n### 事件流格式\n每个消息以 `data: ` 开头，后跟 JSON 字符串，以 `\n\n` 结束。\n\n### 事件类型与数据结构\n\n#### 1. **workflow_started** (工作流启动)\n- `workflow_run_id`: 本次运行的唯一 ID\n- `data`:\n    - `id`: 运行 ID\n    - `workflow_id`: 工作流 ID\n    - `inputs`: 初始输入参数\n    - `created_at`: 开始时间戳\n\n#### 2. **node_started** (节点开始)\n- `data`:\n    - `id`: 节点执行记录 ID\n    - `node_id`: 节点在工作流中的 ID\n    - `node_type`: 节点类型 (input, llm, agent, answer, etc.)\n    - `title`: 节点名称\n    - `index`: 执行步骤序号 (从1开始)\n\n#### 3. **node_finished** (节点完成)\n- `data`:\n    - `id`: 节点执行记录 ID\n    - `status`: 执行状态 (\"succeeded\" | \"failed\")\n    - `inputs`: 节点接收到的输入\n    - `outputs`: 节点产生的输出\n    - `error`: 错误信息 (仅在失败时存在)\n    - `elapsed_time`: 节点耗时 (秒)\n\n#### 4. **workflow_finished** (工作流结束)\n- `data`:\n    - `status`: 整体执行状态 (\"succeeded\" | \"failed\")\n    - `outputs`: 最终输出结果 (通常由 answer 节点提供)\n    - `error`: 全局错误信息\n    - `total_steps`: 执行的总节点数\n    - `elapsed_time`: 整个工作流耗时 (秒)\n\n### 注意事项：\n- 响应头包含 `Content-Type: text/event-stream`。\n- 客户端应使用能够处理流式输出的库（如 EventSource 或 Fetch API）。\n- 即使连接中断，后端也会继续完成数据库中的状态记录。",
-        "operationId": "execute_workflow_stream_v1_ai_workflows__workflow_id__execute_stream_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "workflow_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Workflow Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/WorkflowExecuteRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "SSE Event Stream",
-            "content": {
-              "application/json": {
-                "schema": {
-
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/WorkflowSyncResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/WorkflowExecution"
+                    }
+                  ]
+                },
+                "examples": {
+                  "sync_mode": {
+                    "summary": "Synchronous Mode (Default)",
+                    "description": "Returns final output and metadata.",
+                    "value": {
+                      "success": true,
+                      "output": {
+                        "answer": "Paris is the capital of France."
+                      },
+                      "metadata": {
+                        "duration": 1.234,
+                        "startTime": "2026-01-03T06:16:44.478Z",
+                        "endTime": "2026-01-03T06:16:45.712Z"
+                      }
+                    }
+                  },
+                  "async_mode": {
+                    "summary": "Asynchronous Mode (async=true)",
+                    "description": "Returns the execution record with 'pending' status.",
+                    "value": {
+                      "id": "d73d5f18-3cc0-400f-ab18-c0a5f05625f5",
+                      "project_id": "proj-123",
+                      "workflow_id": "wf-456",
+                      "status": "pending",
+                      "input": {
+                        "query": "What is the capital of France?"
+                      },
+                      "started_at": "2026-01-03T06:16:44.478Z",
+                      "node_executions": []
+                    }
+                  }
                 }
               },
               "text/event-stream": {
-                "example": "data: {\"event\": \"workflow_started\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"inputs\": {}, \"created_at\": 1735790000}}\n\ndata: {\"event\": \"node_started\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"node_id\": \"node-1\", \"node_type\": \"llm\", \"title\": \"AI对话\", \"index\": 1}}\n\ndata: {\"event\": \"node_finished\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"status\": \"succeeded\", \"outputs\": {\"text\": \"Hello\"}, \"elapsed_time\": 0.5}}\n\ndata: {\"event\": \"workflow_finished\", \"workflow_run_id\": \"uuid-1\", \"data\": {\"status\": \"succeeded\", \"outputs\": {\"result\": \"Hello\"}, \"total_steps\": 2}}\n\n"
+                "description": "Streaming Mode (stream=true)",
+                "example": "data: {\"event\": \"workflow_started\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"inputs\": {}, \"created_at\": 1735790000}}\n\ndata: {\"event\": \"node_started\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"node-exec-1\", \"node_id\": \"node-1\", \"node_type\": \"llm\", \"title\": \"AI Chat\", \"index\": 1, \"created_at\": 1735790001}}\n\ndata: {\"event\": \"node_finished\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"node-exec-1\", \"node_id\": \"node-1\", \"node_type\": \"llm\", \"inputs\": {}, \"outputs\": {\"text\": \"Hello\"}, \"status\": \"succeeded\", \"error\": null, \"elapsed_time\": 0.5, \"finished_at\": 1735790002}}\n\ndata: {\"event\": \"workflow_finished\", \"workflow_run_id\": \"uuid-1\", \"task_id\": \"stream-uuid-1\", \"data\": {\"id\": \"uuid-1\", \"workflow_id\": \"wf-1\", \"status\": \"succeeded\", \"outputs\": {\"result\": \"Hello\"}, \"error\": null, \"elapsed_time\": 0.6, \"total_steps\": 1, \"finished_at\": 1735790002}}\n\n"
               }
             }
           },
@@ -13473,6 +13568,72 @@
         "title": "AIProviderUpdate",
         "description": "Schema for updating an AI provider."
       },
+      "AIWorkflowResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Workflow ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Workflow name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Workflow description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Workflow tags"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Version number"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update time"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether this workflow is enabled for the current agent binding",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "updated_at"
+        ],
+        "title": "AIWorkflowResponse",
+        "description": "Schema for workflow information in agent responses."
+      },
       "APINodeData": {
         "properties": {
           "label": {
@@ -13958,6 +14119,27 @@
             ],
             "title": "Collections",
             "description": "Collection IDs to associate with the agent (UUID strings)",
+            "examples": [
+              [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+              ]
+            ]
+          },
+          "workflows": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflows",
+            "description": "Workflow IDs to associate with the agent (UUID strings)",
             "examples": [
               [
                 "123e4567-e89b-12d3-a456-426614174000",
@@ -14516,6 +14698,27 @@
                 "987fcdeb-51a2-43d1-9f6e-123456789abc"
               ]
             ]
+          },
+          "workflows": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflows",
+            "description": "Updated workflow IDs to associate with the agent (UUID strings). Replaces existing associations.",
+            "examples": [
+              [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+              ]
+            ]
           }
         },
         "type": "object",
@@ -14649,6 +14852,14 @@
             "type": "array",
             "title": "Collections",
             "description": "Collections accessible to this agent"
+          },
+          "workflows": {
+            "items": {
+              "$ref": "#/components/schemas/AIWorkflowResponse"
+            },
+            "type": "array",
+            "title": "Workflows",
+            "description": "Workflows accessible to this agent"
           }
         },
         "type": "object",
@@ -27455,6 +27666,18 @@
             "type": "object",
             "title": "Inputs",
             "description": "Input variables passed to the start node, where Key is the variable name"
+          },
+          "stream": {
+            "type": "boolean",
+            "title": "Stream",
+            "description": "Whether to stream the execution events using SSE",
+            "default": false
+          },
+          "async": {
+            "type": "boolean",
+            "title": "Async",
+            "description": "Whether to execute asynchronously via Celery",
+            "default": false
           }
         },
         "type": "object",

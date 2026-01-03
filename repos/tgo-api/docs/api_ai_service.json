@@ -954,6 +954,18 @@
             "description": "Include collection bindings in the response"
           },
           {
+            "name": "include_workflows",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include workflow bindings in the response",
+              "default": false,
+              "title": "Include Workflows"
+            },
+            "description": "Include workflow bindings in the response"
+          },
+          {
             "name": "project_id",
             "in": "query",
             "required": true,
@@ -1307,6 +1319,94 @@
           },
           "404": {
             "description": "Agent or collection binding not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/agents/{agent_id}/workflows/{workflow_id}/enabled": {
+      "patch": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Set Agent Workflow Enabled",
+        "description": "Enable or disable a specific workflow binding for an agent.",
+        "operationId": "set_agent_workflow_enabled_api_v1_agents__agent_id__workflows__workflow_id__enabled_patch",
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Agent Id"
+            }
+          },
+          {
+            "name": "workflow_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workflow Id"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Project ID",
+              "title": "Project Id"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleEnabledRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "Validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Agent or workflow binding not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1977,6 +2077,27 @@
                 "987fcdeb-51a2-43d1-9f6e-123456789abc"
               ]
             ]
+          },
+          "workflows": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflows",
+            "description": "Workflow IDs to associate with the agent (UUID strings)",
+            "examples": [
+              [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+              ]
+            ]
           }
         },
         "type": "object",
@@ -2549,6 +2670,27 @@
                 "987fcdeb-51a2-43d1-9f6e-123456789abc"
               ]
             ]
+          },
+          "workflows": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workflows",
+            "description": "Updated workflow IDs to associate with the agent (UUID strings). Replaces existing associations.",
+            "examples": [
+              [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+              ]
+            ]
           }
         },
         "type": "object",
@@ -2687,6 +2829,14 @@
             "type": "array",
             "title": "Collections",
             "description": "Collections accessible to this agent"
+          },
+          "workflows": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowResponse"
+            },
+            "type": "array",
+            "title": "Workflows",
+            "description": "Workflows accessible to this agent"
           }
         },
         "type": "object",
@@ -5102,6 +5252,71 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WorkflowResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Workflow ID"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Workflow name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Workflow description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Workflow tags"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Current status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Version number"
+          },
+          "updated_at": {
+            "type": "string",
+            "title": "Updated At",
+            "description": "Last update time"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "description": "Whether this workflow is enabled for the current agent binding",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "status",
+          "version",
+          "updated_at"
+        ],
+        "title": "WorkflowResponse",
+        "description": "Schema for workflow API responses from Workflow service."
       }
     }
   }

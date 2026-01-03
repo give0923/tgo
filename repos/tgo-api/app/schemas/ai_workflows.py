@@ -347,6 +347,20 @@ class WorkflowExecuteRequest(BaseSchema):
         default_factory=dict,
         description="Input variables passed to the start node, where Key is the variable name",
     )
+    stream: bool = Field(False, description="Whether to stream the execution events using SSE")
+    async_mode: bool = Field(False, alias="async", description="Whether to execute asynchronously via Celery")
+
+
+class WorkflowSyncResponseMetadata(BaseSchema):
+    duration: float
+    start_time: datetime = Field(..., alias="startTime")
+    end_time: datetime = Field(..., alias="endTime")
+
+
+class WorkflowSyncResponse(BaseSchema):
+    success: bool
+    output: dict[str, JsonValue]
+    metadata: WorkflowSyncResponseMetadata
 
 
 class NodeExecution(BaseSchema):

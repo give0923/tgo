@@ -6,10 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Zap } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { EventNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const EventNode: React.FC<NodeProps<EventNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('workflow.node_types.event.label', '事件触发');
+
   return (
     <div
       className={`
@@ -21,7 +25,7 @@ const EventNode: React.FC<NodeProps<EventNodeData>> = ({ id, data, selected }) =
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '事件触发'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
 
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-green-500 rounded-r-full" />
 
@@ -31,10 +35,10 @@ const EventNode: React.FC<NodeProps<EventNodeData>> = ({ id, data, selected }) =
       
       <div className="min-w-0">
         <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-          {data.label || '事件触发'}
+          {data.label || defaultLabel}
         </div>
         <div className="text-[10px] text-purple-500 dark:text-purple-400 font-bold uppercase tracking-wider mt-0.5 truncate max-w-[120px]">
-          {data.event_type || 'Custom Event'}
+          {data.event_type || t('workflow.node_display.custom_event', 'Custom Event')}
         </div>
       </div>
       

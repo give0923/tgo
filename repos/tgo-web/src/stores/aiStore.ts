@@ -3,6 +3,7 @@ import { devtools, persist } from 'zustand/middleware';
 import type { Agent, MCPTool, CreateAgentFormData, FormValidationErrors, AgentQueryParams, ToolSummary } from '@/types';
 import { AIAgentsApiService, AIAgentsTransformUtils } from '@/services/aiAgentsApi';
 import { useOnboardingStore } from './onboardingStore';
+import i18n from '@/i18n';
 
 interface AIState {
   // AI员工相关
@@ -316,19 +317,19 @@ export const useAIStore = create<AIState>()(
           const errors: FormValidationErrors = {};
 
           if (!createAgentFormData.name.trim()) {
-            errors.name = 'AI员工名称不能为空';
+            errors.name = i18n.t('agents.validation.nameRequired', 'AI员工名称不能为空');
           }
 
           if (!createAgentFormData.profession.trim()) {
-            errors.profession = '职业/角色不能为空';
+            errors.profession = i18n.t('agents.validation.professionRequired', '职业/角色不能为空');
           }
 
           if (!createAgentFormData.description.trim()) {
-            errors.description = 'AI员工描述不能为空';
+            errors.description = i18n.t('agents.validation.descriptionRequired', 'AI员工描述不能为空');
           }
 
           if (!createAgentFormData.llmModel) {
-            errors.llmModel = '请选择LLM模型';
+            errors.llmModel = i18n.t('agents.validation.modelRequired', '请选择LLM模型');
           }
 
           set({ createAgentErrors: errors }, false, 'validateCreateAgentForm');
@@ -352,13 +353,13 @@ export const useAIStore = create<AIState>()(
         createTool: (toolData) => {
           const newTool: MCPTool = {
             id: Date.now().toString(),
-            name: toolData.name || '新工具',
+            name: toolData.name || i18n.t('mcp.newTool', '新工具'),
             description: toolData.description || '',
             category: toolData.category || 'productivity',
             status: 'inactive',
             version: toolData.version || 'v1.0.0',
             endpoint: toolData.endpoint || 'localhost:3000',
-            author: toolData.author || '未知',
+            author: toolData.author || i18n.t('common.unknown', '未知'),
             lastUpdated: new Date().toISOString().split('T')[0],
             usageCount: 0,
             rating: 0,
@@ -485,7 +486,7 @@ export const useAIStore = create<AIState>()(
               agentsError: null
             }, false, 'loadAgents:success');
           } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : 'Failed to load agents';
+            const errorMessage = error instanceof Error ? error.message : i18n.t('agents.messages.loadFailedDesc', '无法加载AI员工列表');
             set({
               isLoadingAgents: false,
               agentsError: errorMessage

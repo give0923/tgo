@@ -20,6 +20,7 @@ import type {
 } from '@/types/workflow';
 import { DEFAULT_NODE_DATA } from '@/types/workflow';
 import { WorkflowApiService } from '@/services/workflowApi';
+import i18n from '@/i18n';
 
 interface WorkflowState {
   // Workflow list
@@ -114,6 +115,7 @@ interface WorkflowState {
   setDebugPanelOpen: (open: boolean) => void;
   setDebugInput: (input: Record<string, any>) => void;
   clearExecution: () => void;
+  markDirty: () => void;
   
   // Actions - Reset
   resetEditor: () => void;
@@ -197,9 +199,10 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
 
       // Create new workflow
-      createWorkflow: async (name = '新建工作流') => {
+      createWorkflow: async (name) => {
+        const finalName = name || i18n.t('workflow.actions.new_workflow', '新建工作流');
         const workflow = await WorkflowApiService.createWorkflow({
-          name,
+          name: finalName,
           nodes: [],
           edges: [],
         });
@@ -299,12 +302,31 @@ export const useWorkflowStore = create<WorkflowState>()(
           reference_key = `${type}_${index}`;
         }
 
+        const rawDefaultData = DEFAULT_NODE_DATA[type];
+        const data = JSON.parse(JSON.stringify(rawDefaultData));
+
+        // Translate default values if they are keys
+        if (data.label) data.label = i18n.t(data.label);
+        if (data.input_variables) {
+          data.input_variables = data.input_variables.map((v: any) => ({
+            ...v,
+            description: v.description ? i18n.t(v.description) : v.description,
+          }));
+        }
+        if (data.categories) {
+          data.categories = data.categories.map((c: any) => ({
+            ...c,
+            name: c.name ? i18n.t(c.name) : c.name,
+            description: c.description ? i18n.t(c.description) : c.description,
+          }));
+        }
+
         const newNode: WorkflowNode = {
           id: nodeId,
           type,
           position,
           data: { 
-            ...DEFAULT_NODE_DATA[type],
+            ...data,
             reference_key 
           },
         };
@@ -604,7 +626,14 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
         });
         
-        set({
+        // Only mark as dirty for add/remove operations
+        // Position changes are handled by handleNodeDragStop -> markDirty
+        const isMeaningfulChange = changes.some(c => 
+          c.type === 'add' || 
+          c.type === 'remove'
+        );
+
+        set((state) => ({
           currentWorkflow: {
             ...currentWorkflow,
             definition: {
@@ -612,8 +641,8 @@ export const useWorkflowStore = create<WorkflowState>()(
               nodes,
             }
           },
-          isDirty: true,
-        }, false, 'onNodesChange');
+          isDirty: isMeaningfulChange ? true : state.isDirty,
+        }), false, 'onNodesChange');
       },
 
       // Handle React Flow edge changes
@@ -630,7 +659,12 @@ export const useWorkflowStore = create<WorkflowState>()(
           }
         });
         
-        set({
+        const isMeaningfulChange = changes.some(c => 
+          c.type === 'add' || 
+          c.type === 'remove'
+        );
+
+        set((state) => ({
           currentWorkflow: {
             ...currentWorkflow,
             definition: {
@@ -638,8 +672,8 @@ export const useWorkflowStore = create<WorkflowState>()(
               edges,
             }
           },
-          isDirty: true,
-        }, false, 'onEdgesChange');
+          isDirty: isMeaningfulChange ? true : state.isDirty,
+        }), false, 'onEdgesChange');
       },
 
       // Handle new connection
@@ -914,6 +948,10 @@ export const useWorkflowStore = create<WorkflowState>()(
           executionError: null,
           nodeExecutionMap: {},
         }, false, 'clearExecution');
+      },
+
+      markDirty: () => {
+        set({ isDirty: true }, false, 'markDirty');
       },
 
       // Reset editor state

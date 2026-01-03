@@ -15,8 +15,10 @@ import ReactFlow, {
   BackgroundVariant,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { useTranslation } from 'react-i18next';
 
 import { useWorkflowStore } from '@/stores/workflowStore';
+import { useToast } from '@/hooks/useToast';
 import { nodeTypes as importedNodeTypes } from './nodes';
 import { edgeTypes as importedEdgeTypes } from './edges';
 import type { WorkflowNodeType } from '@/types/workflow';
@@ -38,6 +40,8 @@ interface WorkflowEditorProps {
 const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition } = useReactFlow();
+  const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const {
     currentWorkflow,
@@ -62,6 +66,9 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
     startExecution,
     cancelExecution,
     debugInput,
+    saveWorkflow,
+    isDirty,
+    markDirty,
   } = useWorkflowStore();
 
   const nodes = currentWorkflow?.definition?.nodes || [];
@@ -88,10 +95,11 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
     });
   }, [rawEdges, nodeExecutionMap]);
 
-  // Handle node drag stop (push to history)
+  // Handle node drag stop (push to history and mark dirty)
   const handleNodeDragStop = useCallback(() => {
     pushHistory();
-  }, [pushHistory]);
+    markDirty();
+  }, [pushHistory, markDirty]);
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -137,8 +145,19 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
       if (cmdKey && event.key === 'd') {
         event.preventDefault();
         if (selectedNodeId) {
-          event.preventDefault();
           duplicateNode(selectedNodeId);
+        }
+      }
+
+      // Save: Cmd+S
+      if (cmdKey && event.key === 's') {
+        event.preventDefault();
+        if (isDirty) {
+          saveWorkflow().then(() => {
+            showToast('success', t('workflow.messages.saveSuccess', '保存成功'), t('workflow.messages.saveSuccessDesc', '工作流已保存'));
+          }).catch(() => {
+            showToast('error', t('workflow.messages.saveFailed', '保存失败'), t('workflow.messages.saveFailedDesc', '保存工作流时发生错误'));
+          });
         }
       }
 
@@ -172,7 +191,7 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNodeId, selectedEdgeId, undo, redo, deleteNode, deleteEdge, duplicateNode, copyNode, pasteNode]);
+  }, [selectedNodeId, selectedEdgeId, undo, redo, deleteNode, deleteEdge, duplicateNode, copyNode, pasteNode, saveWorkflow, isDirty, isDebugPanelOpen, isExecuting, startExecution, cancelExecution, debugInput, showToast, t]);
 
   // Handle node selection
   const handleNodeClick = useCallback((_: React.MouseEvent, node: any) => {
@@ -239,7 +258,7 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
   if (!currentWorkflow) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-500 dark:text-gray-400">请选择或创建一个工作流</p>
+        <p className="text-gray-500 dark:text-gray-400">{t('workflow.selectModal.searchPlaceholder', '请选择或创建一个工作流')}</p>
       </div>
     );
   }
@@ -310,6 +329,7 @@ const WorkflowEditorInner: React.FC<WorkflowEditorProps> = ({ readOnly = false }
  * Validation Errors Panel
  */
 const ValidationErrorsPanel: React.FC = () => {
+  const { t } = useTranslation();
   const { validationErrors } = useWorkflowStore();
 
   if (validationErrors.length === 0) return null;
@@ -318,7 +338,7 @@ const ValidationErrorsPanel: React.FC = () => {
     <Panel position="bottom-center">
       <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-3 max-w-md">
         <h4 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
-          验证错误 ({validationErrors.length})
+          {t('workflow.messages.validateFailed', '验证错误')} ({validationErrors.length})
         </h4>
         <ul className="space-y-1">
           {validationErrors.slice(0, 3).map((error, index) => (
@@ -328,7 +348,7 @@ const ValidationErrorsPanel: React.FC = () => {
           ))}
           {validationErrors.length > 3 && (
             <li className="text-xs text-red-500 dark:text-red-400">
-              ... 还有 {validationErrors.length - 3} 个错误
+              ... {t('common.more_errors', `还有 ${validationErrors.length - 3} 个错误`, { count: validationErrors.length - 3 })}
             </li>
           )}
         </ul>

@@ -6,10 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Clock } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { TimerNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const TimerNode: React.FC<NodeProps<TimerNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('workflow.node_types.timer.label', '定时触发');
+
   return (
     <div
       className={`
@@ -21,7 +25,7 @@ const TimerNode: React.FC<NodeProps<TimerNodeData>> = ({ id, data, selected }) =
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '定时触发'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-green-500 rounded-r-full" />
 
       <div className="p-2.5 rounded-xl bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400">
@@ -30,11 +34,11 @@ const TimerNode: React.FC<NodeProps<TimerNodeData>> = ({ id, data, selected }) =
       
       <div className="min-w-0">
         <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-          {data.label || '定时触发'}
+          {data.label || defaultLabel}
         </div>
         <div className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1 mt-0.5">
           <Clock className="w-2.5 h-2.5" />
-          {data.cron_expression || 'Scheduled'}
+          {data.cron_expression || t('workflow.node_display.scheduled', 'Scheduled')}
         </div>
       </div>
       

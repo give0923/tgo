@@ -11,6 +11,7 @@ from app.models.base import BaseModel
 
 if TYPE_CHECKING:
     from app.models.collection import AgentCollection
+    from app.models.workflow import AgentWorkflow
     from app.models.project import Project
     from app.models.team import Team
     from app.models.llm_provider import LLMProvider
@@ -113,6 +114,13 @@ class Agent(BaseModel):
         lazy="selectin",
     )
 
+    workflows: Mapped[List["AgentWorkflow"]] = relationship(
+        "AgentWorkflow",
+        back_populates="agent",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+
     def __repr__(self) -> str:
         """String representation of the agent."""
         return f"<Agent(id={self.id}, name='{self.name}', project_id={self.project_id})>"
@@ -135,6 +143,11 @@ class Agent(BaseModel):
     def collection_ids(self) -> List[str]:
         """Get the collection IDs from agent collections."""
         return [agent_collection.collection_id for agent_collection in self.collections]
+
+    @property
+    def workflow_ids(self) -> List[str]:
+        """Get the workflow IDs from agent workflows."""
+        return [agent_workflow.workflow_id for agent_workflow in self.workflows]
 
 
 class AgentToolAssociation(BaseModel):

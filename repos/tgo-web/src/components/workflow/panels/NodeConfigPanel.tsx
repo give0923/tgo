@@ -89,7 +89,7 @@ const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ node }) => {
           setLlmOptions(options);
         }
       } catch (e: any) {
-        if (!cancelled) setLlmError(e?.message || '加载模型失败');
+        if (!cancelled) setLlmError(e?.message || t('agents.create.models.error', '加载模型失败'));
       } finally {
         if (!cancelled) setLlmLoading(false);
       }
@@ -172,7 +172,7 @@ const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ node }) => {
               {t('workflow.panel.nodeConfig', '节点配置')}
             </h3>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{nodeType}</span>
+              <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{t(`workflow.node_types.${nodeType}.label`, nodeType)}</span>
               {localData.reference_key && (
                 <>
                   <span className="text-[10px] text-gray-300 dark:text-gray-600">·</span>
@@ -205,26 +205,13 @@ const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({ node }) => {
               className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100"
             />
           </div>
-
-          <div className="space-y-2">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-              {t('workflow.fields.description', '备注描述')}
-            </label>
-            <textarea
-              value={localData.description || ''}
-              onChange={(e) => handleUpdate({ description: e.target.value })}
-              rows={2}
-              className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 resize-none leading-relaxed"
-              placeholder="Add some notes about this node..."
-            />
-          </div>
         </div>
 
         <div className="h-[1px] bg-gray-50 dark:bg-gray-800" />
 
         {/* Type-specific fields Section */}
         <div className="space-y-6">
-          <h4 className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">Properties</h4>
+          <h4 className="text-[10px] font-bold text-blue-500 uppercase tracking-[0.2em] mb-2">{t('workflow.panel.properties', '属性')}</h4>
           
           {node.type === 'input' && (
             <InputNodeConfig data={localData as any} onUpdate={handleUpdate} />
@@ -378,7 +365,7 @@ const InputNodeConfig: React.FC<{
             className="flex items-center gap-1 text-[10px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-widest transition-colors"
           >
             <PlusCircle className="w-3.5 h-3.5" />
-            Add Input
+            {t('common.add', '添加')}
           </button>
         </div>
 
@@ -394,7 +381,7 @@ const InputNodeConfig: React.FC<{
 
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold text-gray-400">Name</label>
+                  <label className="text-[9px] uppercase font-bold text-gray-400">{t('workflow.placeholders.input_name', '名称')}</label>
                   <input
                     type="text"
                     value={input.name}
@@ -403,7 +390,7 @@ const InputNodeConfig: React.FC<{
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[9px] uppercase font-bold text-gray-400">Type</label>
+                  <label className="text-[9px] uppercase font-bold text-gray-400">{t('workflow.placeholders.input_type', '类型')}</label>
                   <select
                     value={input.type}
                     onChange={(e) => handleUpdateInput(index, { type: e.target.value })}
@@ -416,12 +403,12 @@ const InputNodeConfig: React.FC<{
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-[9px] uppercase font-bold text-gray-400">Description</label>
+                <label className="text-[9px] uppercase font-bold text-gray-400">{t('workflow.placeholders.input_description', '描述')}</label>
                 <input
                   type="text"
                   value={input.description || ''}
                   onChange={(e) => handleUpdateInput(index, { description: e.target.value })}
-                  placeholder="What is this input for?"
+                  placeholder={t('workflow.placeholders.input_placeholder', '这个输入是做什么的？')}
                   className="w-full px-2 py-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>
@@ -431,7 +418,7 @@ const InputNodeConfig: React.FC<{
           {(data.input_variables || []).length === 0 && (
             <div className="text-center py-6 px-4 border-2 border-dashed border-gray-100 dark:border-gray-800 rounded-2xl">
               <p className="text-[10px] text-gray-400 uppercase tracking-widest leading-relaxed">
-                No input variables defined.<br />Agents will receive an empty object.
+                {t('workflow.debug.no_input_variables', '无输入变量')}
               </p>
             </div>
           )}
@@ -458,11 +445,11 @@ const TimerNodeConfig: React.FC<{
           type="text"
           value={data.cron_expression || ''}
           onChange={(e) => onUpdate({ cron_expression: e.target.value })}
-          placeholder="0 * * * * (每小时)"
+          placeholder={t('workflow.placeholders.cron_hint', '0 * * * * (每小时)')}
           className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 font-mono"
         />
         <p className="text-[10px] text-gray-400 italic">
-          使用标准 Cron 格式设置自动执行计划。
+          {t('workflow.fields.cron_description', '使用标准 Cron 格式设置自动执行计划。')}
         </p>
       </div>
     </div>
@@ -474,11 +461,12 @@ const WebhookNodeConfig: React.FC<{
   data: any;
   onUpdate: (updates: any) => void;
 }> = ({ data, onUpdate }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-          路径后缀 (Path Suffix)
+          {t('workflow.fields.path_suffix', '路径后缀')}
         </label>
         <div className="flex items-center gap-2">
           <span className="text-xs text-gray-400 font-mono">/webhook/</span>
@@ -486,14 +474,14 @@ const WebhookNodeConfig: React.FC<{
             type="text"
             value={data.path || ''}
             onChange={(e) => onUpdate({ path: e.target.value })}
-            placeholder="custom-path"
+            placeholder={t('workflow.placeholders.custom_path', 'custom-path')}
             className="flex-1 px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 font-mono"
           />
         </div>
       </div>
       <div className="space-y-2">
         <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-          请求方法
+          {t('workflow.fields.method', '请求方法')}
         </label>
         <select
           value={data.method || 'POST'}
@@ -513,17 +501,18 @@ const EventNodeConfig: React.FC<{
   data: any;
   onUpdate: (updates: any) => void;
 }> = ({ data, onUpdate }) => {
+  const { t } = useTranslation();
   return (
     <div className="space-y-4">
       <div className="space-y-2">
         <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">
-          事件类型 (Event Type)
+          {t('workflow.fields.event_type', '事件类型')}
         </label>
         <input
           type="text"
           value={data.event_type || ''}
           onChange={(e) => onUpdate({ event_type: e.target.value })}
-          placeholder="e.g. user_registered"
+          placeholder={t('workflow.placeholders.event_hint', '例如：user_registered')}
           className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 font-mono"
         />
       </div>
@@ -539,10 +528,11 @@ const AnswerNodeConfig: React.FC<{
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
 }> = ({ data, onUpdate, nodeId, nodes, edges }) => {
+  const { t } = useTranslation();
   const output_types = [
-    { id: 'variable', label: '变量引用', desc: '引用上游节点的一个输出变量' },
-    { id: 'template', label: '文本模板', desc: '使用自定义文本和变量组合' },
-    { id: 'structured', label: '结构化数据', desc: '返回 Key-Value 对象' },
+    { id: 'variable', label: t('workflow.output_types.variable', '变量引用'), desc: t('workflow.output_types.variable_desc', '引用上游节点的一个输出变量') },
+    { id: 'template', label: t('workflow.output_types.template', '文本模板'), desc: t('workflow.output_types.template_desc', '使用自定义文本和变量组合') },
+    { id: 'structured', label: t('workflow.output_types.structured', '结构化数据'), desc: t('workflow.output_types.structured_desc', '返回 Key-Value 对象') },
   ];
 
   const handleAddField = () => {
@@ -566,7 +556,7 @@ const AnswerNodeConfig: React.FC<{
   return (
     <div className="space-y-6">
       <div className="space-y-3">
-        <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">输出模式</label>
+        <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.output_mode', '输出模式')}</label>
         <div className="grid grid-cols-1 gap-2">
           {output_types.map((type) => (
             <button
@@ -595,14 +585,14 @@ const AnswerNodeConfig: React.FC<{
 
       {data.output_type === 'variable' && (
         <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">选择变量</label>
+          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.select_variable', '选择变量')}</label>
           <VariableInput
             value={data.output_variable || ''}
             onChange={(val) => onUpdate({ output_variable: val })}
             nodeId={nodeId}
             nodes={nodes}
             edges={edges}
-            placeholder="final_response"
+            placeholder={t('workflow.placeholders.variable_hint', 'final_response')}
             inputClassName="font-mono"
           />
         </div>
@@ -610,7 +600,7 @@ const AnswerNodeConfig: React.FC<{
 
       {data.output_type === 'template' && (
         <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">回复模板</label>
+          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.reply_template', '回复模板')}</label>
           <VariableInput
             multiline
             rows={6}
@@ -619,7 +609,7 @@ const AnswerNodeConfig: React.FC<{
             nodeId={nodeId}
             nodes={nodes}
             edges={edges}
-            placeholder="您好，查询到的结果是：{{api_1.body}}"
+            placeholder={t('workflow.placeholders.template_hint', '您好，查询到的结果是：{{api_1.body}}')}
             inputClassName="text-sm leading-relaxed"
           />
         </div>
@@ -628,12 +618,12 @@ const AnswerNodeConfig: React.FC<{
       {data.output_type === 'structured' && (
         <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="flex items-center justify-between">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">字段定义 (JSON)</label>
+            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.field_definition', '字段定义 (JSON)')}</label>
             <button
               onClick={handleAddField}
               className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors"
             >
-              + Add Field
+              + {t('common.add', '添加')}
             </button>
           </div>
           <div className="space-y-2">
@@ -923,13 +913,13 @@ const ConditionNodeConfig: React.FC<{
                 onChange={(e) => onUpdate({ operator: e.target.value })}
                 className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 appearance-none cursor-pointer pr-10"
               >
-                <option value="equals">等于 (==)</option>
-                <option value="notEquals">不等于 (!=)</option>
-                <option value="contains">包含 (contains)</option>
-                <option value="greaterThan">大于 (&gt;)</option>
-                <option value="lessThan">小于 (&lt;)</option>
-                <option value="isEmpty">为空 (null/empty)</option>
-                <option value="isNotEmpty">不为空</option>
+                <option value="equals">{t('workflow.operators.equals', '等于 (==)')}</option>
+                <option value="notEquals">{t('workflow.operators.notEquals', '不等于 (!=)')}</option>
+                <option value="contains">{t('workflow.operators.contains', '包含 (contains)')}</option>
+                <option value="greaterThan">{t('workflow.operators.greaterThan', '大于 (> )')}</option>
+                <option value="lessThan">{t('workflow.operators.lessThan', '小于 (< )')}</option>
+                <option value="isEmpty">{t('workflow.operators.isEmpty', '为空 (null/empty)')}</option>
+                <option value="isNotEmpty">{t('workflow.operators.isNotEmpty', '不为空')}</option>
               </select>
               <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
                 <GitBranch className="w-4 h-4" />
@@ -963,10 +953,10 @@ const ConditionNodeConfig: React.FC<{
               value={data.llm_prompt || ''}
               onChange={(val) => onUpdate({ llm_prompt: val })}
               nodeId={nodeId}
-              nodes={nodes}
-              edges={edges}
-              placeholder="描述满足 'Yes' 分支的语义条件..."
-            />
+            nodes={nodes}
+            edges={edges}
+            placeholder={t('workflow.placeholders.llm_condition_hint', "描述满足 'Yes' 分支的语义条件...")}
+          />
           </div>
 
           <div className="h-[1px] bg-gray-50 dark:bg-gray-800 my-2" />
@@ -998,6 +988,7 @@ const LLMNodeConfig: React.FC<{
   tools: any[];
   knowledgeBases: any[];
 }> = ({ data, onUpdate, nodeId, nodes, edges, llmOptions, llmLoading, llmError, tools, knowledgeBases }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'prompt' | 'model' | 'capabilities'>('prompt');
 
   const toggleItem = (field: 'tools' | 'knowledge_bases', id: string) => {
@@ -1016,9 +1007,9 @@ const LLMNodeConfig: React.FC<{
       {/* Tabs */}
       <div className="flex p-1 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
         {[
-          { id: 'prompt', label: 'Prompt', icon: MessageSquare },
-          { id: 'model', label: '模型', icon: Settings },
-          { id: 'capabilities', label: '能力', icon: Database },
+          { id: 'prompt', label: t('workflow.tabs.prompt', 'Prompt'), icon: MessageSquare },
+          { id: 'model', label: t('workflow.tabs.model', '模型'), icon: Settings },
+          { id: 'capabilities', label: t('workflow.tabs.capabilities', '能力'), icon: Database },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1040,7 +1031,7 @@ const LLMNodeConfig: React.FC<{
       {activeTab === 'prompt' && (
         <div className="space-y-5 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="space-y-2">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">系统提示词 (Optional)</label>
+            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.system_prompt', '系统提示词')} (Optional)</label>
             <VariableInput
               multiline
               rows={3}
@@ -1055,7 +1046,7 @@ const LLMNodeConfig: React.FC<{
           </div>
 
           <div className="space-y-2">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">用户提示词 (User Prompt)</label>
+            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.user_prompt', '用户提示词')}</label>
             <VariableInput
               multiline
               rows={6}
@@ -1084,7 +1075,7 @@ const LLMNodeConfig: React.FC<{
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">Temperature</label>
+              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.temperature', 'Temperature')}</label>
               <input
                 type="number"
                 value={data.temperature ?? 0.7}
@@ -1096,7 +1087,7 @@ const LLMNodeConfig: React.FC<{
               />
             </div>
             <div className="space-y-2">
-              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">Max Tokens</label>
+              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.max_tokens', 'Max Tokens')}</label>
               <input
                 type="number"
                 value={data.max_tokens ?? 2000}
@@ -1113,7 +1104,7 @@ const LLMNodeConfig: React.FC<{
           {/* Tools */}
           <div className="space-y-3">
             <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-2">
-              <Wrench className="w-3 h-3" /> MCP 工具
+              <Wrench className="w-3 h-3" /> {t('agents.create.sections.mcpTools', 'MCP工具')}
             </label>
             <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
               {tools.map(tool => (
@@ -1138,7 +1129,7 @@ const LLMNodeConfig: React.FC<{
           {/* Knowledge Bases */}
           <div className="space-y-3">
             <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider flex items-center gap-2">
-              <Database className="w-3 h-3" /> 知识库 (RAG)
+              <Database className="w-3 h-3" /> {t('agents.form.knowledge_bases', '知识库')} (RAG)
             </label>
             <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
               {knowledgeBases.map(kb => (
@@ -1232,12 +1223,17 @@ const ClassifierNodeConfig: React.FC<{
   llmLoading: boolean;
   llmError: string | null;
 }> = ({ data, onUpdate, nodeId, nodes, edges, llmOptions, llmLoading, llmError }) => {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<'config' | 'model'>('config');
 
   const handleAddCategory = () => {
     const categories = [...(data.categories || [])];
     const id = `cat_${Date.now()}`;
-    categories.push({ id, name: `分类 ${categories.length + 1}`, description: '' });
+    categories.push({ 
+      id, 
+      name: t('workflow.placeholders.classifier_category_name', `分类 ${categories.length + 1}`, { index: categories.length + 1 }), 
+      description: '' 
+    });
     onUpdate({ categories });
   };
 
@@ -1258,8 +1254,8 @@ const ClassifierNodeConfig: React.FC<{
       {/* Tabs */}
       <div className="flex p-1 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
         {[
-          { id: 'config', label: '分类配置', icon: LayoutGrid },
-          { id: 'model', label: '推理模型', icon: Settings },
+          { id: 'config', label: t('workflow.tabs.config', '分类配置'), icon: LayoutGrid },
+          { id: 'model', label: t('workflow.tabs.inference_model', '推理模型'), icon: Settings },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -1281,25 +1277,25 @@ const ClassifierNodeConfig: React.FC<{
       {activeTab === 'config' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-top-1 duration-200">
           <div className="space-y-2">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">待分类文本</label>
+            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.text_to_classify', '待分类文本')}</label>
             <VariableInput
               value={data.input_variable || ''}
               onChange={(val) => onUpdate({ input_variable: val })}
               nodeId={nodeId}
               nodes={nodes}
               edges={edges}
-              placeholder="选择上游变量，如 {{start_1.user_input}}"
+              placeholder={t('workflow.placeholders.classifier_hint', '选择上游变量，如 {{input_1.query}}')}
             />
           </div>
 
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">分类定义 (Categories)</label>
+              <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.category_definition', '分类定义')}</label>
               <button
                 onClick={handleAddCategory}
                 className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors flex items-center gap-1"
               >
-                <PlusCircle className="w-3 h-3" /> Add Category
+                <PlusCircle className="w-3 h-3" /> {t('common.add', '添加')}
               </button>
             </div>
 
@@ -1314,22 +1310,12 @@ const ClassifierNodeConfig: React.FC<{
                   </button>
 
                   <div className="space-y-1">
-                    <label className="text-[9px] uppercase font-bold text-gray-400">Name</label>
+                    <label className="text-[9px] uppercase font-bold text-gray-400">{t('workflow.fields.name', '名称')}</label>
                     <input
                       type="text"
                       value={cat.name}
                       onChange={(e) => handleUpdateCategory(i, { name: e.target.value })}
                       className="w-full px-2 py-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 font-bold"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[9px] uppercase font-bold text-gray-400">Description / Rules</label>
-                    <textarea
-                      value={cat.description || ''}
-                      onChange={(e) => handleUpdateCategory(i, { description: e.target.value })}
-                      placeholder="描述此分类的特征，LLM将根据此描述进行匹配"
-                      rows={2}
-                      className="w-full px-2 py-1 bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-lg text-xs outline-none focus:ring-1 focus:ring-blue-500 resize-none leading-relaxed"
                     />
                   </div>
                 </div>
@@ -1363,6 +1349,7 @@ const APINodeConfig: React.FC<{
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
 }> = ({ data, onUpdate, nodeId, nodes, edges }) => {
+  const { t } = useTranslation();
   const handleAddField = (field: 'headers' | 'params' | 'form_data' | 'form_url_encoded') => {
     const list = [...(data[field] || [])];
     if (field === 'form_data') {
@@ -1397,7 +1384,7 @@ const APINodeConfig: React.FC<{
     <div className="space-y-6">
       {/* Method & URL */}
       <div className="space-y-3">
-        <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">请求设置</label>
+        <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.request_settings', '请求设置')}</label>
         <div className="flex gap-2">
           <select
             value={data.method || 'GET'}
@@ -1415,7 +1402,7 @@ const APINodeConfig: React.FC<{
               nodeId={nodeId}
               nodes={nodes}
               edges={edges}
-              placeholder="https://api.example.com"
+              placeholder={t('workflow.placeholders.api_hint', 'https://api.example.com')}
               inputClassName="font-mono"
             />
           </div>
@@ -1425,12 +1412,12 @@ const APINodeConfig: React.FC<{
       {/* Headers */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">请求头 (Headers)</label>
+          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.headers', '请求头 (Headers)')}</label>
           <button
             onClick={() => handleAddField('headers')}
             className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors"
           >
-            + Add Header
+            + {t('common.add', '添加')}
           </button>
         </div>
         <div className="space-y-2">
@@ -1469,12 +1456,12 @@ const APINodeConfig: React.FC<{
       {/* Params */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">Query 参数</label>
+          <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.query_params', 'Query 参数')}</label>
           <button
             onClick={() => handleAddField('params')}
             className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600 transition-colors"
           >
-            + Add Param
+            + {t('common.add', '添加')}
           </button>
         </div>
         <div className="space-y-2">
@@ -1515,7 +1502,7 @@ const APINodeConfig: React.FC<{
         <div className="space-y-4">
           <div className="h-[1px] bg-gray-50 dark:bg-gray-800" />
           <div className="space-y-3">
-            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">请求体 (Body)</label>
+            <label className="text-[11px] uppercase font-bold text-gray-400 tracking-wider">{t('workflow.fields.body', '请求体 (Body)')}</label>
             <div className="flex flex-wrap gap-1.5 p-1 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
               {body_types.map((bt) => (
                 <button
@@ -1559,7 +1546,7 @@ const APINodeConfig: React.FC<{
                     onClick={() => handleAddField('form_data')}
                     className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600"
                   >
-                    + Add Field
+                    + {t('common.add', '添加')}
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -1604,7 +1591,7 @@ const APINodeConfig: React.FC<{
                     onClick={() => handleAddField('form_url_encoded')}
                     className="text-[10px] font-bold text-blue-500 uppercase tracking-widest hover:text-blue-600"
                   >
-                    + Add Field
+                    + {t('common.add', '添加')}
                   </button>
                 </div>
                 <div className="space-y-2">
@@ -1669,7 +1656,7 @@ const APINodeConfig: React.FC<{
                   nodeId={nodeId}
                   nodes={nodes}
                   edges={edges}
-                  placeholder="Enter raw content..."
+                  placeholder={t('workflow.placeholders.raw_hint', 'Enter raw content...')}
                   inputClassName="font-mono text-[11px]"
                 />
               </div>
@@ -1680,12 +1667,12 @@ const APINodeConfig: React.FC<{
 
       {/* API Output Info */}
       <div className="p-3 bg-blue-50/50 dark:bg-blue-900/10 rounded-xl border border-blue-100/50 dark:border-blue-800/30 space-y-2 mt-4">
-        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">默认输出：</div>
+        <div className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t('workflow.api.default_output', '默认输出：')}</div>
         <div className="grid grid-cols-1 gap-1">
           {['body', 'status_code', 'headers'].map(field => (
             <div key={field} className="flex justify-between items-center group">
               <code className="text-[10px] text-blue-500 font-bold">.{field}</code>
-              <span className="text-[9px] text-gray-400 italic">可用变量</span>
+              <span className="text-[9px] text-gray-400 italic">{t('workflow.api.available_variables', '可用变量')}</span>
             </div>
           ))}
         </div>

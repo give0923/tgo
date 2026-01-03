@@ -182,7 +182,7 @@ const MCPToolSelectionModal: React.FC<MCPToolSelectionModalProps> = ({
                     : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                 }`}
               >
-                {t('common.all', 'All')}
+                {t('common.all', '全部')}
               </button>
             ))}
           </div>

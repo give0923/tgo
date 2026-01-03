@@ -6,10 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { APINodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const APINode: React.FC<NodeProps<APINodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('workflow.node_types.api.label', 'API调用');
+
   return (
     <div
       className={`
@@ -21,7 +25,7 @@ const APINode: React.FC<NodeProps<APINodeData>> = ({ id, data, selected }) => {
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || 'API调用'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-blue-500 rounded-r-full" />
 
@@ -31,7 +35,7 @@ const APINode: React.FC<NodeProps<APINodeData>> = ({ id, data, selected }) => {
       
       <div className="min-w-0 flex-1">
         <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-          {data.label || 'API调用'}
+          {data.label || defaultLabel}
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[10px] font-bold text-blue-500 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded uppercase">

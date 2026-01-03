@@ -2,12 +2,15 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import Any, Dict, List, Optional, Literal
+from typing import Any, Dict, List, Optional, Literal, TYPE_CHECKING
 from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 from app.schemas.base import BaseSchema, PaginationMetadata
+
+if TYPE_CHECKING:
+    from app.schemas.ai_workflows import WorkflowSummary
 
 
 # Model-related Enums and Schemas
@@ -400,6 +403,16 @@ class AgentCreateRequest(BaseSchema):
             ]
         ]
     )
+    workflows: Optional[List[str]] = Field(
+        None,
+        description="Workflow IDs to associate with the agent (UUID strings)",
+        examples=[
+            [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+            ]
+        ]
+    )
 
 
 class AgentUpdateRequest(BaseSchema):
@@ -442,6 +455,16 @@ class AgentUpdateRequest(BaseSchema):
     collections: Optional[List[str]] = Field(
         None,
         description="Updated collection IDs to associate with the agent (UUID strings). Replaces existing associations.",
+        examples=[
+            [
+                "123e4567-e89b-12d3-a456-426614174000",
+                "987fcdeb-51a2-43d1-9f6e-123456789abc"
+            ]
+        ]
+    )
+    workflows: Optional[List[str]] = Field(
+        None,
+        description="Updated workflow IDs to associate with the agent (UUID strings). Replaces existing associations.",
         examples=[
             [
                 "123e4567-e89b-12d3-a456-426614174000",
@@ -526,6 +549,22 @@ class AICollectionResponse(BaseSchema):
     deleted_at: Optional[datetime] = Field(None, description="Soft delete timestamp")
 
 
+class AIWorkflowResponse(BaseSchema):
+    """Schema for workflow information in agent responses."""
+
+    id: str = Field(..., description="Workflow ID")
+    name: str = Field(..., description="Workflow name")
+    description: Optional[str] = Field(None, description="Workflow description")
+    tags: List[str] = Field(default_factory=list, description="Workflow tags")
+    status: str = Field(..., description="Current status")
+    version: int = Field(..., description="Version number")
+    updated_at: datetime = Field(..., description="Last update time")
+    enabled: bool = Field(
+        default=True,
+        description="Whether this workflow is enabled for the current agent binding"
+    )
+
+
 # Detailed Response Schemas
 class AgentWithDetailsResponse(AgentResponse):
     """Schema for agent response with additional details."""
@@ -537,6 +576,10 @@ class AgentWithDetailsResponse(AgentResponse):
     collections: List[AICollectionResponse] = Field(
         default_factory=list,
         description="Collections accessible to this agent"
+    )
+    workflows: List[AIWorkflowResponse] = Field(
+        default_factory=list,
+        description="Workflows accessible to this agent"
     )
 
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuX, LuUsers, LuSave } from 'react-icons/lu';
-import { Loader2 } from 'lucide-react';
+import { LuX, LuUsers, LuSave, LuMessageSquare, LuCpu, LuInfo, LuChevronRight } from 'react-icons/lu';
+import { Loader2, Sparkles } from 'lucide-react';
 import { aiTeamsApiService, TeamWithDetailsResponse, TeamUpdateRequest } from '@/services/aiTeamsApi';
 import { useToast } from '@/hooks/useToast';
 import { useProvidersStore } from '@/stores/providersStore';
@@ -172,61 +172,68 @@ const TeamInfoModal: React.FC<TeamInfoModalProps> = ({ isOpen, onClose, team, on
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-hidden flex items-center justify-center p-4 sm:p-6">
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 dark:bg-black/70 transition-opacity"
+        className="fixed inset-0 bg-gray-900/60 dark:bg-black/80 backdrop-blur-sm transition-opacity animate-in fade-in duration-300"
         onClick={handleClose}
       />
 
       {/* Modal */}
-      <div className="relative min-h-screen flex items-center justify-center p-4">
-        <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-          {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
-                <LuUsers className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <div className="relative bg-white dark:bg-gray-900 rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+        {/* Header */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-blue-50 dark:bg-blue-900/30 rounded-2xl text-blue-600 dark:text-blue-400">
+              <LuUsers className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 {t('team.modal.title', '团队信息')}
               </h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                {t('team.modal.subtitle', '配置您的 AI 协作团队参数')}
+              </p>
             </div>
-            <button
-              onClick={handleClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              <LuX className="w-5 h-5" />
-            </button>
           </div>
+          <button
+            onClick={handleClose}
+            className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-all"
+          >
+            <LuX className="w-6 h-6" />
+          </button>
+        </div>
 
-          {/* Content */}
-          <div className="px-6 py-4 overflow-y-auto max-h-[calc(90vh-140px)]">
-            {team ? (
-              <div className="space-y-6">
-                {/* Team Name */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('team.modal.name', '团队名称')}
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
-                    placeholder={t('team.modal.namePlaceholder', '输入团队名称')}
-                  />
-                </div>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar px-8 py-8 space-y-8">
+          {team ? (
+            <>
+              {/* Team Name */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <LuInfo className="w-4 h-4 text-blue-500" />
+                  {t('team.modal.name', '团队名称')}
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
+                  placeholder={t('team.modal.namePlaceholder', '输入团队名称')}
+                />
+              </div>
 
-                {/* Model - Dropdown Select */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('team.modal.model', 'LLM 模型')}
-                  </label>
+              {/* Model */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <LuCpu className="w-4 h-4 text-purple-500" />
+                  {t('team.modal.model', '默认 LLM 模型')}
+                </label>
+                <div className="relative">
                   <select
                     value={formData.model}
                     onChange={(e) => handleInputChange('model', e.target.value)}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors"
+                    className="w-full appearance-none px-4 py-3 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none"
                   >
                     {llmLoading ? (
                       <option value="">{t('team.modal.models.loading', '正在加载模型...')}</option>
@@ -247,58 +254,70 @@ const TeamInfoModal: React.FC<TeamInfoModalProps> = ({ isOpen, onClose, team, on
                       </>
                     )}
                   </select>
-                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {t('team.modal.modelHint', '选择团队使用的默认 LLM 模型')}
-                  </p>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                    <LuChevronRight className="w-4 h-4 rotate-90" />
+                  </div>
                 </div>
+                <p className="text-[11px] text-gray-500 flex items-center gap-1.5 px-1">
+                  <Sparkles className="w-3 h-3 text-yellow-500" />
+                  {t('team.modal.modelHint', '选择团队使用的默认 LLM 模型，子员工未配置时将使用此模型')}
+                </p>
+              </div>
 
-                {/* Instruction */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    {t('team.modal.instruction', '团队指令')}
-                  </label>
+              {/* Instruction */}
+              <div className="space-y-3">
+                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 dark:text-gray-300">
+                  <LuMessageSquare className="w-4 h-4 text-green-500" />
+                  {t('team.modal.instruction', '团队协作指令')}
+                </label>
+                <div className="relative group">
                   <textarea
                     value={formData.instruction}
                     onChange={(e) => handleInputChange('instruction', e.target.value)}
-                    rows={4}
-                    className="w-full px-4 py-2.5 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 focus:border-transparent transition-colors resize-none"
-                    placeholder={t('team.modal.instructionPlaceholder', '输入团队的系统提示词或指令...')}
+                    rows={6}
+                    className="w-full px-4 py-4 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none resize-none"
+                    placeholder={t('team.modal.instructionPlaceholder', '描述团队的协作目标、规则和通用的系统指令...')}
                   />
-                  <p className="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    {t('team.modal.instructionHint', '此指令将应用于团队中的所有AI员工')}
+                </div>
+                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100/50 dark:border-blue-800/50">
+                  <p className="text-xs text-blue-600 dark:text-blue-400 leading-relaxed">
+                    {t('team.modal.instructionHint', '💡 此指令将作为团队的全局背景信息，应用于团队中的所有 AI 员工，帮助他们更好地理解协作上下文。')}
                   </p>
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-                {t('team.modal.noTeam', '未找到默认团队')}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-20 text-center">
+              <div className="w-16 h-16 bg-gray-50 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <LuUsers className="w-8 h-8 text-gray-300" />
               </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          {team && (
-            <div className="flex items-center justify-end px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-              <button
-                onClick={handleClose}
-                className="px-4 py-2 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors mr-3"
-              >
-                {t('team.modal.cancel', '取消')}
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={!isDirty || isSaving}
-                className="flex items-center px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed transition-colors"
-              >
-                {isSaving ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
-                  <LuSave className="w-4 h-4 mr-2" />
-                )}
-                {t('team.modal.save', '保存')}
-              </button>
+              <p className="text-gray-500 dark:text-gray-400 font-medium">
+                {t('team.modal.noTeam', '未找到默认团队')}
+              </p>
             </div>
           )}
+        </div>
+
+        {/* Footer */}
+        <div className="px-8 py-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 flex items-center justify-end gap-3">
+          <button
+            onClick={handleClose}
+            className="px-6 py-2.5 text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-all border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+          >
+            {t('common.cancel', '取消')}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!isDirty || isSaving}
+            className="flex items-center gap-2 px-8 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-200 dark:disabled:bg-gray-800 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-200 dark:shadow-none transition-all active:scale-95 disabled:cursor-not-allowed disabled:text-gray-400"
+          >
+            {isSaving ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LuSave className="w-4 h-4" />
+            )}
+            {t('common.save', '保存')}
+          </button>
         </div>
       </div>
     </div>

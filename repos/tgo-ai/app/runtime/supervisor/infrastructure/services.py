@@ -14,6 +14,7 @@ from app.models.team import Team as DBTeam
 from app.models.internal import (
     Agent as InternalAgent,
     AgentCollection as InternalAgentCollection,
+    AgentWorkflow as InternalAgentWorkflow,
     AgentExecutionRequest,
     AgentExecutionResponse,
     AgentTool as InternalAgentTool,
@@ -24,6 +25,7 @@ from app.runtime.tools.models import (
     AgentRunRequest,
     MCPConfig,
     RagConfig,
+    WorkflowConfig,
     LLMProviderCredentials,
     CompleteStreamEvent,
     ContentStreamEvent,
@@ -150,6 +152,28 @@ def _convert_agent(
                 )
                 continue
 
+        # Convert workflows
+        workflows: List[InternalAgentWorkflow] = []
+        for binding in agent.workflows:
+            try:
+                workflows.append(
+                    InternalAgentWorkflow(
+                        id=binding.id,
+                        workflow_id=binding.workflow_id,
+                        enabled=binding.enabled,
+                    )
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to convert agent workflow, skipping",
+                    agent_id=str(agent.id),
+                    agent_name=agent.name,
+                    workflow_id=str(binding.workflow_id) if hasattr(binding, 'workflow_id') else 'unknown',
+                    error=str(e),
+                    error_type=type(e).__name__
+                )
+                continue
+
         # Extract provider credentials (agent-level)
         provider_credentials = None
         try:
@@ -185,6 +209,7 @@ def _convert_agent(
             team_id=str(agent.team_id) if agent.team_id else None,
             tools=tools,
             collections=collections,
+            workflows=workflows,
             is_default=agent.is_default,
             created_at=agent.created_at,
             updated_at=agent.updated_at,
@@ -930,6 +955,16 @@ class AgentServiceClient:
                 api_key=rag_api_key,
             )
 
+        workflow_config = None
+        from app.config import settings
+        workflow_service_url = getattr(settings, "workflow_service_url", None)
+        if workflow_service_url and agent.workflows:
+            workflow_config = WorkflowConfig(
+                workflow_url=workflow_service_url,
+                workflows=[str(binding.workflow_id) for binding in agent.workflows if binding.enabled],
+                project_id=str(getattr(agent, "project_id", None)),
+            )
+
         # Resolve provider credentials from agent (AgentServiceClient has no team context)
         provider_credentials = getattr(agent, "llm_provider_credentials", None)
 
@@ -940,6 +975,7 @@ class AgentServiceClient:
             system_prompt=system_prompt,
             mcp_config=mcp_config,
             rag=rag_config,
+            workflow=workflow_config,
             enable_memory=combined_config.get("enable_memory"),
             provider_credentials=provider_credentials,
         )

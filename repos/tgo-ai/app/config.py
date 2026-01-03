@@ -62,6 +62,12 @@ class Settings(BaseSettings):
         description="Base URL for the MCP service"
     )
 
+    # Workflow Service Configuration
+    workflow_service_url: str = Field(
+        default="http://localhost:8086",
+        description="Base URL for the Workflow service"
+    )
+
 
     # Agent Runtime Service Configuration
     agent_service_url: str = Field(

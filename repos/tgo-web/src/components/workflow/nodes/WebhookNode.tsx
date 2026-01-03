@@ -6,10 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { WebhookNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const WebhookNode: React.FC<NodeProps<WebhookNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('workflow.node_types.webhook.label', 'Webhook');
+
   return (
     <div
       className={`
@@ -21,7 +25,7 @@ const WebhookNode: React.FC<NodeProps<WebhookNodeData>> = ({ id, data, selected 
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || 'Webhook'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
 
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-green-500 rounded-r-full" />
 
@@ -31,7 +35,7 @@ const WebhookNode: React.FC<NodeProps<WebhookNodeData>> = ({ id, data, selected 
       
       <div className="min-w-0">
         <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-          {data.label || 'Webhook'}
+          {data.label || defaultLabel}
         </div>
         <div className="text-[10px] text-blue-500 dark:text-blue-400 font-bold uppercase tracking-wider mt-0.5 truncate max-w-[120px]">
           {data.method || 'POST'} {data.path ? `/${data.path}` : '/'}

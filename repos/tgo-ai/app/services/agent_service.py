@@ -10,11 +10,13 @@ from sqlalchemy.orm import selectinload
 from app.exceptions import NotFoundError, ValidationError
 from app.models.agent import Agent, AgentToolAssociation
 from app.models.collection import AgentCollection
+from app.models.workflow import AgentWorkflow
 from app.models.tool import Tool
 
 from app.models.team import Team
 from app.schemas.agent import AgentCreate, AgentUpdate
 from app.services.rag_service import rag_service_client
+from app.services.workflow_service import workflow_service_client
 
 
 class AgentService:
@@ -83,6 +85,15 @@ class AgentService:
                 )
                 self.db.add(agent_collection)
 
+        # Create workflow bindings
+        if agent_data.workflows:
+            for workflow_id_str in agent_data.workflows:
+                agent_workflow = AgentWorkflow(
+                    agent_id=agent.id,
+                    workflow_id=workflow_id_str,
+                )
+                self.db.add(agent_workflow)
+
         await self.db.commit()
         await self.db.refresh(agent)
         return agent
@@ -106,6 +117,7 @@ class AgentService:
             .options(
                 selectinload(Agent.tools),
                 selectinload(Agent.collections),
+                selectinload(Agent.workflows),
                 selectinload(Agent.team),
                 selectinload(Agent.llm_provider),
             )
@@ -123,8 +135,9 @@ class AgentService:
         if not agent:
             raise NotFoundError("Agent", agent_id)
 
-        # Enrich agent with collection data and tool details
+        # Enrich agent with collection data, workflow data, and tool details
         enriched_agents = await self.enrich_agents_with_collection_data([agent], project_id)
+        enriched_agents = await self.enrich_agents_with_workflow_data(enriched_agents, project_id)
         enriched_agents = await self.enrich_agents_with_tool_details(enriched_agents, project_id)
         return enriched_agents[0]
 
@@ -175,6 +188,7 @@ class AgentService:
             .options(
                 selectinload(Agent.tools),
                 selectinload(Agent.collections),
+                selectinload(Agent.workflows),
                 selectinload(Agent.team),
                 selectinload(Agent.llm_provider),
             )
@@ -186,8 +200,9 @@ class AgentService:
         result = await self.db.execute(stmt)
         agents = result.scalars().all()
 
-        # Enrich agents with collection data and tool details
+        # Enrich agents with collection data, workflow data, and tool details
         enriched_agents = await self.enrich_agents_with_collection_data(list(agents), project_id)
+        enriched_agents = await self.enrich_agents_with_workflow_data(enriched_agents, project_id)
         enriched_agents = await self.enrich_agents_with_tool_details(enriched_agents, project_id)
 
         return enriched_agents, total_count
@@ -221,13 +236,17 @@ class AgentService:
         if agent_data.collections is not None:
             await self._validate_collections_belong_to_project(agent_data.collections, project_id)
 
+        # Validate workflows if provided
+        if agent_data.workflows is not None:
+            await self._validate_workflows_belong_to_project(agent_data.workflows, project_id)
+
         # Validate tools if provided
         if agent_data.tools is not None:
             tool_ids = [tool.tool_id for tool in agent_data.tools]
             await self._validate_tools_belong_to_project(tool_ids, project_id)
 
         # Update basic fields
-        update_data = agent_data.model_dump(exclude_unset=True, exclude={"tools", "collections"})
+        update_data = agent_data.model_dump(exclude_unset=True, exclude={"tools", "collections", "workflows"})
         for field, value in update_data.items():
             setattr(agent, field, value)
 
@@ -271,6 +290,20 @@ class AgentService:
                     collection_id=collection_id_str,
                 )
                 self.db.add(agent_collection)
+
+        # Update workflows if provided
+        if agent_data.workflows is not None:
+            # Remove existing workflow associations
+            for agent_workflow in agent.workflows:
+                await self.db.delete(agent_workflow)
+
+            # Add new workflow associations
+            for workflow_id_str in agent_data.workflows:
+                agent_workflow = AgentWorkflow(
+                    agent_id=agent.id,
+                    workflow_id=workflow_id_str,
+                )
+                self.db.add(agent_workflow)
 
         await self.db.commit()
         await self.db.refresh(agent)
@@ -349,6 +382,34 @@ class AgentService:
         binding.enabled = enabled
         await self.db.commit()
 
+    async def set_workflow_enabled(
+        self, project_id: uuid.UUID, agent_id: uuid.UUID, workflow_id: str, enabled: bool
+    ) -> None:
+        """Enable or disable a specific workflow binding for an agent."""
+        # Verify agent belongs to project
+        stmt_agent = select(Agent).where(
+            and_(Agent.id == agent_id, Agent.project_id == project_id, Agent.deleted_at.is_(None))
+        )
+        res = await self.db.execute(stmt_agent)
+        agent = res.scalar_one_or_none()
+        if not agent:
+            raise NotFoundError("Agent", agent_id)
+
+        # Find binding
+        stmt_wf = select(AgentWorkflow).where(
+            and_(
+                AgentWorkflow.agent_id == agent_id,
+                AgentWorkflow.workflow_id == workflow_id,
+            )
+        )
+        res_wf = await self.db.execute(stmt_wf)
+        binding = res_wf.scalar_one_or_none()
+        if not binding:
+            raise NotFoundError("AgentWorkflow", details={"workflow_id": workflow_id})
+
+        binding.enabled = enabled
+        await self.db.commit()
+
     async def _validate_team_belongs_to_project(
         self, team_id: uuid.UUID, project_id: uuid.UUID
     ) -> None:
@@ -402,6 +463,29 @@ class AgentService:
         # Validate collections exist in RAG service (trust project_id; no local project validation)
         await rag_service_client.validate_collections_exist(
             collection_ids,
+            str(project_id),
+        )
+
+    async def _validate_workflows_belong_to_project(
+        self, workflow_ids: List[str], project_id: uuid.UUID
+    ) -> None:
+        """
+        Validate that all workflows exist in the Workflow service for the project.
+
+        Args:
+            workflow_ids: List of workflow ID strings
+            project_id: Project ID
+
+        Raises:
+            NotFoundError: If any workflow not found
+            ValidationError: If validation fails
+        """
+        if not workflow_ids:
+            return
+
+        # Validate workflows exist in Workflow service
+        await workflow_service_client.validate_workflows_exist(
+            workflow_ids,
             str(project_id),
         )
 
@@ -514,6 +598,68 @@ class AgentService:
             # If RAG service fails, return agents without collection data
             for agent in agents:
                 agent._collection_data = []
+
+        return agents
+
+    async def enrich_agents_with_workflow_data(
+        self, agents: List[Agent], project_id: uuid.UUID
+    ) -> List[Agent]:
+        """
+        Enrich agents with workflow data from the Workflow service.
+
+        Args:
+            agents: List of agents to enrich
+            project_id: Project ID for Workflow service authentication
+
+        Returns:
+            List of agents with workflow data attached
+        """
+        if not agents:
+            return agents
+
+        # Collect all unique workflow IDs from all agents
+        all_workflow_ids = set()
+        for agent in agents:
+            for aw in (agent.workflows or []):
+                all_workflow_ids.add(aw.workflow_id)
+
+        if not all_workflow_ids:
+            # No workflows to fetch
+            for agent in agents:
+                agent._workflow_data = []
+            return agents
+
+        # Fetch workflow data from Workflow service
+        try:
+            workflows = await workflow_service_client.get_workflows_batch(
+                list(all_workflow_ids),
+                str(project_id),
+            )
+
+            # Create a mapping of workflow_id -> workflow_data
+            workflow_data_map = {
+                str(workflow.id): workflow
+                for workflow in workflows
+            }
+
+            # Attach workflow data (with enabled from binding) to each agent
+            for agent in agents:
+                agent_workflow_data = []
+                for aw in (agent.workflows or []):
+                    wid = str(aw.workflow_id)
+                    if wid in workflow_data_map:
+                        wf = workflow_data_map[wid]
+                        try:
+                            wf_with_enabled = wf.model_copy(update={"enabled": bool(getattr(aw, "enabled", True))})
+                        except Exception:
+                            wf_with_enabled = wf
+                        agent_workflow_data.append(wf_with_enabled)
+                agent._workflow_data = agent_workflow_data
+
+        except Exception:
+            # If Workflow service fails, return agents without workflow data
+            for agent in agents:
+                agent._workflow_data = []
 
         return agents
 

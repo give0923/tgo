@@ -97,17 +97,22 @@ class AgentCreate(AgentBase):
         description="Collection IDs to associate with the agent (UUID strings)",
         examples=[["123e4567-e89b-12d3-a456-426614174000", "987fcdeb-51a2-43d1-9f6e-123456789abc"]],
     )
+    workflows: Optional[List[str]] = Field(
+        default_factory=list,
+        description="Workflow IDs to associate with the agent (UUID strings)",
+        examples=[["123e4567-e89b-12d3-a456-426614174000", "987fcdeb-51a2-43d1-9f6e-123456789abc"]],
+    )
 
-    @field_validator("collections")
+    @field_validator("collections", "workflows")
     @classmethod
-    def validate_collection_ids(cls, v: Optional[List[str]]) -> Optional[List[str]]:
-        """Validate that all collection IDs are valid UUIDs."""
+    def validate_ids(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate that all IDs are valid UUIDs."""
         if v is not None:
-            for collection_id in v:
+            for item_id in v:
                 try:
-                    uuid.UUID(collection_id)
+                    uuid.UUID(item_id)
                 except ValueError:
-                    raise ValueError(f"Invalid UUID format for collection ID: {collection_id}")
+                    raise ValueError(f"Invalid UUID format: {item_id}")
         return v
 
 
@@ -153,19 +158,22 @@ class AgentUpdate(BaseSchema):
         description="Updated collection IDs to associate with the agent (UUID strings). Replaces existing associations.",
         examples=[["123e4567-e89b-12d3-a456-426614174000", "987fcdeb-51a2-43d1-9f6e-123456789abc"]],
     )
+    workflows: Optional[List[str]] = Field(
+        default=None,
+        description="Updated workflow IDs to associate with the agent (UUID strings). Replaces existing associations.",
+        examples=[["123e4567-e89b-12d3-a456-426614174000", "987fcdeb-51a2-43d1-9f6e-123456789abc"]],
+    )
 
-
-
-    @field_validator("collections")
+    @field_validator("collections", "workflows")
     @classmethod
-    def validate_collection_ids(cls, v: Optional[List[str]]) -> Optional[List[str]]:
-        """Validate that all collection IDs are valid UUIDs."""
+    def validate_ids(cls, v: Optional[List[str]]) -> Optional[List[str]]:
+        """Validate that all IDs are valid UUIDs."""
         if v is not None:
-            for collection_id in v:
+            for item_id in v:
                 try:
-                    uuid.UUID(collection_id)
+                    uuid.UUID(item_id)
                 except ValueError:
-                    raise ValueError(f"Invalid UUID format for collection ID: {collection_id}")
+                    raise ValueError(f"Invalid UUID format: {item_id}")
         return v
 
 
@@ -209,9 +217,17 @@ class AgentWithDetails(AgentResponse):
         serialization_alias="collections",
     )
 
+    workflows: List["WorkflowResponse"] = Field(
+        default_factory=list,
+        description="Workflows accessible to this agent",
+        alias="_workflow_data",
+        serialization_alias="workflows",
+    )
+
 
 # Forward reference resolution
 from app.schemas.collection import CollectionResponse  # noqa: E402
+from app.schemas.workflow import WorkflowResponse  # noqa: E402
 
 AgentWithDetails.model_rebuild()
 

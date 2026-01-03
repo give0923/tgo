@@ -135,7 +135,7 @@ const DebugPanel: React.FC = () => {
           </div>
           <div>
             <h3 className="font-bold text-gray-900 dark:text-gray-100 text-sm">{t('workflow.debug.title', '在线调试')}</h3>
-            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Debug Mode</p>
+            <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{t('common.debug_mode', 'Debug Mode')}</p>
           </div>
         </div>
         <button
@@ -187,8 +187,8 @@ const DebugPanel: React.FC = () => {
                         className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 cursor-pointer"
                         disabled={isExecuting}
                       >
-                        <option value="true">True</option>
-                        <option value="false">False</option>
+                        <option value="true">{t('common.true', 'True')}</option>
+                        <option value="false">{t('common.false', 'False')}</option>
                       </select>
                     ) : (
                       <input
@@ -196,7 +196,7 @@ const DebugPanel: React.FC = () => {
                         value={debugInput[v.name] ?? ''}
                         onChange={(e) => handleInputChange(v.name, e.target.value, v.type)}
                         className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-lg focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100"
-                        placeholder={`请输入 ${v.name}...`}
+                        placeholder={t('common.please_input', '请输入') + ` ${v.name}...`}
                         disabled={isExecuting}
                       />
                     )}
@@ -307,7 +307,7 @@ const DebugPanel: React.FC = () => {
                               >
                                 {ne.input && (
                                   <div className="space-y-1">
-                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Input</span>
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{t('workflow.debug.input', 'Input')}</span>
                                     <pre className="p-2 bg-gray-900 dark:bg-black rounded-lg text-[10px] text-blue-400 overflow-x-auto font-mono">
                                       {JSON.stringify(ne.input, null, 2)}
                                     </pre>
@@ -315,7 +315,7 @@ const DebugPanel: React.FC = () => {
                                 )}
                                 {ne.output && (
                                   <div className="space-y-1">
-                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">Output</span>
+                                    <span className="text-[9px] text-gray-400 font-bold uppercase tracking-wider">{t('workflow.debug.output', 'Output')}</span>
                                     <pre className="p-2 bg-gray-900 dark:bg-black rounded-lg text-[10px] text-green-400 overflow-x-auto font-mono">
                                       {JSON.stringify(ne.output, null, 2)}
                                     </pre>
@@ -323,7 +323,7 @@ const DebugPanel: React.FC = () => {
                                 )}
                                 {ne.error && (
                                   <div className="space-y-1">
-                                    <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">Error</span>
+                                    <span className="text-[9px] text-red-400 font-bold uppercase tracking-wider">{t('workflow.debug.error', 'Error')}</span>
                                     <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-[10px] text-red-600 dark:text-red-400 font-mono">
                                       {ne.error}
                                     </div>

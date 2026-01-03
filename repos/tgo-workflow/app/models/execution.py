@@ -11,7 +11,7 @@ class WorkflowExecution(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    workflow_id: Mapped[str] = mapped_column(String, ForeignKey("wf_workflows.id"))
+    workflow_id: Mapped[str] = mapped_column(String, ForeignKey("wf_workflows.id", ondelete="CASCADE"))
     status: Mapped[str] = mapped_column(String, default="pending")
     input: Mapped[Optional[dict]] = mapped_column(JSON)
     output: Mapped[Optional[dict]] = mapped_column(JSON)
@@ -28,7 +28,7 @@ class NodeExecution(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     project_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
-    execution_id: Mapped[str] = mapped_column(String, ForeignKey("wf_workflow_executions.id"))
+    execution_id: Mapped[str] = mapped_column(String, ForeignKey("wf_workflow_executions.id", ondelete="CASCADE"))
     node_id: Mapped[str] = mapped_column(String, nullable=False)
     node_type: Mapped[str] = mapped_column(String, nullable=False)
     status: Mapped[str] = mapped_column(String, default="pending")

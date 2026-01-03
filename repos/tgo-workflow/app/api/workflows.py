@@ -6,7 +6,8 @@ from app.services.validation_service import ValidationService
 from app.schemas.workflow import (
     WorkflowCreate, WorkflowUpdate, WorkflowInDB, WorkflowSummary, 
     WorkflowValidationResponse, WorkflowValidateRequest, WorkflowDuplicateRequest,
-    WorkflowVariablesResponse, NodeVariables, WorkflowVariable
+    WorkflowVariablesResponse, NodeVariables, WorkflowVariable,
+    WorkflowBatchInfo, WorkflowInputParameter
 )
 from app.schemas.common import PaginatedResponse, PaginationInfo
 from typing import List, Optional
@@ -55,6 +56,50 @@ async def create_workflow(
     db: AsyncSession = Depends(get_db)
 ):
     return await WorkflowService.create(db, project_id, workflow_in)
+
+@router.get("/batch", response_model=List[WorkflowBatchInfo])
+async def get_workflows_batch(
+    workflow_ids: List[str] = Query(..., description="List of workflow IDs"),
+    project_id: str = Query(..., description="Project ID"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Get basic information for multiple workflows by their IDs, including input parameters.
+    This is useful for agents to understand what parameters are required to execute each workflow.
+    """
+    workflows = await WorkflowService.get_by_ids(db, project_id, workflow_ids)
+    
+    result = []
+    for workflow in workflows:
+        # Extract input parameters from input node
+        input_parameters = []
+        nodes = workflow.definition.get("nodes", [])
+        for node in nodes:
+            if node.get("type") == "input":
+                node_data = node.get("data", {})
+                for var in node_data.get("input_variables", []):
+                    input_parameters.append(WorkflowInputParameter(
+                        name=var.get("name", ""),
+                        type=var.get("type", "string"),
+                        description=var.get("description"),
+                        required=var.get("required", True),
+                        default=var.get("default")
+                    ))
+                break  # Only process the first input node
+        
+        result.append(WorkflowBatchInfo(
+            id=workflow.id,
+            project_id=workflow.project_id,
+            name=workflow.name,
+            description=workflow.description,
+            tags=workflow.tags,
+            status=workflow.status,
+            version=workflow.version,
+            updated_at=workflow.updated_at,
+            input_parameters=input_parameters
+        ))
+    
+    return result
 
 @router.get("/{workflow_id}", response_model=WorkflowInDB)
 async def get_workflow(

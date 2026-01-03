@@ -24,11 +24,18 @@ from app.runtime.core.exceptions import (
     MissingConfigurationError,
 )
 from app.runtime.tools.config import ToolsRuntimeSettings
-from app.runtime.tools.models import AgentConfig, AgentRunRequest, MCPConfig, RagConfig
+from app.runtime.tools.models import (
+    AgentConfig,
+    AgentRunRequest,
+    MCPConfig,
+    RagConfig,
+    WorkflowConfig,
+)
 from app.runtime.tools.token import get_mcp_access_token
 from app.runtime.tools.utils import (
     create_agno_mcp_tool,
     create_rag_tool,
+    create_workflow_tools,
     wrap_mcp_authenticate_tool,
 )
 
@@ -201,6 +208,15 @@ class AgentBuilder:
                 error_type=type(exc).__name__,
             )
 
+        try:
+            tools.extend(await self._build_workflow_tools(config.workflow))
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning(
+                "Workflow tool setup failed, continuing without workflow tools",
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+
         # Load MCP tools from internal_agent if provided, otherwise use config.mcp_config
         if internal_agent and internal_agent.tools:
             try:
@@ -306,6 +322,26 @@ class AgentBuilder:
                     error_type=type(exc).__name__,
                 )
         return tools
+
+    async def _build_workflow_tools(self, workflow_config: Optional[WorkflowConfig]) -> List[Any]:
+        if not workflow_config or not workflow_config.workflow_url or not workflow_config.workflows:
+            return []
+
+        try:
+            return await create_workflow_tools(
+                workflow_config.workflow_url,
+                workflow_config.workflows,
+                project_id=workflow_config.project_id,
+            )
+        except Exception as exc:  # noqa: BLE001
+            self._logger.warning(
+                "Failed to create workflow tools, skipping",
+                workflows=workflow_config.workflows,
+                workflow_url=workflow_config.workflow_url,
+                error=str(exc),
+                error_type=type(exc).__name__,
+            )
+            return []
 
     async def _build_mcp_tools(
         self,

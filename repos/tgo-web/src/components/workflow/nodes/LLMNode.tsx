@@ -6,14 +6,17 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { LLMNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const LLMNode: React.FC<NodeProps<LLMNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
   const hasPrompt = Boolean(data.user_prompt);
+  const defaultLabel = t('workflow.node_types.llm.label', 'LLM调用');
   
   const getPromptPreview = () => {
-    if (!data.user_prompt) return '未配置提示词';
+    if (!data.user_prompt) return t('workflow.node_display.not_configured_prompt', '未配置提示词');
     return data.user_prompt.length > 40 
       ? `${data.user_prompt.slice(0, 40)}...` 
       : data.user_prompt;
@@ -30,7 +33,7 @@ const LLMNode: React.FC<NodeProps<LLMNodeData>> = ({ id, data, selected }) => {
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || 'LLM调用'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-cyan-500 rounded-r-full" />
 
@@ -46,7 +49,7 @@ const LLMNode: React.FC<NodeProps<LLMNodeData>> = ({ id, data, selected }) => {
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-            {data.label || 'LLM调用'}
+            {data.label || defaultLabel}
           </div>
           {data.model_name && (
             <div className="text-[10px] text-cyan-600 font-bold uppercase tracking-tighter mt-0.5">
@@ -57,7 +60,7 @@ const LLMNode: React.FC<NodeProps<LLMNodeData>> = ({ id, data, selected }) => {
       </div>
       
       <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100/50 dark:border-gray-700/50">
-        <div className="text-[11px] text-gray-400 font-medium mb-1 uppercase tracking-wider">Prompt Preview</div>
+        <div className="text-[11px] text-gray-400 font-medium mb-1 uppercase tracking-wider">{t('workflow.node_display.prompt_preview', 'Prompt Preview')}</div>
         <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2 leading-relaxed italic">
           "{getPromptPreview()}"
         </p>
@@ -69,7 +72,7 @@ const LLMNode: React.FC<NodeProps<LLMNodeData>> = ({ id, data, selected }) => {
         </span>
         {!hasPrompt && (
           <span className="text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-1.5 py-0.5 rounded-md font-bold">
-            REQUIRED
+            {t('common.required', 'REQUIRED')}
           </span>
         )}
       </div>

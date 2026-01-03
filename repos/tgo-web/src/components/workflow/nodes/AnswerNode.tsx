@@ -6,20 +6,24 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { MessageSquare } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AnswerNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const AnswerNode: React.FC<NodeProps<AnswerNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
+  const defaultLabel = t('workflow.node_types.answer.label', '回复');
+
   const getOutputSummary = () => {
     switch (data.output_type) {
       case 'variable':
-        return data.output_variable ? `→ ${data.output_variable}` : '未配置变量';
+        return data.output_variable ? `→ ${data.output_variable}` : t('workflow.node_display.not_configured_variable', '未配置变量');
       case 'template':
-        return '→ 文本模板';
+        return `→ ${t('workflow.node_display.template_output', '文本模板')}`;
       case 'structured':
-        return `→ ${data.output_structure?.length || 0} 个字段`;
+        return `→ ${t('workflow.node_display.fields_count', `${data.output_structure?.length || 0} 个字段`, { count: data.output_structure?.length || 0 })}`;
       default:
-        return 'Workflow Output';
+        return t('workflow.node_display.output_label', 'Workflow Output');
     }
   };
 
@@ -34,7 +38,7 @@ const AnswerNode: React.FC<NodeProps<AnswerNodeData>> = ({ id, data, selected })
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '回复'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-blue-500 rounded-r-full" />
 
       <Handle
@@ -49,7 +53,7 @@ const AnswerNode: React.FC<NodeProps<AnswerNodeData>> = ({ id, data, selected })
       
       <div className="min-w-0">
         <div className="text-sm font-bold text-gray-900 dark:text-gray-100">
-          {data.label || '回复'}
+          {data.label || defaultLabel}
         </div>
         <div className="text-[10px] text-blue-500 font-bold uppercase tracking-wider mt-0.5 truncate max-w-[120px]">
           {getOutputSummary()}

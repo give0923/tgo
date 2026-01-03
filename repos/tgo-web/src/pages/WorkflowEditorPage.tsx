@@ -83,7 +83,7 @@ const WorkflowEditorPage: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col h-full bg-white dark:bg-gray-950 overflow-hidden">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex-shrink-0 z-20">
+      <header className="flex items-center justify-between px-6 h-14 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 flex-shrink-0 z-20">
         <div className="flex items-center gap-6">
           <button
             onClick={handleBack}
@@ -122,7 +122,7 @@ const WorkflowEditorPage: React.FC = () => {
                     <>
                       <span className="text-gray-300 dark:text-gray-600">·</span>
                       <span className="text-[10px] text-amber-500 font-bold uppercase tracking-widest animate-pulse">
-                        Unsaved Changes
+                        {t('common.unsaved_changes', 'Unsaved Changes')}
                       </span>
                     </>
                   )}
@@ -147,7 +147,7 @@ const WorkflowEditorPage: React.FC = () => {
               }
               setShowSettings(!showSettings);
             }}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${
+            className={`flex items-center gap-2 px-3 h-8 rounded-lg transition-all border ${
               showSettings
                 ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-gray-700'
                 : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-100 border-transparent hover:bg-gray-50 dark:hover:bg-gray-800'
@@ -155,7 +155,7 @@ const WorkflowEditorPage: React.FC = () => {
             title={t('workflow.settings', '设置')}
           >
             <Settings className="w-4 h-4" />
-            <span className="text-xs font-semibold">Settings</span>
+            <span className="text-xs font-semibold">{t('common.settings', '设置')}</span>
           </button>
         </div>
       </header>
@@ -232,7 +232,7 @@ const WorkflowEditorPage: React.FC = () => {
                   onChange={(e) => updateWorkflowMeta({ description: e.target.value })}
                   rows={4}
                   className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all text-sm dark:text-gray-100 resize-none leading-relaxed"
-                  placeholder="Describe what this workflow does..."
+                  placeholder={t('workflow.fields.description_placeholder', 'Describe what this workflow does...')}
                 />
               </div>
 
@@ -280,19 +280,19 @@ const WorkflowEditorPage: React.FC = () => {
               <div className="p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100/50 dark:border-blue-800/30">
                 <div className="flex items-center gap-2 mb-3">
                   <Info className="w-3.5 h-3.5 text-blue-500" />
-                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">Workflow Info</span>
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest">{t('workflow.fields.workflow_info', 'Workflow Info')}</span>
                 </div>
                 <div className="space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-gray-400 font-medium uppercase">Version</span>
+                    <span className="text-[10px] text-gray-400 font-medium uppercase">{t('workflow.fields.version', 'Version')}</span>
                     <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">v{currentWorkflow.version}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-gray-400 font-medium uppercase">Total Nodes</span>
+                    <span className="text-[10px] text-gray-400 font-medium uppercase">{t('workflow.fields.total_nodes', 'Total Nodes')}</span>
                     <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{currentWorkflow.definition.nodes.length}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] text-gray-400 font-medium uppercase">Created</span>
+                    <span className="text-[10px] text-gray-400 font-medium uppercase">{t('common.tableCreated', 'Created')}</span>
                     <span className="text-[10px] font-bold text-gray-600 dark:text-gray-300">{new Date(currentWorkflow.created_at).toLocaleDateString()}</span>
                   </div>
                 </div>

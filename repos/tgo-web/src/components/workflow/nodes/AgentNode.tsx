@@ -6,11 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { Bot } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { AgentNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const AgentNode: React.FC<NodeProps<AgentNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
   const hasAgent = Boolean(data.agent_id);
+  const defaultLabel = t('workflow.node_types.agent.label', 'AI Agent');
   
   return (
     <div
@@ -23,7 +26,7 @@ const AgentNode: React.FC<NodeProps<AgentNodeData>> = ({ id, data, selected }) =
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || 'AI Agent'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-blue-500 rounded-r-full" />
 
@@ -39,10 +42,10 @@ const AgentNode: React.FC<NodeProps<AgentNodeData>> = ({ id, data, selected }) =
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-            {data.label || 'AI Agent'}
+            {data.label || defaultLabel}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-            {hasAgent ? (data.agent_name || data.agent_id) : '未配置员工'}
+            {hasAgent ? (data.agent_name || data.agent_id) : t('workflow.node_display.not_configured_agent', '未配置员工')}
           </div>
         </div>
       </div>
@@ -53,7 +56,7 @@ const AgentNode: React.FC<NodeProps<AgentNodeData>> = ({ id, data, selected }) =
         </span>
         {!hasAgent && (
           <span className="text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-1.5 py-0.5 rounded-md font-bold">
-            REQUIRED
+            {t('common.required', 'REQUIRED')}
           </span>
         )}
       </div>

@@ -411,6 +411,7 @@ async def get_agent(
     agent_id: uuid.UUID,
     include_tools: bool = Query(default=True, description="Include tool bindings in the response"),
     include_collections: bool = Query(default=False, description="Include collection bindings in the response"),
+    include_workflows: bool = Query(default=False, description="Include workflow bindings in the response"),
     project_id: uuid.UUID = Query(..., description="Project ID"),
     agent_service: AgentService = Depends(get_agent_service),
 ) -> AgentWithDetails:
@@ -497,3 +498,19 @@ async def set_agent_collection_enabled(
 ) -> None:
     """Enable or disable a specific collection binding for an agent."""
     await agent_service.set_collection_enabled(project_id, agent_id, collection_id, payload.enabled)
+
+
+@router.patch(
+    "/{agent_id}/workflows/{workflow_id}/enabled",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=build_error_responses([400, 404], {404: "Agent or workflow binding not found"}),
+)
+async def set_agent_workflow_enabled(
+    agent_id: uuid.UUID,
+    workflow_id: str,
+    payload: ToggleEnabledRequest,
+    project_id: uuid.UUID = Query(..., description="Project ID"),
+    agent_service: AgentService = Depends(get_agent_service),
+) -> None:
+    """Enable or disable a specific workflow binding for an agent."""
+    await agent_service.set_workflow_enabled(project_id, agent_id, workflow_id, payload.enabled)

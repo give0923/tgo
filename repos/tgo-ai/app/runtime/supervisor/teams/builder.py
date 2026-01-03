@@ -329,6 +329,17 @@ class AgnoTeamBuilder:
                 project_id=str(context.project_id) if context.project_id is not None else None,
             )
 
+        workflow_config = None
+        workflow_service_url = getattr(settings, "workflow_service_url", None)
+        if workflow_service_url and internal_agent.workflows:
+            from app.runtime.tools.models import WorkflowConfig
+
+            workflow_config = WorkflowConfig(
+                workflow_url=workflow_service_url,
+                workflows=[str(binding.workflow_id) for binding in internal_agent.workflows if binding.enabled],
+                project_id=str(context.project_id) if context.project_id is not None else None,
+            )
+
         # Resolve provider credentials: Agent-level overrides Team-level; otherwise error later in builder
         provider_credentials = (
             internal_agent.llm_provider_credentials
@@ -342,6 +353,7 @@ class AgnoTeamBuilder:
             system_prompt=internal_agent.instruction,
             mcp_config=mcp_config,
             rag=rag_config,
+            workflow=workflow_config,
             enable_memory=context.enable_memory,
             provider_credentials=provider_credentials,
         )

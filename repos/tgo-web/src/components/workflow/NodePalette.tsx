@@ -44,11 +44,11 @@ interface NodePaletteProps {
 }
 
 const CATEGORIES = [
-  { id: 'trigger', label: '触发节点' },
-  { id: 'ai', label: 'AI 能力' },
-  { id: 'logic', label: '逻辑控制' },
-  { id: 'external', label: '外部集成' },
-  { id: 'output', label: '输出' },
+  { id: 'trigger', label: 'workflow.categories.trigger', defaultLabel: '触发节点' },
+  { id: 'ai', label: 'workflow.categories.ai', defaultLabel: 'AI 能力' },
+  { id: 'logic', label: 'workflow.categories.logic', defaultLabel: '逻辑控制' },
+  { id: 'external', label: 'workflow.categories.external', defaultLabel: '外部集成' },
+  { id: 'output', label: 'workflow.categories.output', defaultLabel: '输出' },
 ] as const;
 
 const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse }) => {
@@ -72,9 +72,11 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
 
   const filteredNodeTypes = nodeTypes.filter((type) => {
     const config = NODE_TYPE_CONFIG[type];
+    const label = t(`workflow.node_types.${type}.label`, config.label);
+    const description = t(`workflow.node_types.${type}.description`, config.description);
     return (
-      config.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      config.description.toLowerCase().includes(searchQuery.toLowerCase())
+      label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      description.toLowerCase().includes(searchQuery.toLowerCase())
     );
   });
 
@@ -92,6 +94,8 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
 
   const renderNodeItem = (type: WorkflowNodeType) => {
     const config = NODE_TYPE_CONFIG[type];
+    const label = t(`workflow.node_types.${type}.label`, config.label);
+    const description = t(`workflow.node_types.${type}.description`, config.description);
     const Icon = iconMap[config.icon] || Play;
     
     const colorClasses: Record<string, string> = {
@@ -115,7 +119,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
           cursor-grab active:cursor-grabbing transition-all duration-200
           ${isCollapsed ? 'justify-center' : ''}
         `}
-        title={isCollapsed ? config.label : ''}
+        title={isCollapsed ? label : ''}
       >
         <div className={`p-2 rounded-lg shrink-0 ${colorClasses[config.color] || colorClasses.blue}`}>
           <Icon className="w-5 h-5" />
@@ -124,10 +128,10 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
         {!isCollapsed && (
           <div className="min-w-0">
             <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">
-              {config.label}
+              {label}
             </div>
             <div className="text-[10px] text-gray-400 dark:text-gray-500 line-clamp-1 mt-0.5 leading-relaxed">
-              {config.description}
+              {description}
             </div>
           </div>
         )}
@@ -180,7 +184,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
           <div key={cat.id} className="space-y-2">
             {!isCollapsed && (
               <h4 className="px-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                {cat.label}
+                {t(cat.label, cat.defaultLabel)}
               </h4>
             )}
             <div className="space-y-1">
@@ -191,7 +195,7 @@ const NodePalette: React.FC<NodePaletteProps> = ({ isCollapsed, onToggleCollapse
         
         {groupedNodes.length === 0 && (
           <div className="text-center py-8">
-            <p className="text-xs text-gray-400">未找到匹配组件</p>
+            <p className="text-xs text-gray-400">{t('workflow.palette.noMatch', '未找到匹配组件')}</p>
           </div>
         )}
       </div>

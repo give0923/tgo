@@ -52,6 +52,18 @@ class AgentCollection(BaseModel):
         extra = "forbid"
 
 
+class AgentWorkflow(BaseModel):
+    """Model representing an agent's workflow access."""
+
+    id: UUID = Field(..., description="Internal association ID")
+    workflow_id: str = Field(..., description="External workflow service ID")
+    enabled: bool = Field(default=True, description="Whether workflow is enabled for this agent")
+
+    class Config:
+        """Pydantic model configuration."""
+        extra = "forbid"
+
+
 class Agent(BaseModel):
     """Model representing an AI agent from the AI Service."""
 
@@ -63,6 +75,7 @@ class Agent(BaseModel):
     team_id: Optional[str] = Field(None, description="Associated team ID")
     tools: List[AgentTool] = Field(default_factory=list, description="Agent tools")
     collections: List[AgentCollection] = Field(default_factory=list, description="Agent collections")
+    workflows: List[AgentWorkflow] = Field(default_factory=list, description="Agent workflows")
     is_default: bool = Field(default=False, description="Whether this is the default agent")
     created_at: datetime = Field(..., description="Creation timestamp")
     updated_at: datetime = Field(..., description="Last update timestamp")

@@ -119,7 +119,7 @@ const WorkflowEditorModal: React.FC<WorkflowEditorModalProps> = ({
               />
               {isDirty && (
                 <span className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-2 py-0.5 rounded">
-                  未保存
+                  {t('common.unsaved_changes', '未保存')}
                 </span>
               )}
             </div>
@@ -251,10 +251,10 @@ const WorkflowEditorModal: React.FC<WorkflowEditorModalProps> = ({
 
               {/* Info */}
               <div className="pt-4 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-                <p>版本: {currentWorkflow.version}</p>
-                <p>节点数: {currentWorkflow.definition.nodes.length}</p>
-                <p>创建时间: {new Date(currentWorkflow.created_at).toLocaleString()}</p>
-                <p>更新时间: {new Date(currentWorkflow.updated_at).toLocaleString()}</p>
+                <p>{t('workflow.fields.version', '版本')}: {currentWorkflow.version}</p>
+                <p>{t('workflow.fields.total_nodes', '节点数')}: {currentWorkflow.definition.nodes.length}</p>
+                <p>{t('common.tableCreated', '创建时间')}: {new Date(currentWorkflow.created_at).toLocaleString()}</p>
+                <p>{t('common.lastUpdated', '更新时间')}: {new Date(currentWorkflow.updated_at).toLocaleString()}</p>
               </div>
             </div>
           </div>

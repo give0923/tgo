@@ -6,11 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { GitBranch } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ConditionNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
   const hasCondition = Boolean(data.expression || data.variable || data.llm_prompt);
+  const defaultLabel = t('workflow.node_types.condition.label', '条件判断');
   
   const getConditionSummary = () => {
     if (data.condition_type === 'expression' && data.expression) {
@@ -22,9 +25,9 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
       return `${data.variable} ${data.operator || '=='} ${data.compare_value || ''}`;
     }
     if (data.condition_type === 'llm') {
-      return 'LLM Evaluation';
+      return t('workflow.node_display.llm_evaluation', 'LLM Evaluation');
     }
-    return '未配置条件';
+    return t('workflow.node_display.not_configured_condition', '未配置条件');
   };
   
   return (
@@ -38,7 +41,7 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '条件判断'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-purple-500 rounded-r-full" />
 
@@ -54,7 +57,7 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-            {data.label || '条件判断'}
+            {data.label || defaultLabel}
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 font-mono bg-gray-50 dark:bg-gray-900/50 px-1.5 py-0.5 rounded truncate">
             {getConditionSummary()}
@@ -66,7 +69,7 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
         <div className="flex gap-4">
           <div className="flex items-center gap-1.5 relative">
             <div className="w-2 h-2 rounded-full bg-green-500" />
-            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Yes</span>
+            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t('common.yes', 'Yes')}</span>
             <Handle
               type="source"
               position={Position.Bottom}
@@ -76,7 +79,7 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
           </div>
           <div className="flex items-center gap-1.5 relative">
             <div className="w-2 h-2 rounded-full bg-red-500" />
-            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">No</span>
+            <span className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">{t('common.no', 'No')}</span>
             <Handle
               type="source"
               position={Position.Bottom}
@@ -87,7 +90,7 @@ const ConditionNode: React.FC<NodeProps<ConditionNodeData>> = ({ id, data, selec
         </div>
         {!hasCondition && (
           <span className="text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-1.5 py-0.5 rounded-md font-bold">
-            REQUIRED
+            {t('common.required', 'REQUIRED')}
           </span>
         )}
       </div>

@@ -474,11 +474,13 @@ class AIServiceClient:
         agent_id: str,
         include_tools: bool = True,
         include_collections: bool = False,
+        include_workflows: bool = False,
     ) -> Dict[str, Any]:
         """Get agent from AI service."""
         params = {
             "include_tools": include_tools,
             "include_collections": include_collections,
+            "include_workflows": include_workflows,
             "project_id": project_id,
         }
         response = await self._make_request(
@@ -539,6 +541,25 @@ class AIServiceClient:
         response = await self._make_request(
             "PATCH",
             f"/api/v1/agents/{agent_id}/collections/{collection_id}/enabled",
+            json_data={"enabled": enabled},
+            params={"project_id": project_id}
+        )
+        # 204 No Content response
+        if response.status_code == 204:
+            return None
+        return await self._handle_response(response)
+
+    async def set_agent_workflow_enabled(
+        self,
+        project_id: str,
+        agent_id: str,
+        workflow_id: str,
+        enabled: bool,
+    ) -> None:
+        """Enable or disable a specific workflow binding for an agent."""
+        response = await self._make_request(
+            "PATCH",
+            f"/api/v1/agents/{agent_id}/workflows/{workflow_id}/enabled",
             json_data={"enabled": enabled},
             params={"project_id": project_id}
         )

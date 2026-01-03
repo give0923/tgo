@@ -55,7 +55,18 @@
     "optional": "Optional",
     "duplicate": "Duplicate",
     "view": "View",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "separator": ", ",
+    "debug_mode": "Debug Mode",
+    "true": "True",
+    "false": "False",
+    "please_input": "Please input",
+    "unsaved_changes": "Unsaved Changes",
+    "more_errors": "and {{count}} more errors",
+    "unknown": "Unknown",
+    "required": "Required",
+    "yes": "Yes",
+    "no": "No"
   },
   "tagInput": {
     "placeholder": "Enter tag and press Enter to add",
@@ -444,9 +455,11 @@
     "subtitle": "Manage your AI agents",
     "actions": {
       "create": "Create Agent",
-      "edit": "Edit Agent",
-      "delete": "Delete Agent",
-      "copy": "Copy Agent",
+      "edit": "Edit",
+      "copy": "Copy",
+      "delete": "Delete",
+      "enable": "Enable",
+      "disable": "Stop",
       "refresh": "Refresh",
       "retry": "Retry",
       "view": "View Details",
@@ -466,6 +479,12 @@
       "tools": "Tools",
       "knowledge_bases": "Knowledge Bases",
       "avatar": "Avatar"
+    },
+    "validation": {
+      "nameRequired": "Agent name is required",
+      "professionRequired": "Profession/Role is required",
+      "descriptionRequired": "Agent description is required",
+      "modelRequired": "Please select an LLM model"
     },
     "status": {
       "active": "Active",
@@ -508,6 +527,14 @@
     "teamChat": {
       "defaultName": "Agent Team"
     },
+    "teamDescription": "Through team collaboration, you can call multiple AI agents simultaneously to achieve more complex business logic and more efficient task processing.",
+    "listTitle": "Agent List",
+    "stats": {
+      "total": "Total Agents",
+      "active": "Running",
+      "error": "Issues",
+      "team": "Team members"
+    },
     "empty": {
       "title": "No Agents",
       "description": "Click the \"Create Agent\" button to start creating your first agent"
@@ -518,8 +545,11 @@
     },
     "card": {
       "defaultRole": "Agent",
+      "noDescription": "No description available",
+      "chatAction": "Start Chat",
       "noTools": "No tools associated",
       "noKnowledgeBases": "No knowledge bases associated",
+      "noWorkflows": "No workflows associated",
       "chatTooltip": "Chat with Agent",
       "editTooltip": "Edit Agent",
       "deleteTooltip": "Delete Agent",
@@ -541,10 +571,12 @@
     },
     "modal": {
       "create": {
-        "title": "Create Agent"
+        "title": "Create Agent",
+        "subtitle": "Define a virtual digital agent with professional skills"
       },
       "edit": {
-        "title": "Edit Agent"
+        "title": "Edit Agent",
+        "subtitle": "Optimize agent behavior and configuration"
       },
       "detail": {
         "title": "Agent Details"
@@ -560,8 +592,9 @@
     "create": {
       "sections": {
         "modelConfig": "Model Configuration",
-        "description": "Agent Description",
-        "mcpTools": "MCP Tools"
+        "description": "Capability Description",
+        "mcpTools": "MCP Tools",
+        "resources": "Resource Association"
       },
       "placeholders": {
         "name": "Please enter agent name",
@@ -587,6 +620,7 @@
       "loading": "Loading agent details...",
       "loadAgentError": "Unable to load agent details, please try again later",
       "updateFailedUnknown": "An unknown error occurred while updating the agent",
+      "saveButton": "Save Changes",
       "tools": {
         "pendingNewTool": "Pending new tool",
         "missingTitle": "Tool Information Missing",
@@ -600,6 +634,7 @@
       "performanceStats": "Performance Stats",
       "mcpTools": "Associated MCP Tools",
       "knowledge_bases": "Associated Knowledge Bases",
+      "workflows": "Associated Workflows",
       "tags": "Tags",
       "fields": {
         "description": "Description",
@@ -614,6 +649,7 @@
         "avgResponseTime": "Avg Response Time"
       },
       "noKnowledgeBases": "No knowledge bases associated",
+      "noWorkflows": "No workflows associated",
       "knowledgeBasePrefix": "KB {{id}}",
       "closeButton": "Close"
     },
@@ -713,6 +749,7 @@
   "team": {
     "modal": {
       "title": "Team Info",
+      "subtitle": "Configure your AI collaboration team parameters",
       "name": "Team Name",
       "namePlaceholder": "Enter team name",
       "model": "LLM Model",
@@ -810,6 +847,74 @@
     "nodes": "nodes",
     "lastUpdated": "Updated",
     "searchPlaceholder": "Search workflows...",
+    "noDescription": "No description",
+    "palette": {
+      "title": "Components",
+      "search": "Search components...",
+      "noMatch": "No components found",
+      "insertVariable": "Insert Variable",
+      "searchVariables": "Search variables...",
+      "noUpstreamVariables": "No upstream variables",
+      "noMatchingVariables": "No matching variables",
+      "variableTip": "Select a variable to reference in current input."
+    },
+    "categories": {
+      "trigger": "Trigger",
+      "ai": "AI Capabilities",
+      "logic": "Logic Control",
+      "external": "External Integration",
+      "output": "Output"
+    },
+    "node_types": {
+      "input": {
+        "label": "User Input",
+        "description": "Triggered by user conversation messages"
+      },
+      "timer": {
+        "label": "Timer Trigger",
+        "description": "Execute according to a set schedule"
+      },
+      "webhook": {
+        "label": "Webhook",
+        "description": "Triggered via external HTTP requests"
+      },
+      "event": {
+        "label": "Event Trigger",
+        "description": "Triggered via internal system events"
+      },
+      "answer": {
+        "label": "Answer",
+        "description": "Return results to the user or caller"
+      },
+      "agent": {
+        "label": "AI Agent",
+        "description": "Call other AI agents"
+      },
+      "tool": {
+        "label": "MCP Tool",
+        "description": "Execute MCP tools"
+      },
+      "condition": {
+        "label": "Condition",
+        "description": "Branching based on conditions"
+      },
+      "llm": {
+        "label": "LLM Call",
+        "description": "Directly call large language models"
+      },
+      "parallel": {
+        "label": "Parallel",
+        "description": "Execute multiple branches in parallel"
+      },
+      "api": {
+        "label": "API Call",
+        "description": "Execute external HTTP requests"
+      },
+      "classifier": {
+        "label": "Question Classifier",
+        "description": "Categorize input using LLM"
+      }
+    },
     "status": {
       "active": "Active",
       "draft": "Draft",
@@ -817,6 +922,7 @@
     },
     "actions": {
       "create": "Create Workflow",
+      "new_workflow": "New Workflow",
       "edit": "Edit",
       "delete": "Delete",
       "deleteNode": "Delete Node",
@@ -841,6 +947,8 @@
       "error": "Execution Error",
       "pending": "Pending",
       "waiting": "Waiting for execution...",
+      "starting": "Starting...",
+      "no_input_variables": "No input variables",
       "timeline": "Timeline",
       "duration": "Duration",
       "input": "Input",
@@ -850,8 +958,9 @@
     },
     "fields": {
       "name": "Name",
-      "label": "Label",
+      "label": "Node Name",
       "description": "Description",
+      "description_placeholder": "Describe what this workflow does...",
       "status": "Status",
       "tags": "Tags",
       "selectAgent": "Select AI Agent",
@@ -867,23 +976,112 @@
       "user_prompt": "User Prompt",
       "branches": "Parallel Branches",
       "wait_for_all": "Wait for All Branches",
-      "timeout": "Timeout (seconds)"
+      "timeout": "Timeout (seconds)",
+      "cron_expression": "Cron Expression",
+      "path_suffix": "Path Suffix",
+      "method": "Method",
+      "event_type": "Event Type",
+      "output_mode": "Output Mode",
+      "select_variable": "Select Variable",
+      "reply_template": "Reply Template",
+      "field_definition": "Field Definition (JSON)",
+      "request_settings": "Request Settings",
+      "headers": "Headers",
+      "query_params": "Query Params",
+      "body": "Body",
+      "text_to_classify": "Text to Classify",
+      "category_definition": "Category Definition",
+      "llm_model": "LLM Model",
+      "temperature": "Temperature",
+      "max_tokens": "Max Tokens",
+      "workflow_info": "Workflow Info",
+      "version": "Version",
+      "total_nodes": "Total Nodes"
+    },
+    "placeholders": {
+      "selectAgent": "Please select an AI Agent",
+      "selectTool": "Please select an MCP Tool",
+      "cron_hint": "0 * * * * (Hourly)",
+      "custom_path": "custom-path",
+      "event_hint": "e.g. user_registered",
+      "variable_hint": "final_response",
+      "template_hint": "Hello, the result is: {{api_1.body}}",
+      "expression_hint": "{{variable}} === 'value'",
+      "classifier_hint": "Select upstream variable, e.g. {{input_1.query}}",
+      "raw_hint": "Enter raw content...",
+      "api_hint": "https://api.example.com",
+      "input_name": "Name",
+      "input_type": "Type",
+      "input_description": "Description",
+      "input_placeholder": "What is this input for?",
+      "input_query_desc": "The content of user input message",
+      "classifier_hint": "Select upstream variable, e.g. {{input_1.query}}",
+      "classifier_category_name": "Category {{index}}",
+      "llm_condition_hint": "Describe the semantic conditions that satisfy the 'Yes' branch..."
+    },
+    "classifier": {
+      "default_category_1": "Category 1",
+      "default_category_2": "Category 2",
+      "default_category_desc": "Describe the trigger conditions for this category"
+    },
+    "output_types": {
+      "variable": "Variable Reference",
+      "variable_desc": "Reference an output variable from upstream",
+      "template": "Text Template",
+      "template_desc": "Combine custom text and variables",
+      "structured": "Structured Data",
+      "structured_desc": "Return Key-Value object"
+    },
+    "operators": {
+      "equals": "Equals (==)",
+      "notEquals": "Not Equals (!=)",
+      "contains": "Contains",
+      "greaterThan": "Greater Than (>)",
+      "lessThan": "Less Than (<)",
+      "isEmpty": "Is Empty (null/empty)",
+      "isNotEmpty": "Is Not Empty"
+    },
+    "tabs": {
+      "prompt": "Prompt",
+      "model": "Model",
+      "capabilities": "Capabilities",
+      "config": "Config",
+      "inference_model": "Inference Model"
+    },
+    "api": {
+      "default_output": "Default Output:",
+      "available_variables": "Available Variables"
     },
     "condition_types": {
       "expression": "Expression",
       "variable": "Variable Comparison",
       "llm": "LLM Evaluation"
     },
-    "placeholders": {
-      "selectAgent": "Please select an AI Agent",
-      "selectTool": "Please select an MCP Tool"
+    "node_display": {
+      "input_label": "In",
+      "input_trigger_label": "User Input Trigger",
+      "inputs_defined": "{{count}} Inputs defined",
+      "not_configured_tool": "Tool Not Configured",
+      "prompt_preview": "Prompt Preview",
+      "not_configured_prompt": "Prompt Not Configured",
+      "branches_count": "{{count}} Branches",
+      "wait_for_all": "Wait for all",
+      "scheduled": "Scheduled",
+      "not_configured_variable": "Variable Not Configured",
+      "template_output": "Text Template",
+      "fields_count": "{{count}} Fields",
+      "output_label": "Workflow Output",
+      "classifier_categories_count": "{{count}} Categories",
+      "classifier_output": "Classifier Output",
+      "input_required": "Input Required",
+      "llm_evaluation": "LLM Evaluation",
+      "not_configured_condition": "Condition Not Configured",
+      "custom_event": "Custom Event",
+      "not_configured_agent": "Agent Not Configured"
     },
-    "namePlaceholder": "Workflow Name",
-    "tagsPlaceholder": "Separate with commas",
-    "settings": "Workflow Settings",
-    "loading": "Loading workflow...",
     "panel": {
-      "nodeConfig": "Node Configuration"
+      "nodeConfig": "Node Configuration",
+      "properties": "Properties"
     },
     "messages": {
       "saveSuccess": "Saved",
@@ -918,7 +1116,7 @@
         "message": "Are you sure you want to delete workflow \"{{name}}\"? This action cannot be undone."
       }
     },
-    "empty": {
+    "empty_state": {
       "title": "No Workflows",
       "description": "Create your first AI workflow"
     },
@@ -1864,7 +2062,20 @@
     }
   },
   "mcp": {
-      "source": {
+    "newTool": "New Tool",
+    "selectModal": {
+      "title": "Select Tool",
+      "searchPlaceholder": "Search tools...",
+      "loading": "Loading MCP tools...",
+      "noMatch": "No matching MCP tools found",
+      "configTool": "Configure Tool",
+      "manageTools": "Manage MCP Tools",
+      "confirmSelection": "Confirm Selection ({{count}})",
+      "loadFailedDesc": "Unable to load MCP tool list, please try again later",
+      "retryFailedTitle": "Retry Failed",
+      "retryFailedDesc": "Unable to load MCP tool list, please check your network connection"
+    },
+    "source": {
         "marketplace": "Tool Marketplace",
         "custom": "Custom",
         "unknown": "Unknown"

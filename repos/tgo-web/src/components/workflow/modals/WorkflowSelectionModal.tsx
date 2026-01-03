@@ -117,9 +117,9 @@ const WorkflowSelectionModal: React.FC<WorkflowSelectionModalProps> = ({
       archived: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
     };
     const labels: Record<string, string> = {
-      active: '已启用',
-      draft: '草稿',
-      archived: '已归档',
+      active: t('workflow.status.active', '已启用'),
+      draft: t('workflow.status.draft', '草稿'),
+      archived: t('workflow.status.archived', '已归档'),
     };
     return (
       <span className={`px-2 py-0.5 text-xs rounded-full ${styles[status] || styles.draft}`}>

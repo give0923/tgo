@@ -24,10 +24,10 @@ const AgentKnowledgeBasesSection: React.FC<AgentKnowledgeBasesSectionProps> = ({
       <div className="flex items-center justify-between mb-4 gap-3">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-sm font-medium text-gray-700 truncate">
-            {t('agents.knowledgeBasesSection.selectedTitle', '已选择知识库')}
+            {t('agents.knowledge_basesSection.selectedTitle', '已选择知识库')}
           </span>
           <span className="px-2 py-1 text-xs font-medium bg-teal-100 text-teal-800 rounded-full whitespace-nowrap">
-            {t('agents.knowledgeBasesSection.selectedCount', '{{count}} 已选择', { count: items.length })}
+            {t('agents.knowledge_basesSection.selectedCount', '{{count}} 已选择', { count: items.length })}
           </span>
         </div>
         {onAdd && (
@@ -38,7 +38,7 @@ const AgentKnowledgeBasesSection: React.FC<AgentKnowledgeBasesSectionProps> = ({
             disabled={disabled}
           >
             <Plus className="w-4 h-4" />
-            <span>{t('agents.knowledgeBasesSection.addButton', '添加知识库')}</span>
+            <span>{t('agents.knowledge_basesSection.addButton', '添加知识库')}</span>
           </button>
         )}
       </div>
@@ -58,10 +58,10 @@ const AgentKnowledgeBasesSection: React.FC<AgentKnowledgeBasesSectionProps> = ({
           <div className="text-center py-8 text-gray-500">
             <FolderOpen className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p className="text-sm font-medium">
-              {t('agents.knowledgeBasesSection.emptyTitle', '暂未添加知识库')}
+              {t('agents.knowledge_basesSection.emptyTitle', '暂未添加知识库')}
             </p>
             <p className="text-xs mt-1">
-              {t('agents.knowledgeBasesSection.emptyDescription', '点击「添加知识库」按钮选择知识库')}
+              {t('agents.knowledge_basesSection.emptyDescription', '点击「添加知识库」按钮选择知识库')}
             </p>
           </div>
         )}

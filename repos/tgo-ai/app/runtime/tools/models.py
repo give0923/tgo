@@ -24,6 +24,14 @@ class RagConfig(BaseModel):
     collections: Optional[List[str]] = Field(default=None, description="启用的集合列表")
 
 
+class WorkflowConfig(BaseModel):
+    """工作流配置."""
+
+    workflow_url: Optional[str] = Field(default=None, description="工作流服务地址")
+    project_id: Optional[str] = Field(default=None, description="Project ID for Workflow service calls")
+    workflows: Optional[List[str]] = Field(default=None, description="启用的工作流ID列表")
+
+
 
 class LLMProviderCredentials(BaseModel):
     """Typed structure for resolved LLM provider credentials."""
@@ -57,6 +65,7 @@ class AgentConfig(BaseModel):
     )
     mcp_config: Optional[MCPConfig] = Field(default=None, description="MCP配置")
     rag: Optional[RagConfig] = Field(default=None, description="RAG配置")
+    workflow: Optional[WorkflowConfig] = Field(default=None, description="工作流配置")
     enable_memory: Optional[bool] = Field(default=None, description="是否为该智能体启用记忆功能")
     system_message: Optional[str] = Field(default=None, description="自定义系统消息")
     expected_output: Optional[str] = Field(default=None, description="期望的输出格式")

@@ -1,6 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update, delete, desc, func, or_
 from app.models.workflow import Workflow
+from app.models.execution import WorkflowExecution, NodeExecution
 from app.schemas.workflow import WorkflowCreate, WorkflowUpdate, WorkflowDefinition
 from typing import List, Optional, Tuple
 import uuid
@@ -64,6 +65,12 @@ class WorkflowService:
         return result.scalar_one_or_none()
 
     @staticmethod
+    async def get_by_ids(db: AsyncSession, project_id: str, workflow_ids: List[str]) -> List[Workflow]:
+        query = select(Workflow).where(Workflow.id.in_(workflow_ids), Workflow.project_id == project_id)
+        result = await db.execute(query)
+        return list(result.scalars().all())
+
+    @staticmethod
     async def create(db: AsyncSession, project_id: str, workflow_in: WorkflowCreate) -> Workflow:
         definition = {
             "nodes": [node.model_dump() for node in workflow_in.nodes],
@@ -110,8 +117,30 @@ class WorkflowService:
 
     @staticmethod
     async def delete(db: AsyncSession, workflow_id: str, project_id: str) -> bool:
+        # Check if workflow exists first to avoid unnecessary deletions
+        workflow = await WorkflowService.get_by_id(db, workflow_id, project_id)
+        if not workflow:
+            return False
+
+        # 1. Delete node executions related to this workflow's executions
+        # We need to find all execution IDs first
+        execution_ids_query = select(WorkflowExecution.id).where(WorkflowExecution.workflow_id == workflow_id)
+        execution_ids_result = await db.execute(execution_ids_query)
+        execution_ids = execution_ids_result.scalars().all()
+        
+        if execution_ids:
+            delete_node_execs = delete(NodeExecution).where(NodeExecution.execution_id.in_(execution_ids))
+            await db.execute(delete_node_execs)
+
+        # 2. Delete workflow executions
+        delete_workflow_execs = delete(WorkflowExecution).where(WorkflowExecution.workflow_id == workflow_id)
+        await db.execute(delete_workflow_execs)
+
+        # 3. Delete the workflow itself
         query = delete(Workflow).where(Workflow.id == workflow_id, Workflow.project_id == project_id)
         result = await db.execute(query)
+        
+        await db.flush() # Ensure deletions are processed
         return result.rowcount > 0
 
     @staticmethod

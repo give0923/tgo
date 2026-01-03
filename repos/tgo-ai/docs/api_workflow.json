@@ -192,6 +192,69 @@
         }
       }
     },
+    "/v1/workflows/batch": {
+      "get": {
+        "tags": [
+          "workflows"
+        ],
+        "summary": "Get Workflows Batch",
+        "description": "Get basic information for multiple workflows by their IDs, including input parameters.\nThis is useful for agents to understand what parameters are required to execute each workflow.",
+        "operationId": "get_workflows_batch_v1_workflows_batch_get",
+        "parameters": [
+          {
+            "name": "workflow_ids",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "List of workflow IDs",
+              "title": "Workflow Ids"
+            },
+            "description": "List of workflow IDs"
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "description": "Project ID",
+              "title": "Project Id"
+            },
+            "description": "Project ID"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WorkflowBatchInfo"
+                  },
+                  "title": "Response Get Workflows Batch V1 Workflows Batch Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/workflows/{workflow_id}": {
       "get": {
         "tags": [
@@ -2265,6 +2328,81 @@
         ],
         "title": "WebhookNodeData"
       },
+      "WorkflowBatchInfo": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Workflow name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Detailed description of the workflow"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "List of workflow tags",
+            "default": []
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique identifier of the workflow"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id",
+            "description": "The ID of the project this workflow belongs to"
+          },
+          "status": {
+            "$ref": "#/components/schemas/WorkflowStatus",
+            "description": "Current status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Version number"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update time"
+          },
+          "input_parameters": {
+            "items": {
+              "$ref": "#/components/schemas/WorkflowInputParameter"
+            },
+            "type": "array",
+            "title": "Input Parameters",
+            "description": "List of input parameters required by the workflow",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "project_id",
+          "status",
+          "version",
+          "updated_at"
+        ],
+        "title": "WorkflowBatchInfo",
+        "description": "Workflow summary with input parameters for agent integration"
+      },
       "WorkflowCreate": {
         "properties": {
           "name": {
@@ -2693,6 +2831,55 @@
           "updated_at"
         ],
         "title": "WorkflowInDB"
+      },
+      "WorkflowInputParameter": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Parameter name"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type",
+            "description": "Parameter type (string, number, boolean, object, array)"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description",
+            "description": "Parameter description"
+          },
+          "required": {
+            "type": "boolean",
+            "title": "Required",
+            "description": "Whether the parameter is required",
+            "default": true
+          },
+          "default": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/JsonValue"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Default value for the parameter"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "type"
+        ],
+        "title": "WorkflowInputParameter"
       },
       "WorkflowNode-Input": {
         "properties": {

@@ -55,7 +55,18 @@
     "optional": "可选",
     "duplicate": "复制",
     "view": "查看",
-    "refresh": "刷新"
+    "refresh": "刷新",
+    "separator": "、",
+    "debug_mode": "调试模式",
+    "true": "True",
+    "false": "False",
+    "please_input": "请输入",
+    "unsaved_changes": "未保存更改",
+    "more_errors": "还有 {{count}} 个错误",
+    "unknown": "未知",
+    "required": "必填",
+    "yes": "是",
+    "no": "否"
   },
   "tagInput": {
     "placeholder": "输入标签并按回车键添加",
@@ -767,9 +778,11 @@
     "subtitle": "管理您的AI员工",
     "actions": {
       "create": "创建AI员工",
-      "edit": "编辑AI员工",
-      "delete": "删除AI员工",
-      "copy": "复制AI员工",
+      "edit": "编辑",
+      "copy": "复制",
+      "delete": "删除",
+      "enable": "启用",
+      "disable": "停止",
       "refresh": "刷新",
       "retry": "重试",
       "view": "查看详情",
@@ -789,6 +802,12 @@
       "tools": "工具",
       "knowledge_bases": "知识库",
       "avatar": "头像"
+    },
+    "validation": {
+      "nameRequired": "AI员工名称不能为空",
+      "professionRequired": "职业/角色不能为空",
+      "descriptionRequired": "AI员工描述不能为空",
+      "modelRequired": "请选择LLM模型"
     },
     "status": {
       "active": "活跃",
@@ -831,6 +850,14 @@
     "teamChat": {
       "defaultName": "AI员工团队"
     },
+    "teamDescription": "通过团队协作，您可以同时调用多个AI员工，实现更复杂的业务逻辑和更高效的任务处理。",
+    "listTitle": "AI员工列表",
+    "stats": {
+      "total": "全部员工",
+      "active": "运行中",
+      "error": "异常",
+      "team": "团队成员"
+    },
     "empty": {
       "title": "暂无AI员工",
       "description": "点击「创建AI员工」按钮开始创建您的第一个AI员工"
@@ -841,8 +868,11 @@
     },
     "card": {
       "defaultRole": "AI员工",
+      "noDescription": "暂无描述信息",
+      "chatAction": "开始对话",
       "noTools": "未关联工具",
       "noKnowledgeBases": "未关联知识库",
+      "noWorkflows": "未关联工作流",
       "chatTooltip": "与AI员工对话",
       "editTooltip": "编辑AI员工",
       "deleteTooltip": "删除AI员工",
@@ -864,10 +894,12 @@
     },
     "modal": {
       "create": {
-        "title": "创建AI员工"
+        "title": "创建AI员工",
+        "subtitle": "定义一个具有专业技能的虚拟数字员工"
       },
       "edit": {
-        "title": "编辑AI员工"
+        "title": "编辑AI员工",
+        "subtitle": "优化AI员工的行为和配置"
       },
       "detail": {
         "title": "AI员工详情"
@@ -882,8 +914,9 @@
     "create": {
       "sections": {
         "modelConfig": "模型配置",
-        "description": "AI员工描述",
-        "mcpTools": "MCP工具"
+        "description": "能力描述",
+        "mcpTools": "MCP工具",
+        "resources": "资源关联"
       },
       "placeholders": {
         "name": "请输入AI员工名称",
@@ -908,6 +941,7 @@
       "loading": "加载AI员工详情...",
       "loadAgentError": "无法加载AI员工详情，请稍后重试",
       "updateFailedUnknown": "更新AI员工时发生未知错误",
+      "saveButton": "保存修改",
       "tools": {
         "pendingNewTool": "待保存的新工具",
         "missingTitle": "工具信息缺失",
@@ -919,6 +953,7 @@
       "performanceStats": "性能统计",
       "mcpTools": "关联 MCP 工具",
       "knowledge_bases": "关联知识库",
+      "workflows": "关联工作流",
       "tags": "标签",
       "fields": {
         "description": "描述",
@@ -933,6 +968,7 @@
         "avgResponseTime": "平均响应时间"
       },
       "noKnowledgeBases": "未关联知识库",
+      "noWorkflows": "未关联工作流",
       "knowledgeBasePrefix": "知识库 {{id}}",
       "closeButton": "关闭"
     },
@@ -1032,6 +1068,7 @@
   "team": {
     "modal": {
       "title": "团队信息",
+      "subtitle": "配置您的 AI 协作团队参数",
       "name": "团队名称",
       "namePlaceholder": "输入团队名称",
       "model": "LLM 模型",
@@ -1129,6 +1166,74 @@
     "nodes": "节点",
     "lastUpdated": "更新于",
     "searchPlaceholder": "搜索工作流...",
+    "noDescription": "暂无描述",
+    "palette": {
+      "title": "组件库",
+      "search": "搜索组件...",
+      "noMatch": "未找到匹配组件",
+      "insertVariable": "插入变量",
+      "searchVariables": "搜索变量...",
+      "noUpstreamVariables": "无上游可用变量",
+      "noMatchingVariables": "未找到匹配变量",
+      "variableTip": "选择变量以在当前输入中引用。"
+    },
+    "categories": {
+      "trigger": "触发节点",
+      "ai": "AI 能力",
+      "logic": "逻辑控制",
+      "external": "外部集成",
+      "output": "输出"
+    },
+    "node_types": {
+      "input": {
+        "label": "用户输入",
+        "description": "通过用户对话消息触发"
+      },
+      "timer": {
+        "label": "定时触发",
+        "description": "按设定的时间计划执行"
+      },
+      "webhook": {
+        "label": "Webhook",
+        "description": "通过外部 HTTP 请求触发"
+      },
+      "event": {
+        "label": "事件触发",
+        "description": "通过系统内部事件触发"
+      },
+      "answer": {
+        "label": "回复",
+        "description": "向用户或调用方返回结果"
+      },
+      "agent": {
+        "label": "AI Agent",
+        "description": "调用其他AI员工"
+      },
+      "tool": {
+        "label": "MCP工具",
+        "description": "执行MCP工具"
+      },
+      "condition": {
+        "label": "条件判断",
+        "description": "根据条件分支"
+      },
+      "llm": {
+        "label": "LLM调用",
+        "description": "直接调用大语言模型"
+      },
+      "parallel": {
+        "label": "并行执行",
+        "description": "并行执行多个分支"
+      },
+      "api": {
+        "label": "API调用",
+        "description": "执行外部 HTTP 请求"
+      },
+      "classifier": {
+        "label": "问题分类器",
+        "description": "使用LLM对输入进行分类"
+      }
+    },
     "status": {
       "active": "已启用",
       "draft": "草稿",
@@ -1136,6 +1241,7 @@
     },
     "actions": {
       "create": "创建工作流",
+      "new_workflow": "新建工作流",
       "edit": "编辑",
       "delete": "删除",
       "deleteNode": "删除节点",
@@ -1160,6 +1266,8 @@
       "error": "执行错误",
       "pending": "等待中",
       "waiting": "等待执行...",
+      "starting": "启动中...",
+      "no_input_variables": "无输入变量",
       "timeline": "执行轨迹",
       "duration": "执行耗时",
       "input": "输入",
@@ -1169,15 +1277,16 @@
     },
     "fields": {
       "name": "名称",
-      "label": "标签",
+      "label": "节点名称",
       "description": "描述",
+      "description_placeholder": "描述此工作流的功能...",
       "status": "状态",
       "tags": "标签",
       "selectAgent": "选择AI员工",
       "selectTool": "选择MCP工具",
       "output_variable": "输出变量名",
       "condition_type": "条件类型",
-      "expression": "表达式",
+      "expression": "代码表达式",
       "variable": "变量名",
       "operator": "运算符",
       "compare_value": "比较值",
@@ -1186,23 +1295,112 @@
       "user_prompt": "用户提示词",
       "branches": "并行分支数",
       "wait_for_all": "等待所有分支完成",
-      "timeout": "超时时间 (秒)"
+      "timeout": "超时时间 (秒)",
+      "cron_expression": "Cron 表达式",
+      "path_suffix": "路径后缀",
+      "method": "请求方法",
+      "event_type": "事件类型",
+      "output_mode": "输出模式",
+      "select_variable": "选择变量",
+      "reply_template": "回复模板",
+      "field_definition": "字段定义 (JSON)",
+      "request_settings": "请求设置",
+      "headers": "请求头 (Headers)",
+      "query_params": "Query 参数",
+      "body": "请求体 (Body)",
+      "text_to_classify": "待分类文本",
+      "category_definition": "分类定义",
+      "llm_model": "LLM模型",
+      "temperature": "Temperature",
+      "max_tokens": "Max Tokens",
+      "workflow_info": "工作流信息",
+      "version": "版本",
+      "total_nodes": "节点总数"
+    },
+    "placeholders": {
+      "selectAgent": "请选择AI员工",
+      "selectTool": "请选择MCP工具",
+      "cron_hint": "0 * * * * (每小时)",
+      "custom_path": "自定义路径",
+      "event_hint": "例如：user_registered",
+      "variable_hint": "最终回复变量名",
+      "template_hint": "您好，查询到的结果是：{{api_1.body}}",
+      "expression_hint": "{{variable}} === 'value'",
+      "classifier_hint": "选择上游变量，如 {{input_1.query}}",
+      "raw_hint": "输入原生内容...",
+      "api_hint": "https://api.example.com",
+      "input_name": "名称",
+      "input_type": "类型",
+      "input_description": "描述",
+      "input_placeholder": "这个输入是做什么的？",
+      "input_query_desc": "用户输入的消息内容",
+      "classifier_hint": "选择上游变量，如 {{input_1.query}}",
+      "classifier_category_name": "分类 {{index}}",
+      "llm_condition_hint": "描述满足 'Yes' 分支的语义条件..."
+    },
+    "classifier": {
+      "default_category_1": "分类1",
+      "default_category_2": "分类2",
+      "default_category_desc": "描述该分类的触发条件"
+    },
+    "output_types": {
+      "variable": "变量引用",
+      "variable_desc": "引用上游节点的一个输出变量",
+      "template": "文本模板",
+      "template_desc": "使用自定义文本和变量组合",
+      "structured": "结构化数据",
+      "structured_desc": "返回 Key-Value 对象"
+    },
+    "operators": {
+      "equals": "等于 (==)",
+      "notEquals": "不等于 (!=)",
+      "contains": "包含 (contains)",
+      "greaterThan": "大于 (>)",
+      "lessThan": "小于 (<)",
+      "isEmpty": "为空 (null/empty)",
+      "isNotEmpty": "不为空"
+    },
+    "tabs": {
+      "prompt": "提示词",
+      "model": "模型",
+      "capabilities": "能力",
+      "config": "配置",
+      "inference_model": "推理模型"
+    },
+    "api": {
+      "default_output": "默认输出：",
+      "available_variables": "可用变量"
     },
     "condition_types": {
       "expression": "表达式",
       "variable": "变量比较",
       "llm": "LLM判断"
     },
-    "placeholders": {
-      "selectAgent": "请选择AI员工",
-      "selectTool": "请选择MCP工具"
+    "node_display": {
+      "input_label": "输入",
+      "input_trigger_label": "用户输入触发",
+      "inputs_defined": "{{count}} 个输入",
+      "not_configured_tool": "未配置工具",
+      "prompt_preview": "提示词预览",
+      "not_configured_prompt": "未配置提示词",
+      "branches_count": "{{count}} 个分支",
+      "wait_for_all": "等待全部完成",
+      "scheduled": "定时计划",
+      "not_configured_variable": "未配置变量",
+      "template_output": "文本模板",
+      "fields_count": "{{count}} 个字段",
+      "output_label": "工作流输出",
+      "classifier_categories_count": "{{count}} 个分类",
+      "classifier_output": "分类输出",
+      "input_required": "需要输入",
+      "llm_evaluation": "LLM判断",
+      "not_configured_condition": "未配置条件",
+      "custom_event": "自定义事件",
+      "not_configured_agent": "未配置员工"
     },
-    "namePlaceholder": "工作流名称",
-    "tagsPlaceholder": "用逗号分隔",
-    "settings": "工作流设置",
-    "loading": "加载工作流...",
     "panel": {
-      "nodeConfig": "节点配置"
+      "nodeConfig": "节点配置",
+      "properties": "属性"
     },
     "messages": {
       "saveSuccess": "保存成功",
@@ -1237,7 +1435,7 @@
         "message": "确定要删除工作流 \"{{name}}\" 吗？此操作不可撤销。"
       }
     },
-    "empty": {
+    "empty_state": {
       "title": "暂无工作流",
       "description": "创建您的第一个AI工作流"
     },
@@ -2455,6 +2653,19 @@
     }
   },
   "mcp": {
+    "newTool": "新工具",
+    "selectModal": {
+      "title": "选择工具",
+      "searchPlaceholder": "搜索工具...",
+      "loading": "正在加载MCP工具...",
+      "noMatch": "未找到匹配的MCP工具",
+      "configTool": "配置工具",
+      "manageTools": "管理MCP工具",
+      "confirmSelection": "确认选择 ({{count}})",
+      "loadFailedDesc": "无法加载MCP工具列表，请稍后重试",
+      "retryFailedTitle": "重试失败",
+      "retryFailedDesc": "无法加载MCP工具列表，请检查网络连接"
+    },
     "source": {
       "marketplace": "工具市场",
       "custom": "自定义",

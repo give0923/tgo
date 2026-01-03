@@ -124,8 +124,11 @@ export class WorkflowApiService {
     signal?: AbortSignal
   ): Promise<void> {
     return apiClient.stream(
-      `${this.BASE_PATH}/${id}/execute/stream`,
-      { inputs: input }, // Updated to match WorkflowExecuteRequest schema
+      `${this.BASE_PATH}/${id}/execute`,
+      { 
+        inputs: input, 
+        stream: true 
+      },
       {
         onMessage: (event, data) => {
           onEvent({ event: event as any, ...data });

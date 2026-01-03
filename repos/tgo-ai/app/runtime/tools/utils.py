@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from builtins import ExceptionGroup
 from functools import wraps
-from typing import Any, Optional
+from typing import Any, Dict, List, Optional
 
 import aiohttp
+import json
 
 from agno.tools import Function
 from mcp import ClientSession, McpError, Tool
@@ -81,6 +82,109 @@ async def create_rag_tool(rag_url: str, collection_id: str, project_id: Optional
         entrypoint=search_collection,
         skip_entrypoint_processing=True,
     )
+
+
+async def create_workflow_tools(workflow_url: str, workflow_ids: List[str], project_id: Optional[str]) -> List[Function]:
+    """根据工作流信息生成工作流执行工具."""
+
+    if not project_id:
+        raise ValueError("project_id is required to create workflow tools")
+
+    if not workflow_ids:
+        return []
+
+    url = workflow_url.rstrip("/")
+    batch_endpoint = f"{url}/v1/workflows/batch"
+    params = {
+        "project_id": str(project_id),
+        "workflow_ids": workflow_ids
+    }
+
+    async with aiohttp.ClientSession() as session:
+        async with session.get(batch_endpoint, params=params) as response:
+            response.raise_for_status()
+            workflows_data = await response.json()
+
+    tools = []
+    for workflow_data in workflows_data:
+        w_id = workflow_data.get("id")
+        name = workflow_data.get("name") or f"workflow_{w_id}"
+        description = workflow_data.get("description")
+        
+        tool_description = f"Execute the '{name}' workflow."
+        if description:
+            tool_description = f"{tool_description} Workflow description: {description}"
+
+        # Build safe tool name
+        short_id = (w_id.replace("-", "")[:8]) if w_id else "unknown"
+        tool_name = f"workflow_{short_id}".lower()
+
+        # Parse input parameters for better tool schema
+        input_params = workflow_data.get("input_parameters") or []
+        inputs_properties = {}
+        required_inputs = []
+        for param in input_params:
+            p_name = param.get("name")
+            p_type = param.get("type") or "string"
+            p_desc = param.get("description") or ""
+            
+            # Map workflow types to JSON Schema types
+            js_type = p_type
+            if js_type == "number":
+                js_type = "number" # Could be number or integer in JSON schema
+            
+            inputs_properties[p_name] = {
+                "type": js_type,
+                "description": p_desc,
+            }
+            if param.get("required", True):
+                required_inputs.append(p_name)
+
+        inputs_schema = {
+            "type": "object",
+            "properties": inputs_properties,
+            "description": "Input variables for the workflow.",
+        }
+        if required_inputs:
+            inputs_schema["required"] = required_inputs
+
+        def make_execute_func(wf_id: str):
+            async def execute_workflow(inputs: Optional[Dict[str, Any]] = None) -> str:
+                execute_endpoint = f"{url}/v1/workflows/{wf_id}/execute"
+                exec_params = {"project_id": str(project_id)}
+                payload = {"inputs": inputs or {}, "stream": False, "async": False}
+                
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.post(
+                            execute_endpoint,
+                            params=exec_params,
+                            json=payload,
+                        ) as exec_response:
+                            exec_response.raise_for_status()
+                            data = await exec_response.json()
+                            return json.dumps(data, ensure_ascii=False)
+                except Exception as exc:  # noqa: BLE001
+                    return f"<error>{exc}</error>"
+            return execute_workflow
+
+        tools.append(
+            Function(
+                name=tool_name,
+                description=tool_description,
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "inputs": inputs_schema
+                    },
+                    "required": ["inputs"] if required_inputs else [],
+                },
+                entrypoint=make_execute_func(w_id),
+                skip_entrypoint_processing=True,
+            )
+        )
+    
+    return tools
 
 
 def create_agno_mcp_tool(

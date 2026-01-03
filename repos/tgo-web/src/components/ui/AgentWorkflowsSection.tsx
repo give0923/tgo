@@ -32,9 +32,9 @@ const AgentWorkflowsSection: React.FC<AgentWorkflowsSectionProps> = ({
       archived: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400',
     };
     const labels: Record<string, string> = {
-      active: '已启用',
-      draft: '草稿',
-      archived: '已归档',
+      active: t('workflow.status.active', '已启用'),
+      draft: t('workflow.status.draft', '草稿'),
+      archived: t('workflow.status.archived', '已归档'),
     };
     return (
       <span className={`px-1.5 py-0.5 text-xs rounded ${styles[status] || styles.draft}`}>
@@ -65,7 +65,7 @@ const AgentWorkflowsSection: React.FC<AgentWorkflowsSectionProps> = ({
                     {getStatusBadge(workflow.status)}
                   </div>
                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 truncate">
-                    {workflow.description}
+                    {workflow.description || t('workflow.noDescription', '暂无描述')}
                   </div>
                 </div>
               </div>

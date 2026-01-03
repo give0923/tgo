@@ -88,3 +88,14 @@ class NodeVariables(BaseModel):
 class WorkflowVariablesResponse(BaseModel):
     variables: List[NodeVariables] = Field(..., description="List of available variables per node")
 
+class WorkflowInputParameter(BaseModel):
+    name: str = Field(..., description="Parameter name")
+    type: str = Field(..., description="Parameter type (string, number, boolean, object, array)")
+    description: Optional[str] = Field(None, description="Parameter description")
+    required: bool = Field(True, description="Whether the parameter is required")
+    default: Optional[JsonValue] = Field(None, description="Default value for the parameter")
+
+class WorkflowBatchInfo(WorkflowSummary):
+    """Workflow summary with input parameters for agent integration"""
+    input_parameters: List[WorkflowInputParameter] = Field(default=[], description="List of input parameters required by the workflow")
+

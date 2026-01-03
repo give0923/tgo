@@ -6,11 +6,14 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { GitMerge } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ParallelNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const ParallelNode: React.FC<NodeProps<ParallelNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
   const branches = data.branches || 2;
+  const defaultLabel = t('workflow.node_types.parallel.label', '并行执行');
   
   return (
     <div
@@ -23,7 +26,7 @@ const ParallelNode: React.FC<NodeProps<ParallelNodeData>> = ({ id, data, selecte
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '并行执行'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-indigo-500 rounded-r-full" />
 
@@ -39,14 +42,14 @@ const ParallelNode: React.FC<NodeProps<ParallelNodeData>> = ({ id, data, selecte
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-            {data.label || '并行执行'}
+            {data.label || defaultLabel}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
             <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded font-bold uppercase">
-              {branches} Branches
+              {t('workflow.node_display.branches_count', `${branches} Branches`, { count: branches })}
             </span>
             {data.wait_for_all && (
-              <span className="text-[10px] text-gray-400 font-medium italic">Wait for all</span>
+              <span className="text-[10px] text-gray-400 font-medium italic">{t('workflow.node_display.wait_for_all', 'Wait for all')}</span>
             )}
           </div>
         </div>

@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { X, Search, ExternalLink, FolderOpen, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import i18n from '@/i18n';
 
 import { getIconComponent, getIconColor } from '@/components/knowledge/IconPicker';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -19,7 +18,7 @@ interface KnowledgeBaseSelectionModalProps {
 
 // Categories: only keep "All"
 const KB_CATEGORIES = [
-  { id: 'all', label: i18n.t('common.all', '全部') }
+  { id: 'all' }
 ];
 
 // Render KB icon using centralized IconPicker mapping (ensures consistent color)
@@ -164,7 +163,7 @@ const KnowledgeBaseSelectionModal: React.FC<KnowledgeBaseSelectionModalProps> = 
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
                   }`}
                 >
-                  {category.label}
+                  {t('common.all', '全部')}
                 </button>
               ))}
             </div>

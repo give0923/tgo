@@ -45,7 +45,7 @@ def upgrade() -> None:
     sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('duration', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['workflow_id'], ['wf_workflows.id'], ),
+    sa.ForeignKeyConstraint(['workflow_id'], ['wf_workflows.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_wf_workflow_executions_project_id'), 'wf_workflow_executions', ['project_id'], unique=False)
@@ -63,7 +63,7 @@ def upgrade() -> None:
     sa.Column('started_at', sa.DateTime(timezone=True), server_default=sa.text('now()'), nullable=False),
     sa.Column('completed_at', sa.DateTime(timezone=True), nullable=True),
     sa.Column('duration', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['execution_id'], ['wf_workflow_executions.id'], ),
+    sa.ForeignKeyConstraint(['execution_id'], ['wf_workflow_executions.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_wf_node_executions_project_id'), 'wf_node_executions', ['project_id'], unique=False)

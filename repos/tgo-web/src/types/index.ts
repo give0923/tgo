@@ -118,7 +118,7 @@ export interface Agent {
   knowledgeBases: string[]; // 知识库ID列表 (for backward compatibility)
   collections?: AICollectionResponse[]; // Full collection objects from API
   tools?: AgentToolResponse[]; // Full tool objects from API
-  workflows?: string[]; // 工作流ID列表
+  workflows?: any[]; // Full workflow objects from API
 }
 
 export type AgentStatus = 'active' | 'inactive' | 'training' | 'error';
@@ -232,6 +232,7 @@ export interface AgentWithDetailsResponse {
   deleted_at?: string | null;
   tools: AgentToolResponse[];
   collections: AICollectionResponse[];
+  workflows?: any[];
 }
 
 // Agent Tool Create Request Type (based on API spec)

@@ -6,12 +6,15 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { LayoutGrid } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { ClassifierNodeData } from '@/types/workflow';
 import NodeExecutionOverlay from '../overlays/NodeExecutionOverlay';
 
 const ClassifierNode: React.FC<NodeProps<ClassifierNodeData>> = ({ id, data, selected }) => {
+  const { t } = useTranslation();
   const hasInput = Boolean(data.input_variable);
   const categories = data.categories || [];
+  const defaultLabel = t('workflow.node_types.classifier.label', '问题分类器');
   
   return (
     <div
@@ -24,7 +27,7 @@ const ClassifierNode: React.FC<NodeProps<ClassifierNodeData>> = ({ id, data, sel
         }
       `}
     >
-      <NodeExecutionOverlay nodeId={id} label={data.label || '问题分类器'} />
+      <NodeExecutionOverlay nodeId={id} label={data.label || defaultLabel} />
       {/* Colored Side Bar */}
       <div className="absolute left-0 top-4 bottom-4 w-1 bg-orange-500 rounded-r-full" />
 
@@ -40,16 +43,16 @@ const ClassifierNode: React.FC<NodeProps<ClassifierNodeData>> = ({ id, data, sel
         </div>
         <div className="min-w-0 flex-1">
           <div className="text-sm font-bold text-gray-900 dark:text-gray-100 truncate">
-            {data.label || '问题分类器'}
+            {data.label || defaultLabel}
           </div>
           <div className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-            {categories.length} 个分类
+            {t('workflow.node_display.classifier_categories_count', `${categories.length} 个分类`, { count: categories.length })}
           </div>
         </div>
       </div>
 
       <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl border border-gray-100/50 dark:border-gray-700/50">
-        <div className="text-[11px] text-gray-400 font-medium mb-1 uppercase tracking-wider text-center">分类输出</div>
+        <div className="text-[11px] text-gray-400 font-medium mb-1 uppercase tracking-wider text-center">{t('workflow.node_display.classifier_output', '分类输出')}</div>
         <div className="flex flex-wrap gap-2 justify-center mt-2">
           {categories.map((cat) => (
             <div key={cat.id} className="px-2 py-1 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg text-[10px] font-bold text-gray-600 dark:text-gray-300 shadow-sm">
@@ -74,11 +77,11 @@ const ClassifierNode: React.FC<NodeProps<ClassifierNodeData>> = ({ id, data, sel
       
       <div className="pt-2 border-t border-gray-50 dark:border-gray-700/50 flex items-center justify-between">
         <span className="text-[10px] text-gray-400 uppercase font-medium tracking-wider">
-          {hasInput ? `In: ${data.input_variable}` : 'Input Required'}
+          {hasInput ? `${t('workflow.node_display.input_label', 'In')}: ${data.input_variable}` : t('workflow.node_display.input_required', 'Input Required')}
         </span>
         {!hasInput && (
           <span className="text-[10px] bg-amber-50 dark:bg-amber-900/20 text-amber-600 px-1.5 py-0.5 rounded-md font-bold">
-            REQUIRED
+            {t('common.required', 'REQUIRED')}
           </span>
         )}
       </div>

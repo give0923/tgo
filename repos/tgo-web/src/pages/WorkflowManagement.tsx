@@ -360,12 +360,12 @@ const WorkflowManagement: React.FC = () => {
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
               {searchQuery || statusFilter !== 'all'
                 ? t('workflow.noMatch', '未找到匹配的工作流')
-                : t('workflow.empty.title', '暂无工作流')}
+                : t('workflow.empty_state.title', '暂无工作流')}
             </h3>
             <p className="text-gray-500 dark:text-gray-400 mb-6">
               {searchQuery || statusFilter !== 'all'
                 ? t('workflow.noMatch.description', '尝试调整搜索条件')
-                : t('workflow.empty.description', '创建您的第一个AI工作流')}
+                : t('workflow.empty_state.description', '创建您的第一个AI工作流')}
             </p>
             {!searchQuery && statusFilter === 'all' && (
               <button
