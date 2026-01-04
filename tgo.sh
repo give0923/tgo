@@ -454,9 +454,11 @@ Usage: ./tgo.sh <command> [options]
 Commands:
   help                                Show this help message
   install [--source] [--cn]           Deploy all services (migrate, start; default: use pre-built images)
-  up [--source] [--cn]                Start all services (without re-initialization)
+  up [--source] [--cn] [--remove-orphans]
+                                      Start all services (without re-initialization)
   down [--volumes]                    Stop and remove all service containers
-  upgrade [--source] [--cn]           Upgrade to latest version (remembers install mode if no options provided)
+  upgrade [--source] [--cn] [--remove-orphans]
+                                      Upgrade to latest version (remembers install mode if no options provided)
   uninstall [--source] [--cn]         Stop and remove all services (prompts for data deletion)
   doctor                              Check health status of all services
   service <start|stop|remove> [--source] [--cn]
@@ -478,8 +480,9 @@ Config Subcommands:
   show                                Show current domain configuration
 
 Options:
-  --source    Build and run services from local source code (repos/)
-  --cn        Use China mirrors (Alibaba Cloud ACR for images, Gitee for git repos)
+  --source          Build and run services from local source code (repos/)
+  --cn              Use China mirrors (Alibaba Cloud ACR for images, Gitee for git repos)
+  --remove-orphans  Remove containers for services not defined in the compose file
 
 Notes:
   - By default, commands use image-based deployment (docker-compose.yml, images from GHCR).
@@ -1072,13 +1075,14 @@ cmd_up() {
   local mode="image"
   local use_cn=false
   local has_args=false
+  local remove_orphans=false
 
-  # Parse arguments (support --source and --cn in any order)
+  # Parse arguments (support --source, --cn, and --remove-orphans in any order)
   while [ "$#" -gt 0 ]; do
-    has_args=true
     case "$1" in
-      --source) mode="source"; shift ;;
-      --cn) use_cn=true; USE_CN_MIRROR=true; shift ;;
+      --source) mode="source"; has_args=true; shift ;;
+      --cn) use_cn=true; USE_CN_MIRROR=true; has_args=true; shift ;;
+      --remove-orphans) remove_orphans=true; shift ;;
       *) echo "[ERROR] Unknown argument to up: $1" >&2; usage; exit 1 ;;
     esac
   done
@@ -1096,11 +1100,18 @@ cmd_up() {
   compose_file_args=$(get_compose_file_args "$mode" "$use_cn") || exit 1
   log_deploy_mode "$mode" "$use_cn" "Starting"
 
+  # Build up command options
+  local up_opts="-d"
+  if [ "$remove_orphans" = true ]; then
+    up_opts="$up_opts --remove-orphans"
+    echo "[INFO] Will remove orphaned containers"
+  fi
+
   start_infrastructure "$compose_file_args"
   wait_for_postgres "$compose_file_args"
 
   echo "[INFO] Starting all core services..."
-  docker compose --env-file "$ENV_FILE" $compose_file_args up -d
+  docker compose --env-file "$ENV_FILE" $compose_file_args up $up_opts
 
   echo "[INFO] Restarting nginx to pick up new configuration..."
   docker compose --env-file "$ENV_FILE" $compose_file_args restart nginx
@@ -1339,6 +1350,7 @@ cmd_upgrade() {
   local mode=""
   local use_cn=""
   local user_provided_args=false
+  local remove_orphans=false
 
   # Parse command line arguments
   local temp_mode="image"
@@ -1348,6 +1360,7 @@ cmd_upgrade() {
     case "$1" in
       --source) temp_mode="source"; user_provided_args=true; shift ;;
       --cn) temp_use_cn=true; user_provided_args=true; shift ;;
+      --remove-orphans) remove_orphans=true; shift ;;
       *) echo "[ERROR] Unknown argument to upgrade: $1" >&2; usage; exit 1 ;;
     esac
   done
@@ -1371,6 +1384,13 @@ cmd_upgrade() {
   local compose_file_args
   compose_file_args=$(get_compose_file_args "$mode" "$use_cn") || exit 1
   log_deploy_mode "$mode" "$use_cn" "Upgrading"
+
+  # Build up command options
+  local up_opts="-d"
+  if [ "$remove_orphans" = true ]; then
+    up_opts="$up_opts --remove-orphans"
+    echo "[INFO] Will remove orphaned containers after upgrade"
+  fi
 
   # Step 0: Pull latest code from git (common for both modes)
   echo ""
@@ -1446,7 +1466,7 @@ cmd_upgrade() {
   # Start all services
   echo ""
   echo "[INFO] Starting all services..."
-  docker compose --env-file "$ENV_FILE" $compose_file_args up -d
+  docker compose --env-file "$ENV_FILE" $compose_file_args up $up_opts
 
   echo ""
   echo "========================================="
