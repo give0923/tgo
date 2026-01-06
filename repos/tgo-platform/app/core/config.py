@@ -11,10 +11,10 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="TGO_", extra="ignore")
 
     # tgo-api base URL
-    api_base: str
+    api_base_url: str
 
     # PostgreSQL DSN for SQLAlchemy async engine
-    pg_dsn: str  # e.g. postgresql+asyncpg://user:pass@host:5432/db
+    database_url: str  # e.g. postgresql+asyncpg://user:pass@host:5432/db
 
     # SSE and HTTP behavior
     sse_backpressure_limit: int = 1000

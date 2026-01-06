@@ -35,7 +35,7 @@ class VisitorService:
         redis_url: str | None = None,
         cache_ttl_seconds: int = 24 * 60 * 60,
     ) -> None:
-        self._base_url = base_url or settings.api_base
+        self._base_url = base_url or settings.api_base_url
         self._client = httpx.AsyncClient(base_url=self._base_url, timeout=settings.request_timeout_seconds)
         self._cache_ttl = int(cache_ttl_seconds)
         self._redis_url = redis_url or settings.redis_url

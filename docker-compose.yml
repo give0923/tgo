@@ -68,6 +68,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-celery.env
+    environment:
+      - CELERY_BROKER_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - CELERY_RESULT_BACKEND=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
     ports:
       - "5555:5555"
     depends_on:
@@ -85,6 +88,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-rag.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     volumes:
       - ./data/tgo-rag/uploads:/app/uploads
     depends_on:
@@ -111,6 +117,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-rag.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       postgres:
         condition: service_healthy
@@ -135,6 +144,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-rag.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       - postgres
       - redis
@@ -155,6 +167,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-ai.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/1
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       postgres:
         condition: service_healthy
@@ -179,6 +194,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-plugin-runtime.env
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
+      - SECRET_KEY=${SECRET_KEY}
     depends_on:
       - tgo-ai
       - postgres
@@ -209,8 +227,10 @@ services:
       - postgres
       - redis
     environment:
-
       API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost/api}
+      REDIS_URL: redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
+      SECRET_KEY: ${SECRET_KEY}
     volumes:
       # Persist API uploads (chat files, platform logos, etc.) under unified data directory
       - ./data/tgo-api/uploads:/app/uploads
@@ -229,6 +249,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-platform.env
+    environment:
+      - TGO_REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/0
+      - TGO_DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       - tgo-api
       - postgres
@@ -249,6 +272,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-workflow.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       postgres:
         condition: service_healthy
@@ -269,6 +295,9 @@ services:
     env_file:
       - ./.env
       - ./envs/tgo-workflow.env
+    environment:
+      - REDIS_URL=redis://${REDIS_HOST:-redis}:${REDIS_PORT:-6379}/2
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-tgo}:${POSTGRES_PASSWORD:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}
     depends_on:
       postgres:
         condition: service_healthy
