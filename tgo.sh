@@ -1554,6 +1554,25 @@ cmd_upgrade() {
     git submodule update --init --recursive || echo "[WARN] Submodule update failed"
   fi
 
+  # Sync new environment variables from .env.example to .env
+  echo ""
+  echo "[INFO] Checking for new environment variables..."
+  if [ -f ".env.example" ] && [ -f "$ENV_FILE" ]; then
+    sync_env_file ".env.example" "$ENV_FILE"
+  fi
+  
+  # Also sync envs.docker/*.env if present
+  if [ -d "envs.docker" ]; then
+    for example_file in envs.docker/*.env.example; do
+      if [ -f "$example_file" ]; then
+        local target_file="${example_file%.example}"
+        if [ -f "$target_file" ]; then
+          sync_env_file "$example_file" "$target_file"
+        fi
+      fi
+    done
+  fi
+
   # Upgrade flow based on mode
   if [ "$mode" = "source" ]; then
     echo ""
