@@ -292,9 +292,37 @@ TGO 插件系统使用 JSON 模版描述 UI 内容，由宿主程序负责渲染
 
 ---
 
-### action - 操作按钮
+### button - 按钮
 
-显示操作按钮，点击触发插件动作。
+显示单个操作按钮。
+
+```json
+{
+  "template": "button",
+  "data": {
+    "label": "点击操作",
+    "action_id": "btn_click",
+    "type": "primary",
+    "size": "md",
+    "icon": "plus"
+  }
+}
+```
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `label` | string | 是 | 按钮文本 |
+| `action_id` | string | 是 | 动作 ID |
+| `type` | string | 否 | 样式：`primary` / `secondary` / `danger` / `link` |
+| `size` | string | 否 | 尺寸：`xs` / `sm` / `md` / `lg` |
+| `icon` | string | 否 | 图标 |
+| `disabled` | boolean | 否 | 是否禁用 |
+
+---
+
+### action - 操作按钮组
+
+显示多个操作按钮，点击触发插件动作。
 
 ```json
 {
@@ -305,20 +333,14 @@ TGO 插件系统使用 JSON 模版描述 UI 内容，由宿主程序负责渲染
         "id": "create_ticket",
         "label": "创建工单",
         "icon": "plus",
-        "type": "primary"
+        "type": "primary",
+        "size": "sm"
       },
       {
         "id": "sync_crm",
         "label": "同步到 CRM",
         "icon": "refresh-cw",
         "type": "default"
-      },
-      {
-        "id": "block_user",
-        "label": "拉黑用户",
-        "icon": "ban",
-        "type": "danger",
-        "confirm": "确定要拉黑该用户吗？"
       }
     ]
   }
@@ -331,6 +353,7 @@ TGO 插件系统使用 JSON 模版描述 UI 内容，由宿主程序负责渲染
 | `label` | string | 是 | 按钮文本 |
 | `icon` | string | 否 | 图标 |
 | `type` | string | 否 | 样式：`primary` / `default` / `danger` / `ghost` |
+| `size` | string | 否 | 尺寸：`xs` / `sm` / `md` / `lg` |
 | `disabled` | boolean | 否 | 是否禁用 |
 | `confirm` | string | 否 | 点击确认提示文本 |
 | `loading` | boolean | 否 | 是否显示加载状态 |

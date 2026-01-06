@@ -10,177 +10,37 @@ TGO 插件系统允许开发者通过标准化的接口扩展客服系统的功�
 
 ## 什么是 TGO 插件
 
-TGO 插件是一个独立运行的进程，通过 **Unix Socket** 与 TGO 宿主程序进行通讯。这种设计带来以下优势：
+TGO 插件是一个独立运行的进程，通过 **Unix Socket** 与 TGO 宿主程序进行通讯。
 
-- **语言无关**：使用任何支持 Unix Socket 的编程语言开发插件
-- **进程隔离**：插件崩溃不会影响主程序稳定性
-- **高性能**：Unix Socket 提供低延迟的进程间通讯
-- **双向通讯**：支持宿主和插件之间的双向实时通讯
-- **易于部署**：无需修改主程序代码
+### 核心优势
+- **语言无关**：支持任何能处理 Socket 通讯的语言。
+- **安全隔离**：插件进程独立运行，不影响主系统稳定性。
+- **实时双向**：支持宿主推送请求给插件，插件实时返回 UI 或指令。
 
-## 插件架构
+## 推荐开发方式
 
-TGO 采用类似 Docker 的 **C/S 架构**：宿主程序作为服务端，插件作为客户端主动连接。
+我们强烈推荐使用官方提供的 **SDK** 进行开发。SDK 封装了底层的通讯协议、重连机制和 UI 构建逻辑，让你可以专注于业务逻辑。
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                      TGO 客服系统（服务端）                   │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │
-│  │  访客面板   │  │  聊天工具栏  │  │   iframe 应用栏     │  │
-│  └──────┬──────┘  └──────┬──────┘  └──────────┬──────────┘  │
-│         │                │                    │              │
-│  ┌──────┴────────────────┴────────────────────┴──────────┐  │
-│  │              插件管理器（Socket 服务端）               │  │
-│  │              监听: /var/run/tgo/tgo.sock               │  │
-│  └────────────────────────┬──────────────────────────────┘  │
-└───────────────────────────┼─────────────────────────────────┘
-                            │
-            ┌───────────────┼───────────────┐
-            │               │               │
-            ▼               ▼               ▼
-      ┌───────────┐   ┌───────────┐   ┌───────────┐
-      │  插件 A   │   │  插件 B   │   │  插件 C   │
-      │ (Python)  │   │ (Node.js) │   │  (Go)     │
-      │  客户端   │   │  客户端   │   │  客户端   │
-      └───────────┘   └───────────┘   └───────────┘
-```
+| 语言 | 状态 | SDK 链接 |
+|------|------|----------|
+| **Go** | 推荐 | [Go SDK 使用指南](/plugin/sdk#go-sdk) |
+| **Python** | 推荐 | [Python SDK 使用指南](/plugin/sdk#python-sdk) |
 
-### Socket 路径
+## 文档学习路径
 
-TGO 宿主程序监听的 Unix Socket 路径：
-
-```
-/var/run/tgo/tgo.sock
-```
-
-插件启动后主动连接此 Socket，并发送 `register` 请求注册自己的能力。
+1. **[快速入门](/plugin/quickstart)**：5 分钟通过 SDK 运行你的第一个插件。
+2. **[SDK 开发指南](/plugin/sdk)**：深入了解 SDK 的 API、UI 构建器和 Action 系统。
+3. **[插件配置 (plugin.yml)](/plugin/manifest)**：详细了解如何配置插件的元数据、源码及构建方式。
+4. **[扩展点详解](/plugin/extension-points)**：详细了解各个可插点（访客面板、工具栏等）的交互逻辑。
+5. **[模版规范](/plugin/templates)**：了解 TGO 支持的所有 UI 组件模版。
+6. **[完整示例](/plugin/examples)**：通过真实的业务示例学习如何构建复杂的插件。
 
 ## 核心概念
 
-TGO 插件系统的交互基于两种 JSON 数据结构：
+TGO 插件系统的交互基于以下核心概念：
 
-| 类型 | 说明 | 用途 |
-|------|------|------|
-| **JSON-UI** | UI 描述数据 | 插件返回给宿主，由宿主渲染成界面 |
-| **JSON-ACTION** | 动作指令 | 插件返回给宿主，由宿主执行具体操作 |
-
-## UI 渲染流程
-
-插件的 UI 渲染遵循「**请求-渲染-事件-动作**」的交互模式：
-
-```mermaid
-sequenceDiagram
-    participant User as 用户
-    participant Host as TGO 宿主程序
-    participant Plugin as 插件进程
-    
-    Note over Host,Plugin: 阶段1：UI 渲染
-    Host->>Plugin: 发起渲染请求
-    Plugin-->>Host: 返回 JSON-UI
-    Host->>User: 渲染 UI 界面
-    
-    Note over Host,Plugin: 阶段2：事件处理
-    User->>Host: 点击按钮/触发事件
-    Host->>Plugin: 发送事件通知
-    Plugin-->>Host: 返回 JSON-ACTION
-    Host->>Host: 执行 ACTION
-```
-
-### 流程详解
-
-1. **宿主发起渲染请求**：当用户打开访客面板或触发插件时，宿主向插件发送渲染请求
-2. **插件返回 JSON-UI**：插件处理请求后，返回描述 UI 结构的 JSON 数据
-3. **宿主渲染界面**：宿主根据 JSON-UI 模版类型渲染对应的 UI 组件
-4. **用户触发事件**：用户点击按钮或进行其他交互操作
-5. **宿主发送事件**：宿主将用户操作以事件形式发送给插件
-6. **插件返回 JSON-ACTION**：插件处理事件后，返回需要执行的动作
-7. **宿主执行动作**：宿主根据 ACTION 类型执行相应操作（如打开链接、插入文本等）
-
-## 完整通讯流程
-
-```mermaid
-sequenceDiagram
-    participant Host as TGO 宿主程序（服务端）
-    participant Plugin as 插件进程（客户端）
-    
-    Note over Host: 启动并监听 /var/run/tgo/tgo.sock
-    Plugin->>Host: 连接 Socket
-    Plugin->>Host: 发送 register 请求
-    Host-->>Plugin: 返回注册成功
-    
-    rect rgb(240, 248, 255)
-        Note over Host,Plugin: UI 渲染循环
-        Host->>Plugin: render 请求
-        Plugin-->>Host: JSON-UI 响应
-    end
-    
-    rect rgb(255, 248, 240)
-        Note over Host,Plugin: 事件处理循环
-        Host->>Plugin: event 事件
-        Plugin-->>Host: JSON-ACTION 响应
-    end
-    
-    Host->>Plugin: shutdown 请求
-    Plugin-->>Host: 确认关闭
-    Plugin->>Plugin: 断开连接
-```
-
-## 可插点（Extension Points）
-
-TGO 提供以下四个可插点，插件可以选择实现其中一个或多个：
-
-| 可插点 | 标识符 | 说明 |
-|--------|--------|------|
-| **访客面板** | `visitor_panel` | 在聊天界面右侧的访客信息面板中添加自定义内容 |
-| **聊天工具栏** | `chat_toolbar` | 在输入框上方的工具栏添加自定义按钮 |
-| **iframe 应用** | `sidebar_iframe` | 在聊天界面最右侧添加 iframe 应用 |
-| **第三方平台** | `channel_integration` | 接入新的消息渠道（如自定义 IM 平台） |
-
-## 插件能力声明
-
-插件连接到宿主后，需要主动发送 `register` 请求声明自己的能力：
-
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "register",
-  "params": {
-    "name": "my-plugin",
-    "version": "1.0.0",
-    "description": "我的第一个 TGO 插件",
-    "author": "Your Name",
-    "capabilities": [
-      {
-        "type": "visitor_panel",
-        "title": "客户订单",
-        "icon": "shopping-cart"
-      },
-      {
-        "type": "chat_toolbar",
-        "title": "快捷回复",
-        "icon": "message"
-      }
-    ]
-  }
-}
-```
-
-## 开发语言选择
-
-由于插件通过 Unix Socket 通讯，你可以使用任何编程语言开发插件：
-
-| 语言 | 适用场景 | 官方示例 |
-|------|----------|----------|
-| **Python** | 快速开发、数据处理、AI 集成 | ✅ 提供 |
-| **Node.js** | 前端开发者、异步处理 | ✅ 提供 |
-| **Go** | 高性能、低资源占用 | 社区贡献 |
-| **Rust** | 极致性能、系统级插件 | 社区贡献 |
-
-## 下一步
-
-- [快速入门](/plugin/quickstart) - 5 分钟创建你的第一个插件
-- [通讯协议](/plugin/protocol) - 了解 Unix Socket 通讯协议细节
-- [可插点详解](/plugin/extension-points) - 深入了解每个可插点
-- [模版规范](/plugin/templates) - JSON 模版格式说明
-
+- **Extension Point (扩展点)**：插件挂载的位置，如 `visitor_panel` (访客面板) 或 `chat_toolbar` (工具栏)。
+- **Template (模版)**：描述 UI 结构的 JSON 数据。SDK 提供了丰富的 Builder（如 `Table`, `Form`, `Group`）来生成这些数据。
+- **Action (动作)**：指示宿主执行的具体操作，如 `OpenURL` (打开网页) 或 `ShowToast` (显示提示)。
+- **Capability (能力声明)**：插件在注册时声明自己支持哪些扩展点及其配置信息。
+- **plugin.yml (配置文件)**：插件的身份卡。定义了插件的 ID、版本、源码地址、构建方式及运行参数。它是 TGO 自动化管理插件的核心。
