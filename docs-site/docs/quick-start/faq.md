@@ -36,18 +36,20 @@ sidebar_position: 2
 
 **解决方案**：
 
-安装脚本会自动检测端口占用并分配新端口（如 8080、8443）。你也可以手动修改 `.env` 文件：
+安装脚本会自动检测端口占用并分配新端口（如 8080、8443）。你也可以使用以下命令手动修改端口：
 
 ```bash
-NGINX_PORT=8080
-NGINX_SSL_PORT=8443
+# 修改 HTTP 端口为 8080
+./tgo.sh config http_port 8080
+
+# 修改 HTTPS 端口为 8443
+./tgo.sh config https_port 8443
 ```
 
-修改后重新启动服务：
+修改后执行以下命令使配置生效：
 
 ```bash
-./tgo.sh down
-./tgo.sh up
+./tgo.sh apply
 ```
 
 ### 内存不足

@@ -100,8 +100,13 @@ const sidebars: SidebarsConfig = {
         },
         {
           type: 'doc',
-          id: 'plugin/protocol',
-          label: '通讯协议',
+          id: 'plugin/sdk',
+          label: 'SDK 开发指南',
+        },
+        {
+          type: 'doc',
+          id: 'plugin/manifest',
+          label: '插件配置 (plugin.yml)',
         },
         {
           type: 'doc',
