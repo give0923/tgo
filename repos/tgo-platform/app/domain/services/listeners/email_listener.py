@@ -117,7 +117,7 @@ class EmailChannelListener:
         self._consumer_task: asyncio.Task | None = None
         # Visitor registration service (with Redis caching if available)
         self._visitor_service = VisitorService(
-            base_url=settings.api_base,
+            base_url=settings.api_base_url,
             redis_url=settings.redis_url,
             cache_ttl_seconds=settings.visitor_cache_ttl_seconds,
         )

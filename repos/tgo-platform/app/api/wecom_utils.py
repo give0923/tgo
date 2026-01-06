@@ -360,7 +360,7 @@ async def resolve_visitor_platform_open_id(visitor_id: str) -> str:
                 return cached
         except Exception as e:
             logging.warning("[RESOLVE] Redis get failed for %s: %s", key, e)
-    async with httpx.AsyncClient(base_url=settings.api_base, timeout=settings.request_timeout_seconds) as client:
+    async with httpx.AsyncClient(base_url=settings.api_base_url, timeout=settings.request_timeout_seconds) as client:
         resp = await client.get(f"/v1/visitors/{vid}/basic")
         resp.raise_for_status()
         data = resp.json()

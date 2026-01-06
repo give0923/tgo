@@ -32,7 +32,7 @@ from app.domain.services.listeners.dingtalk_listener import DingTalkChannelListe
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup: create shared clients
-    app.state.tgo_api_client = HttpxTgoApiClient(settings.api_base, timeout=settings.request_timeout_seconds)
+    app.state.tgo_api_client = HttpxTgoApiClient(settings.api_base_url, timeout=settings.request_timeout_seconds)
     app.state.sse_manager = DefaultSSEManager()
 
     # Start multi-tenant Email listener supervisor (dynamic; safe if no email platforms exist)

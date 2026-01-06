@@ -475,6 +475,8 @@ Config Subcommands:
   widget_domain <domain>              Set widget service domain (e.g., widget.example.com)
   api_domain <domain>                 Set API service domain (e.g., api.example.com)
   ws_domain <domain>                  Set WebSocket service domain (e.g., ws.example.com)
+  http_port <port>                    Set Nginx HTTP port (default: 80)
+  https_port <port>                   Set Nginx HTTPS port (default: 443)
   ssl_mode <auto|manual|none>         Set SSL mode (auto=Let's Encrypt, manual=custom, none=no SSL)
   ssl_email <email>                   Set Let's Encrypt email for certificate renewal
   ssl_manual <cert> <key> [domain]    Install manual SSL certificate
@@ -624,9 +626,19 @@ ensure_env_files() {
 # VITE_API_BASE_URL=
 
 # PostgreSQL Configuration
-# POSTGRES_DB=tgo
-# POSTGRES_USER=tgo
-# POSTGRES_PASSWORD=tgo
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=tgo
+POSTGRES_USER=tgo
+POSTGRES_PASSWORD=tgo
+
+# Redis Configuration
+REDIS_HOST=redis
+REDIS_PORT=6379
+
+# Security Configuration
+# SECRET_KEY is used for JWT authentication and plugin communication
+SECRET_KEY=
 
 # Nginx Ports
 # NGINX_PORT=80
@@ -648,14 +660,24 @@ ENVEOF
       sync_env_file "$src_file" "envs/$filename"
     done
   fi
+  
+  # Source .env file to make variables available to the script
+  if [ -f "$ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    set -a
+    source "$ENV_FILE"
+    set +a
+  fi
 }
 
 ensure_api_secret_key() {
-  local file="envs/tgo-api.env"
-  [ -f "$file" ] || { echo "[WARN] $file not found; skipping SECRET_KEY generation"; return 0; }
+  local env_file=".env"
+  [ -f "$env_file" ] || { echo "[WARN] $env_file not found; skipping SECRET_KEY generation"; return 0; }
+  
   local placeholder="ad6b1be1e4f9d2b03419e0876d0d2a19c647c7ef1dd1d2d9d3f98a09b7b1c0e7"
   local current
-  current=$(grep -E '^SECRET_KEY=' "$file" | head -n1 | cut -d= -f2- || true)
+  current=$(grep -E '^SECRET_KEY=' "$env_file" | head -n1 | cut -d= -f2- || true)
+  
   if [ -z "$current" ] || [ "$current" = "$placeholder" ] || [ "$current" = "changeme" ] || [ ${#current} -lt 32 ]; then
     local newkey
     if command -v openssl >/dev/null 2>&1; then
@@ -673,16 +695,24 @@ PY
     else
       newkey=$(dd if=/dev/urandom bs=32 count=1 2>/dev/null | xxd -p -c 64 2>/dev/null || date +%s | shasum -a 256 | awk '{print $1}' | cut -c1-64)
     fi
-    local tmp="${file}.tmp"
-    if grep -qE '^SECRET_KEY=' "$file"; then
-      awk -v nk="$newkey" 'BEGIN{FS=OFS="="} /^SECRET_KEY=/{print "SECRET_KEY",nk; next} {print $0}' "$file" > "$tmp" && mv "$tmp" "$file"
-    else
-      printf "\nSECRET_KEY=%s\n" "$newkey" >> "$file"
-    fi
-    echo "[INFO] Generated new SECRET_KEY for tgo-api."
+    
+    update_env_var "SECRET_KEY" "$newkey"
+    echo "[INFO] Generated new SECRET_KEY in root .env file."
   else
-    echo "[INFO] SECRET_KEY already set and valid."
+    echo "[INFO] SECRET_KEY already set and valid in root .env file."
   fi
+
+  # Cleanup SECRET_KEY from service env files if they exist (to avoid confusion)
+  local api_file="envs/tgo-api.env"
+  local plugin_file="envs/tgo-plugin-runtime.env"
+  
+  for file in "$api_file" "$plugin_file"; do
+    if [ -f "$file" ] && grep -qE '^SECRET_KEY=' "$file"; then
+      local tmp="${file}.tmp"
+      grep -vE '^SECRET_KEY=' "$file" > "$tmp" && mv "$tmp" "$file"
+      echo "[INFO] Removed local SECRET_KEY from $file (using root .env instead)."
+    fi
+  done
 }
 
 # Get server's public IP address
@@ -892,22 +922,9 @@ configure_server_host() {
         echo "[INFO] Keeping existing server host: $existing_server_host"
         
         # Re-sync URLs with current port configuration
-        local nginx_port=""
-        nginx_port=$(grep -E "^NGINX_PORT=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "80")
-        nginx_port="${nginx_port:-80}"
+        update_frontend_urls "$existing_server_host"
         
-        local port_suffix=""
-        if [ "$nginx_port" != "80" ]; then
-          port_suffix=":${nginx_port}"
-        fi
-        
-        local protocol="http"
-        update_env_var "VITE_API_BASE_URL" "${protocol}://${existing_server_host}${port_suffix}/api"
-        update_env_var "VITE_WIDGET_PREVIEW_URL" "${protocol}://${existing_server_host}${port_suffix}/widget/"
-        update_env_var "VITE_WIDGET_SCRIPT_BASE" "${protocol}://${existing_server_host}${port_suffix}/widget/tgo-widget-sdk.js"
-        update_env_var "VITE_WIDGET_DEMO_URL" "${protocol}://${existing_server_host}${port_suffix}/widget/demo.html"
-        
-        echo "[INFO] URLs synchronized with port configuration (port: $nginx_port)"
+        echo "[INFO] URLs synchronized with port configuration"
         echo ""
         return 0
         ;;
@@ -1007,13 +1024,58 @@ configure_server_host() {
   
   # Update .env file
   update_env_var "SERVER_HOST" "$server_host"
-  update_env_var "VITE_API_BASE_URL" "$api_base_url"
-  update_env_var "VITE_WIDGET_PREVIEW_URL" "${protocol}://${server_host}${port_suffix}/widget/"
-  update_env_var "VITE_WIDGET_SCRIPT_BASE" "${protocol}://${server_host}${port_suffix}/widget/tgo-widget-sdk.js"
-  update_env_var "VITE_WIDGET_DEMO_URL" "${protocol}://${server_host}${port_suffix}/widget/demo.html"
+  update_frontend_urls "$server_host"
   
   echo ""
   echo "[INFO] Configuration saved to .env"
+  echo ""
+}
+
+# Update frontend URLs in .env based on host and port
+# Usage: update_frontend_urls <host>
+update_frontend_urls() {
+  local host="$1"
+  local protocol="http"
+  
+  # Read configured port from .env
+  local nginx_port=""
+  if [ -f "$ENV_FILE" ]; then
+    nginx_port=$(grep -E "^NGINX_PORT=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
+  fi
+  nginx_port="${nginx_port:-80}"
+  
+  # Build port suffix for URLs (only if non-standard port)
+  local port_suffix=""
+  if [ "$nginx_port" != "80" ]; then
+    port_suffix=":${nginx_port}"
+  fi
+  
+  local api_base_url="${protocol}://${host}${port_suffix}/api"
+  local widget_preview_url="${protocol}://${host}${port_suffix}/widget/"
+  local widget_script_base="${protocol}://${host}${port_suffix}/widget/tgo-widget-sdk.js"
+  local widget_demo_url="${protocol}://${host}${port_suffix}/widget/demo.html"
+
+  update_env_var "VITE_API_BASE_URL" "$api_base_url"
+  update_env_var "VITE_WIDGET_PREVIEW_URL" "$widget_preview_url"
+  update_env_var "VITE_WIDGET_SCRIPT_BASE" "$widget_script_base"
+  update_env_var "VITE_WIDGET_DEMO_URL" "$widget_demo_url"
+  
+  echo "[INFO] Updated API URL: $api_base_url"
+  echo "[INFO] Updated Widget URL: ${protocol}://${host}${port_suffix}/widget"
+}
+
+# Configure core services (DB, Redis) and save to .env
+configure_core_settings() {
+  echo ""
+  echo "========================================="
+  echo "  Core Services Configuration"
+  echo "========================================="
+  echo ""
+  echo "[INFO] Using default settings for PostgreSQL and Redis."
+  echo "[INFO] You can change these in the .env file later if needed."
+  echo ""
+  echo "  PostgreSQL: ${POSTGRES_USER:-tgo}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-tgo}"
+  echo "  Redis:      ${REDIS_HOST:-redis}:${REDIS_PORT:-6379}"
   echo ""
 }
 
@@ -1234,6 +1296,17 @@ cmd_install() {
 
   # Configure server host (IP or domain)
   configure_server_host
+
+  # Configure core settings (DB, Redis)
+  configure_core_settings
+
+  # Re-source .env to ensure current shell has the updated values before starting docker
+  if [ -f "$ENV_FILE" ]; then
+    set -a
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+    set +a
+  fi
 
   # Save install mode for future upgrade commands
   save_install_mode "$mode" "$use_cn"
@@ -1888,6 +1961,31 @@ cmd_config() {
       update_domain_env_vars
       regenerate_nginx_config
       ;;
+    http_port)
+      if [ $# -eq 0 ]; then
+        echo "[ERROR] Port value required"
+        exit 1
+      fi
+      local port="$1"
+      update_env_var "NGINX_PORT" "$port"
+      echo "[INFO] HTTP port set to: $port"
+      
+      # Re-sync frontend URLs if SERVER_HOST exists
+      local current_host
+      current_host=$(grep -E "^SERVER_HOST=" "$ENV_FILE" 2>/dev/null | cut -d= -f2- || echo "")
+      if [ -n "$current_host" ]; then
+        update_frontend_urls "$current_host"
+      fi
+      ;;
+    https_port)
+      if [ $# -eq 0 ]; then
+        echo "[ERROR] Port value required"
+        exit 1
+      fi
+      local port="$1"
+      update_env_var "NGINX_SSL_PORT" "$port"
+      echo "[INFO] HTTPS port set to: $port"
+      ;;
     ssl_mode)
       if [ $# -eq 0 ]; then
         echo "[ERROR] SSL mode required (auto|manual|none)"
@@ -2033,6 +2131,8 @@ cmd_config() {
       echo "  widget_domain <domain>        Set widget service domain"
       echo "  api_domain <domain>           Set API service domain"
       echo "  ws_domain <domain>            Set WebSocket service domain (WuKongIM)"
+      echo "  http_port <port>              Set Nginx HTTP port"
+      echo "  https_port <port>             Set Nginx HTTPS port"
       echo "  ssl_mode <auto|manual|none>   Set SSL mode"
       echo "  ssl_email <email>             Set Let's Encrypt email"
       echo "  ssl_manual <cert> <key> [domain]  Install manual SSL certificate"

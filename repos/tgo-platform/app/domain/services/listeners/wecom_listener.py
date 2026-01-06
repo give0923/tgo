@@ -64,7 +64,7 @@ class WeComChannelListener:
         self._stop_event = asyncio.Event()
         self._consumer_task: asyncio.Task | None = None
         self._visitor_service = VisitorService(
-            base_url=settings.api_base,
+            base_url=settings.api_base_url,
             cache_ttl_seconds=300,
             redis_url=settings.redis_url,
         )

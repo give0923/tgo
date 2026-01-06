@@ -97,7 +97,7 @@ def run_migrations_offline() -> None:
     Calls to context.execute() here emit the given string to the script output.
     """
 
-    url = settings.pg_dsn
+    url = settings.database_url
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -132,7 +132,7 @@ def do_run_migrations(connection: Connection) -> None:
 def run_migrations_online() -> None:
     """Run migrations in 'online' mode using an AsyncEngine."""
 
-    connectable: AsyncEngine = create_async_engine(settings.pg_dsn, poolclass=pool.NullPool)
+    connectable: AsyncEngine = create_async_engine(settings.database_url, poolclass=pool.NullPool)
 
     async def run() -> None:
         async with connectable.connect() as connection:

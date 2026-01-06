@@ -227,10 +227,10 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_prefix="TGO_", extra="ignore")
 
-    api_base: str  # tgo-api base url
+    api_base_url: str  # tgo-api base url
 
 
-    pg_dsn: str    # e.g. postgresql+asyncpg://user:pass@host:5432/db
+    database_url: str    # e.g. postgresql+asyncpg://user:pass@host:5432/db
     sse_backpressure_limit: int = 1000
     request_timeout_seconds: int = 120
 ```
@@ -397,7 +397,7 @@ async def debug_pipe():
 ```python
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-engine = create_async_engine(settings.pg_dsn, echo=False, pool_pre_ping=True)
+engine = create_async_engine(settings.database_url, echo=False, pool_pre_ping=True)
 SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
 async def get_db() -> AsyncSession:
@@ -410,9 +410,9 @@ async def get_db() -> AsyncSession:
 ### 6) 配置示例（Pydantic Settings 2.x）
 .env.example
 ```
-TGO_API_BASE=https://tgo-api.example.com
+TGO_API_BASE_URL=https://tgo-api.example.com
 
-TGO_PG_DSN=postgresql+asyncpg://user:pass@127.0.0.1:5432/tgo
+TGO_DATABASE_URL=postgresql+asyncpg://user:pass@127.0.0.1:5432/tgo
 TGO_REQUEST_TIMEOUT_SECONDS=120
 
 # Global SMTP (outbound email)
