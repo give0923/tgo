@@ -416,10 +416,10 @@ AESKey: your_43_chars_encoding_aes_key`}</pre>
       `}</style>
       <ConfirmDialog
         isOpen={confirmOpen}
-        title=""
-        message="?"
-        confirmText=""
-        cancelText=""
+        title={t('platforms.wecom.confirm.deleteTitle', '删除平台')}
+        message={t('platforms.wecom.confirm.deleteMessage', '确定要删除此平台吗？')}
+        confirmText={t('platforms.wecom.confirm.confirmText', '删除')}
+        cancelText={t('platforms.wecom.confirm.cancelText', '取消')}
         confirmVariant="danger"
         isLoading={isDeleting}
         onCancel={() => setConfirmOpen(false)}
@@ -432,7 +432,7 @@ AESKey: your_43_chars_encoding_aes_key`}</pre>
               ? (idx < platforms.length - 1 ? platforms[idx + 1]?.id : (idx > 0 ? platforms[idx - 1]?.id : null))
               : null;
             await deletePlatform(platform.id);
-            showSuccess(showToast, '', '');
+            showSuccess(showToast, t('platforms.wecom.messages.deleteSuccess', '删除成功'), t('platforms.wecom.messages.deleteSuccessMessage', '企业微信平台已删除'));
             setConfirmOpen(false);
             if (nextId) navigate(`/platforms/${nextId}`);
             else navigate('/platforms');

@@ -283,7 +283,7 @@ const TelegramPlatformConfig: React.FC<Props> = ({ platform }) => {
                                 <li>{t('platforms.telegram.guide.step2Item3', '点击「保存」后，再点击右上角的「启用」按钮。')}</li>
                             </ol>
                             <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded p-2 text-xs text-blue-800 dark:text-blue-200 mt-2">
-                                <p className="font-semibold">💡 自动配置</p>
+                                <p className="font-semibold">{t('platforms.telegram.guide.step2AutoConfigTitle', '💡 自动配置')}</p>
                                 <p>{t('platforms.telegram.guide.step2AutoConfig', '点击「启用」后，系统会自动向 Telegram 注册 Webhook 地址，无需手动操作。')}</p>
                             </div>
                         </div>

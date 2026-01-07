@@ -1775,7 +1775,71 @@
       "label": "WhatsApp"
     },
     "telegram": {
-      "label": "Telegram"
+      "label": "Telegram",
+      "header": {
+        "title": "{{name}} 配置",
+        "subtitle": "配置 Telegram Bot 所需的凭据与回调。"
+      },
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "copy": "复制"
+      },
+      "form": {
+        "name": "平台名称",
+        "namePlaceholder": "请输入平台名称",
+        "callbackUrl": "Webhook URL",
+        "callbackUrlPlaceholder": "平台创建后会生成 Webhook URL",
+        "callbackUrlHint": "使用 setWebhook API 将此 URL 设置为 Bot 的 Webhook 地址。",
+        "botToken": "Bot Token",
+        "botTokenPlaceholder": "例如: 123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+        "botTokenHint": "通过 @BotFather 创建 Bot 后获取的 Token，请妥善保管。",
+        "webhookSecret": "Webhook Secret（可选）",
+        "webhookSecretPlaceholder": "用于验证 webhook 请求来源",
+        "webhookSecretHint": "在 setWebhook 时通过 secret_token 参数设置相同的值，用于验证请求来源。"
+      },
+      "guide": {
+        "title": "Telegram Bot 配置指南",
+        "overview": "✨ 极简配置",
+        "overviewText": "只需：①创建 Bot 获取 Token → ②填入 Token → ③点击「启用」。系统会自动配置 Webhook！",
+        "step1Title": "1️⃣ 创建 Telegram Bot",
+        "step1Item1": "在 Telegram 中搜索 <a class=\"text-blue-600 hover:underline\" href=\"https://t.me/BotFather\" target=\"_blank\" rel=\"noreferrer\">@BotFather</a> 并打开对话。",
+        "step1Item2": "发送 /newbot 命令开始创建机器人。",
+        "step1Item3": "按提示输入机器人名称（显示名）和用户名（以 _bot 结尾）。",
+        "step1Item4": "BotFather 将返回 Bot Token，复制备用。",
+        "step2Title": "2️⃣ 配置并启用",
+        "step2Item1": "在左侧「Bot Token」输入框中粘贴 Token。",
+        "step2Item2": "（可选）填写「Webhook Secret」增强安全性。",
+        "step2Item3": "点击「保存」后，再点击右上角的「启用」按钮。",
+        "step2AutoConfigTitle": "💡 自动配置",
+        "step2AutoConfig": "点击「启用」后，系统会自动向 Telegram 注册 Webhook 地址，无需手动操作。",
+        "step3Title": "3️⃣ 测试机器人",
+        "step3Item1": "在 Telegram 中搜索你的 Bot 用户名并开始对话。",
+        "step3Item2": "发送任意消息，AI 将自动回复。",
+        "step3Item3": "如需将 Bot 添加到群组，确保在 BotFather 中开启「Allow Groups」选项。",
+        "docsLink": "Telegram Bot API 文档"
+      },
+      "dialog": {
+        "deleteTitle": "确认删除",
+        "deleteMessage": "确定要删除此 Telegram Bot 平台吗？此操作不可撤销。",
+        "confirmDelete": "删除",
+        "cancel": "取消"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "Telegram 配置已更新",
+        "deleteSuccess": "删除成功",
+        "deleteSuccessMessage": "Telegram Bot 平台已删除",
+        "urlCopied": "Webhook URL 已复制",
+        "disabled": "平台已禁用",
+        "enabled": "平台已启用"
+      }
     },
     "email": {
       "label": "邮件",
@@ -2068,7 +2132,7 @@
     "wecom": {
       "label": "企业微信",
       "header": {
-        "title": "企业微信配置",
+        "title": "{{name}} 配置",
         "subtitle": "配置企业微信（WeCom）对接所需的凭据与回调。"
       },
       "buttons": {
@@ -2085,14 +2149,14 @@
         "copy": "复制"
       },
       "form": {
-        "platformName": "平台名称",
-        "platformNamePlaceholder": "请输入平台名称",
+        "name": "平台名称",
+        "namePlaceholder": "请输入平台名称",
         "corpId": "企业ID（CorpID）",
         "corpIdPlaceholder": "例如：ww1234567890abcdef",
         "corpIdHint": "可在「我的企业」-「企业信息」中查看。",
-        "agent_id": "应用 AgentId",
-        "agent_idPlaceholder": "例如：1000002",
-        "agent_idHint": "在企业微信管理后台的应用详情页获取。",
+        "agentId": "应用 AgentId",
+        "agentIdPlaceholder": "例如：1000002",
+        "agentIdHint": "在企业微信管理后台的应用详情页获取。",
         "appSecret": "应用 Secret",
         "appSecretPlaceholder": "请输入应用Secret",
         "appSecretHint": "用于调用企业微信接口的凭证，请妥善保管。",
@@ -2142,11 +2206,11 @@
       "messages": {
         "saveSuccess": "保存成功",
         "saveSuccessMessage": "企业微信平台配置已更新",
-        "platformDisabled": "平台已禁用",
-        "platformEnabled": "平台已启用",
-        "callbackUrlCopied": "回调 URL 已复制",
-        "deleteSuccess": "平台已删除",
-        "deleteSuccessMessage": "平台已删除"
+        "disabled": "平台已禁用",
+        "enabled": "平台已启用",
+        "urlCopied": "回调 URL 已复制",
+        "deleteSuccess": "删除成功",
+        "deleteSuccessMessage": "企业微信平台已删除"
       },
       "confirm": {
         "deleteTitle": "删除平台",
@@ -2154,6 +2218,209 @@
         "confirmText": "删除",
         "cancelText": "取消"
       }
+    },
+    "dingtalkBot": {
+      "label": "钉钉机器人",
+      "header": {
+        "title": "{{name}} 配置",
+        "subtitle": "配置钉钉机器人对接所需的凭据与回调。"
+      },
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "copy": "复制"
+      },
+      "form": {
+        "name": "平台名称",
+        "namePlaceholder": "请输入平台名称",
+        "callbackUrl": "消息接收地址",
+        "callbackUrlPlaceholder": "平台创建后会生成消息接收地址",
+        "callbackUrlHint": "将此 URL 填入钉钉机器人的「消息接收地址」配置中。",
+        "appKey": "App Key",
+        "appKeyPlaceholder": "钉钉应用的 AppKey",
+        "appKeyHint": "可在钉钉开放平台应用详情的「凭证与基础信息」中获取。",
+        "appSecret": "App Secret",
+        "appSecretPlaceholder": "钉钉应用的 AppSecret",
+        "appSecretHint": "可在钉钉开放平台应用详情的「凭证与基础信息」中获取，请妥善保管。",
+        "robotCode": "Robot Code（机器人编码）",
+        "robotCodePlaceholder": "钉钉机器人的唯一编码",
+        "robotCodeHint": "可在钉钉开放平台机器人配置页面获取。",
+        "aesKey": "AES Key（加密密钥）",
+        "aesKeyPlaceholder": "用于消息加解密的密钥",
+        "aesKeyHint": "用于解密钉钉推送的事件消息，可在钉钉开放平台获取。",
+        "token": "Token（签名校验令牌）",
+        "tokenPlaceholder": "用于消息签名校验的令牌",
+        "tokenHint": "用于验证事件订阅请求的来源，可在钉钉开放平台获取。"
+      },
+      "guide": {
+        "title": "钉钉机器人配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下三步：①在钉钉开放平台创建应用/机器人 → ②配置消息接收地址并获取凭证信息 → ③将信息回填到本平台并保存。",
+        "step1Title": "1️⃣ 创建钉钉应用/机器人",
+        "step1Item1": "访问 <a class=\"text-blue-600 hover:underline\" href=\"https://open.dingtalk.com/developer\" target=\"_blank\" rel=\"noreferrer\">钉钉开放平台</a>，登录并进入开发者后台。",
+        "step1Item2": "点击「应用开发」→「企业内部开发」→「创建应用」。",
+        "step1Item3": "填写应用名称、描述等信息，点击确认创建。",
+        "step1Item4": "在应用详情页，找到「机器人」功能，点击「创建机器人」。",
+        "step2Title": "2️⃣ 配置消息接收与安全设置",
+        "step2Item1": "在机器人配置页面，找到「消息接收模式」，选择「HTTP模式」。",
+        "step2Item2": "复制左侧「消息接收地址」，粘贴到钉钉的「消息接收地址」输入框中。",
+        "step2Item3": "在「凭证与基础信息」页面，复制「AppKey」和「AppSecret」，填入左侧对应输入框。",
+        "step2Item4": "在机器人配置页面，复制「RobotCode」，填入左侧「Robot Code」输入框。",
+        "step2Item5": "在「开发配置」→「事件订阅」中，复制「AES Key」和「Token」，填入左侧对应输入框。",
+        "step2SecurityTitle": "安全提示",
+        "step2SecurityText": "请妥善保管 AppSecret、AES Key 和 Token，它们用于验证消息来源和加解密消息内容。",
+        "step3Title": "3️⃣ 发布应用",
+        "step3Item1": "在本平台点击「保存」按钮保存配置。",
+        "step3Item2": "回到钉钉开放平台，点击「版本管理与发布」→「创建版本」。",
+        "step3Item3": "提交版本审核，等待管理员审批后即可使用。",
+        "docsLink": "钉钉机器人开发文档"
+      },
+      "dialog": {
+        "deleteTitle": "确认删除",
+        "deleteMessage": "确定要删除此钉钉机器人平台吗？此操作不可撤销。",
+        "confirmDelete": "删除",
+        "cancel": "取消"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "钉钉机器人配置已更新",
+        "deleteSuccess": "删除成功",
+        "deleteSuccessMessage": "钉钉机器人平台已删除",
+        "urlCopied": "消息接收地址已复制",
+        "disabled": "平台已禁用",
+        "enabled": "平台已启用"
+      }
+    },
+    "feishuBot": {
+      "label": "飞书机器人",
+      "header": {
+        "title": "{{name}} 配置",
+        "subtitle": "配置飞书机器人对接所需的凭据与回调。"
+      },
+      "buttons": {
+        "delete": "删除",
+        "deleting": "删除中…",
+        "enable": "启用",
+        "disable": "禁用",
+        "enabling": "启用中…",
+        "disabling": "禁用中…",
+        "save": "保存",
+        "saving": "保存中…",
+        "copy": "复制"
+      },
+      "form": {
+        "name": "平台名称",
+        "namePlaceholder": "请输入平台名称",
+        "callbackUrl": "请求地址 URL",
+        "callbackUrlPlaceholder": "平台创建后会生成请求地址",
+        "callbackUrlHint": "将此 URL 填入飞书机器人的「请求地址」配置中。",
+        "appId": "App ID",
+        "appIdPlaceholder": "飞书应用的 App ID",
+        "appIdHint": "可在飞书开放平台应用详情的「凭证与基础信息」中获取。",
+        "appSecret": "App Secret",
+        "appSecretPlaceholder": "飞书应用的 App Secret",
+        "appSecretHint": "可在飞书开放平台应用详情的「凭证与基础信息」中获取，请妥善保管。",
+        "encryptKey": "Encrypt Key（加密密钥）",
+        "encryptKeyPlaceholder": "飞书开放平台提供的加密密钥",
+        "encryptKeyHint": "用于解密飞书推送的事件消息，可在飞书开放平台获取。",
+        "verificationToken": "Verification Token（验证令牌）",
+        "verificationTokenPlaceholder": "飞书开放平台提供的验证令牌",
+        "verificationTokenHint": "用于验证事件订阅请求的来源，可在飞书开放平台获取。"
+      },
+      "guide": {
+        "title": "飞书机器人配置指南",
+        "overview": "快速概览",
+        "overviewText": "完成以下三步：①在飞书开放平台创建应用/机器人 → ②配置请求地址并获取 Encrypt Key 和 Verification Token → ③将信息回填到本平台并保存。",
+        "step1Title": "1️⃣ 创建飞书应用/机器人",
+        "step1Item1": "访问 <a class=\"text-blue-600 hover:underline\" href=\"https://open.feishu.cn/app\" target=\"_blank\" rel=\"noreferrer\">飞书开放平台</a>，登录并进入开发者后台。",
+        "step1Item2": "点击「创建企业自建应用」，填写应用名称和描述。",
+        "step1Item3": "进入应用详情，在左侧菜单找到「机器人」，开启机器人能力。",
+        "step2Title": "2️⃣ 配置事件订阅",
+        "step2Item1": "在应用详情页，进入「事件订阅」配置。",
+        "step2Item2": "复制左侧「请求地址 URL」，粘贴到飞书的「请求地址」输入框中。",
+        "step2Item3": "在页面上找到「Encrypt Key」和「Verification Token」，复制并分别填入左侧对应的输入框。",
+        "step2Item4": "添加需要订阅的事件，如「接收消息」(im.message.receive_v1)。",
+        "step2SecurityTitle": "安全提示",
+        "step2SecurityText": "请妥善保管 Encrypt Key 和 Verification Token，它们用于验证消息来源和解密消息内容。",
+        "step3Title": "3️⃣ 发布应用",
+        "step3Item1": "在本平台点击「保存」按钮保存配置。",
+        "step3Item2": "回到飞书开放平台，点击「版本管理与发布」→「创建版本」。",
+        "step3Item3": "提交版本审核，等待管理员审批后即可使用。",
+        "docsLink": "飞书机器人开发文档"
+      },
+      "dialog": {
+        "deleteTitle": "确认删除",
+        "deleteMessage": "确定要删除此飞书机器人平台吗？此操作不可撤销。",
+        "confirmDelete": "删除",
+        "cancel": "取消"
+      },
+      "messages": {
+        "saveSuccess": "保存成功",
+        "saveSuccessMessage": "飞书机器人配置已更新",
+        "deleteSuccess": "删除成功",
+        "deleteSuccessMessage": "飞书机器人平台已删除",
+        "urlCopied": "请求地址已复制",
+        "disabled": "平台已禁用",
+        "enabled": "平台已启用"
+      }
+    },
+    "custom": {
+      "label": "自定义",
+      "title": "自定义平台配置",
+      "subtitle": "配置第三方程序集成所需的 API 信息与回调地址。",
+      "configSection": "配置信息",
+      "platformName": "平台名称",
+      "platformNamePlaceholder": "请输入平台名称",
+      "integration": {
+        "title": "API 集成信息",
+        "guide": "集成指南",
+        "chatApi": "对话接口说明（发送消息到 TGO）",
+        "endpoint": "接口地址",
+        "authentication": "认证方式",
+        "authDesc": "在请求头中添加平台 API 密钥：",
+        "requiredParams": "必需参数",
+        "messagesDesc": "对话消息数组，格式与 OpenAI ChatGPT API 兼容",
+        "userDesc": "第三方平台的用户唯一标识（必需）",
+        "simpleExample": "简单示例",
+        "responseHandling": "响应处理",
+        "responseHandlingDesc": "调用对话接口后，TGO 系统会返回 AI 助手的回复内容。第三方平台需要将返回的回复内容发送给对应的第三方用户。响应格式与 OpenAI ChatGPT API 兼容，支持流式和非流式响应。",
+        "callbackApi": "回调接口说明（接收客服回复）",
+        "callbackConfig": "配置回调地址",
+        "callbackConfigDesc": "在左侧\"回调地址\"字段中配置您的回调 URL，当客服回复消息时，系统会向该地址发送 POST 请求。",
+        "requestFormat": "请求格式",
+        "fieldDescriptions": "字段说明",
+        "messageIdDesc": "消息唯一标识",
+        "callbackUserDesc": "第三方用户标识（与对话接口中的 user 字段对应）",
+        "contentDesc": "客服回复的消息内容",
+        "timestampDesc": "消息时间戳（ISO 8601 格式）",
+        "responseRequirement": "响应要求",
+        "responseRequirementDesc": "请确保回调地址可公网访问，并返回 HTTP 200 状态码表示接收成功。"
+      },
+      "chatUrl": "对话接口地址",
+      "chatUrlHint": "第三方程序调用此地址发送对话消息。",
+      "apiKey": "API 密钥",
+      "apiKeyHint": "在请求头中使用 X-Platform-API-Key 进行认证。",
+      "callbackUrl": "回调地址",
+      "callbackUrlHint": "当客服回复消息时，系统会将消息推送到此地址",
+      "callbackUrlPlaceholder": "https://your-domain.com/webhook/callback",
+      "notAvailable": "暂无",
+      "saveSuccess": "保存成功",
+      "disabled": "平台已禁用",
+      "enabled": "平台已启用",
+      "confirmRegenerate": "确定要重新生成 API 密钥吗？旧密钥将立即失效。",
+      "regenerated": "API 密钥已重新生成",
+      "deleted": "平台已删除",
+      "deleteTitle": "删除平台",
+      "deleteMessage": "确定要删除平台\"{{name}}\"吗？此操作无法撤销。",
+      "copied": "{{label}} 已复制到剪贴板",
+      "invalidUrl": "无效的 URL 格式",
+      "invalidUrlHint": "请输入有效的 HTTP/HTTPS 地址"
     },
     "unknown": {
       "label": "未知平台"
