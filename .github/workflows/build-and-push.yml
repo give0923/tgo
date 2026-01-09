@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       services:
-        description: 'Services to build (comma-separated, or leave empty for all). Example: tgo-api,tgo-web'
+        description: 'Services to build (comma-separated, or leave empty for all except tgo-rag). Example: tgo-api,tgo-web'
         required: false
         default: ''
 
@@ -82,6 +82,14 @@ jobs:
             [ -d "$dir" ] || continue
             name="${dir#repos/}"
             name="${name%/}"
+
+            # Skip tgo-rag during auto-discovery as it takes too long to build.
+            # You can still build it manually via workflow_dispatch or specific tags (e.g., tgo-rag-v1.0.0).
+            if [ "$name" == "tgo-rag" ]; then
+              echo "− Skipping tgo-rag (auto-discovery excluded)"
+              continue
+            fi
+
             # Ensure the service has a Dockerfile
             if [ -f "repos/$name/Dockerfile" ]; then
               services+=("$name")
