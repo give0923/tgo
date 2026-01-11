@@ -12,6 +12,7 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog';
 import { useProjectToolsStore } from '@/stores/projectToolsStore';
 import { transformAiToolResponseList, searchProjectTools } from '@/utils/projectToolsTransform';
 import { AiToolsGridSkeleton, AiToolsErrorState, AiToolsEmptyState } from '@/components/ui/AiToolsSkeleton';
+import ToolStoreModal from './ToolStoreModal';
 import type { AiTool, AiToolResponse } from '@/types';
 
 /**
@@ -24,6 +25,7 @@ const ToolsContent: React.FC = () => {
   const [showAddHTTPToolModal, setShowAddHTTPToolModal] = useState<boolean>(false);
   const [showEditToolModal, setShowEditToolModal] = useState<boolean>(false);
   const [showEditHTTPToolModal, setShowEditHTTPToolModal] = useState<boolean>(false);
+  const [showToolStoreModal, setShowToolStoreModal] = useState<boolean>(false);
   const [selectedToolForEdit, setSelectedToolForEdit] = useState<AiToolResponse | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<boolean>(false);
   const [toolToDelete, setToolToDelete] = useState<AiTool | null>(null);
@@ -156,6 +158,14 @@ const ToolsContent: React.FC = () => {
 
           <button
             className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm"
+            onClick={() => setShowToolStoreModal(true)}
+          >
+            <LuPackage className="w-4 h-4 text-blue-600" />
+            <span>{t('tools.toolStore', '工具商店')}</span>
+          </button>
+
+          <button
+            className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 text-sm font-bold rounded-xl border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all active:scale-95 shadow-sm"
             onClick={() => setShowAddHTTPToolModal(true)}
           >
             <Globe className="w-4 h-4" />
@@ -249,6 +259,12 @@ const ToolsContent: React.FC = () => {
           setSelectedToolForEdit(null);
         }}
         tool={selectedToolForEdit}
+      />
+
+      {/* Tool Store Modal */}
+      <ToolStoreModal
+        isOpen={showToolStoreModal}
+        onClose={() => setShowToolStoreModal(false)}
       />
 
       <ConfirmDialog
